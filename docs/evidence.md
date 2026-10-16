@@ -25,22 +25,22 @@ Printed page numbers match PDF page numbers. The PDF is not committed; see [refe
 
 Confidence: **high** (explicit text or table value), **medium** (figure reading or single-source statement), **low** (ambiguous or conflicting).
 
-Test column names the planned Catch2 tag from AGENTS.md section 13.1. Status values: *planned*, *implemented*, *passing*, *failing*, *deviation*. *passing* means the linked test exists and passes where [features.md](features.md) records its availability.
+Test column names the planned Catch2 tag from AGENTS.md section 13.1. Status values: *planned*, *implemented*, *passing*, *failing*, *deviation*, *not modeled*, *informational*. *passing* means the linked test exists and passes where [features.md](features.md) records its availability. *not modeled* means the fact is recorded but deliberately has no software counterpart: it needs hardware data, describes a part of the chip outside the model, or would invent behavior. *informational* marks context with nothing to implement.
 
 ## 1. Structure and operating conditions
 
 | ID   | Fact                                                                              | Class | Source                  | Conf.  | Requirement     | Test        | Status  |
 | ---- | --------------------------------------------------------------------------------- | ----- | ----------------------- | ------ | --------------- | ----------- | ------- |
-| D-01 | Stereo 20-bit delta-sigma DAC, 128x oversampling                                  | D     | p.1 Features            | high   | REQ-SCOPE-01    | n/a         | planned |
+| D-01 | Stereo 20-bit delta-sigma DAC, 128x oversampling                                  | D     | p.1 Features            | high   | REQ-SCOPE-01    | `[pcm]` | passing (20-bit stereo); 128x modulator not modeled (equivalent baseband, REQ-MOD-01) |
 | D-02 | 8x interpolator precedes each DAC delta-sigma modulator                           | D     | p.1 block diagram       | high   | REQ-FILTER-01   | `[filter]`  | passing |
 | D-03 | DAC analog filtering is 2nd-order SCF plus 2nd-order CTF                          | D     | p.1 Features; p.16 s.4  | high   | REQ-FILTER-02   | `[filter]`  | passing |
 | D-04 | DAC sample rate 16 to 48 kHz; LRCK typical 44.1 kHz                               | D     | p.1; p.7 LRCK fsn       | high   | REQ-CLOCK-01    | `[clock]`   | passing |
 | D-05 | MCLK ratio 256fs, 384fs, or 512fs                                                 | D     | p.1; p.3 pin 21; p.9    | high   | REQ-CLOCK-01    | `[clock]`   | passing |
-| D-06 | VA 4.5 to 5.5 V; VD 2.7 V min, 5.0 V typ, VA max                                  | D     | p.4 recommended         | high   | REQ-ANALOG-01   | n/a         | planned |
-| D-07 | DAC outputs single-ended, centered on VCOM; VCOM = VA/2                           | D     | p.3 pin 24; p.16 s.4    | high   | REQ-ANALOG-01   | `[analog]`  | planned |
-| D-08 | *new* VREFH sets the output range; normally connected to VA                       | D     | p.3 pin 1; p.15 s.2     | high   | REQ-ANALOG-01   | `[analog]`  | planned |
-| D-09 | *new* SCF and CTF remove most modulator noise beyond the audio passband           | D     | p.16 s.4                | high   | REQ-MOD-01      | n/a         | planned |
-| D-10 | AK4522VF: 24-pin VSOP, rated -10 to +70 degrees C                                 | D     | p.2 ordering guide      | high   | n/a             | n/a         | planned |
+| D-06 | VA 4.5 to 5.5 V; VD 2.7 V min, 5.0 V typ, VA max                                  | D     | p.4 recommended         | high   | REQ-ANALOG-01   | n/a         | not modeled (no supply model) |
+| D-07 | DAC outputs single-ended, centered on VCOM; VCOM = VA/2                           | D     | p.3 pin 24; p.16 s.4    | high   | REQ-ANALOG-01   | `[analog]`  | passing |
+| D-08 | *new* VREFH sets the output range; normally connected to VA                       | D     | p.3 pin 1; p.15 s.2     | high   | REQ-ANALOG-01   | `[analog]`  | passing |
+| D-09 | *new* SCF and CTF remove most modulator noise beyond the audio passband           | D     | p.16 s.4                | high   | REQ-MOD-01      | n/a         | not modeled (no modulator noise to remove; REQ-MOD-01) |
+| D-10 | AK4522VF: 24-pin VSOP, rated -10 to +70 degrees C                                 | D     | p.2 ordering guide      | high   | n/a             | n/a         | informational |
 
 ## 2. DAC digital filter and combined response
 
@@ -82,15 +82,15 @@ Conditions: Ta = 25 degrees C, VA = VD = 5 V, VREFH = VA, fs = 44.1 kHz, SCLK = 
 | D-A03 | S/N, A-weighted                          | 95 dB    | 100 dB          |          | D     | p.5, notes 6,9 | high | REQ-NOISE-01   | `[analog]` | passing |
 | D-A04 | Interchannel isolation                   | 90 dB    | 110 dB          |          | D     | p.5           | high  | REQ-CHANNEL-01 | `[analog]` | passing |
 | D-A05 | Interchannel gain mismatch               |          | 0.2 dB          | 0.5 dB   | D     | p.5           | high  | REQ-CHANNEL-01 | `[analog]` | passing |
-| D-A06 | Gain drift                               |          | 20 ppm/degree C |          | D     | p.5           | high  | n/a (not modeled) | n/a     | planned |
+| D-A06 | Gain drift                               |          | 20 ppm/degree C |          | D     | p.5           | high  | n/a (not modeled) | n/a     | not modeled |
 | D-A07 | Output voltage (labeled AOUT = 0.6 x VREFH) | 2.65 Vpp | 2.9 Vpp      | 3.15 Vpp | D     | p.5           | high  | REQ-ANALOG-01  | `[analog]` | passing |
-| D-A08 | Load resistance                          | 5 kohm   |                 |          | D     | p.5           | high  | n/a (not modeled) | n/a     | planned |
-| D-A09 | Load capacitance                         |          |                 | 25 pF    | D     | p.5           | high  | n/a (not modeled) | n/a     | planned |
-| D-A10 | Power-supply rejection                   |          | 50 dB           |          | D     | p.5, note 8   | high  | n/a (not modeled) | n/a     | planned |
+| D-A08 | Load resistance                          | 5 kohm   |                 |          | D     | p.5           | high  | n/a (not modeled) | n/a     | not modeled |
+| D-A09 | Load capacitance                         |          |                 | 25 pF    | D     | p.5           | high  | n/a (not modeled) | n/a     | not modeled |
+| D-A10 | Power-supply rejection                   |          | 50 dB           |          | D     | p.5, note 8   | high  | n/a (not modeled) | n/a     | not modeled |
 | D-A11 | 16-bit DAC dynamic range                 |          | 98 dB           |          | D     | p.5 note 5    | high  | REQ-NOISE-01   | `[analog]` | passing |
 | D-A12 | Zero-input S/N, any resolution           |          | 100 dB          |          | D     | p.5 note 9    | high  | REQ-NOISE-01   | `[analog]` | passing |
 | D-A13 | S/N, CCIR-ARM weighted, each converter   |          | 96 dB           |          | D     | p.5 note 6    | high  | REQ-NOISE-01   | `[analog]` | deviation |
-| D-A14 | PSR stimulus: 1 kHz, 50 mVpp on VA and VD; VREFH held constant | |     |          | D     | p.5 note 8    | high  | n/a            | n/a        | planned |
+| D-A14 | PSR stimulus: 1 kHz, 50 mVpp on VA and VD; VREFH held constant | |     |          | D     | p.5 note 8    | high  | n/a            | n/a        | not modeled |
 | D-A15 | Physical DC offset at outputs: "a few mV"; removed by AC coupling |   |    |          | D     | p.16 s.4      | medium | REQ-ANALOG-02 | `[analog]` | passing |
 | D-A16 | *new* Output noise level while soft-muted is shown as -100 dB | |       |          | D     | p.11 Fig.5    | medium | REQ-NOISE-02  | `[mute][analog]` | passing |
 
@@ -102,7 +102,7 @@ D-A16 is a figure annotation, not a table value. It agrees with D-A12 and suppor
 | ----- | -------------------------------------------------------------------- | ----- | -------------------- | ----- | ----------- | ------- | ------- |
 | D-P01 | DAC input is two's complement, MSB first, in all modes               | D     | p.9; p.16 s.4        | high  | REQ-PCM-01  | `[pcm]` | passing |
 | D-P02 | 7FFFFh is positive full scale; 80000h is negative full scale (20-bit) | D    | p.16 s.4             | high  | REQ-PCM-01  | `[pcm]` | passing |
-| D-P03 | 00000h ideally produces VCOM at the output                           | D     | p.16 s.4             | high  | REQ-PCM-01  | `[pcm]` | planned |
+| D-P03 | 00000h ideally produces VCOM at the output                           | D     | p.16 s.4             | high  | REQ-PCM-01  | `[pcm]` | passing |
 | I-P01 | Normalized value `code / 524288.0`; +FS is `1 - 2^-19`               | I     | D-P02 with 20-bit range | high | REQ-PCM-01 | `[pcm]` | passing |
 | I-P02 | 16-bit words map to 20-bit scale by multiplication by 16             | I     | Mode 0 and 32fs I2S carry the top 16 bits; MSB weight is preserved | high | REQ-PCM-02 | `[pcm]` | passing |
 | I-P03 | 24-bit words keep their top 20 bits; the low 4 bits are dropped (floor), not rounded | I | The serial interface takes 20 bits MSB first and ignores the bits after them (D-S08, D-S11; p.9) | high | REQ-API-01 | `[stream]` | passing |
@@ -122,7 +122,7 @@ D-A16 is a figure annotation, not a table value. It agrees with D-A12 and suppor
 | D-S09 | Mode 0 at 32fs: bits 15 to 0 fill the channel; at 64fs, don't care then bits 15 to 0 | D | p.9 Fig.1   | medium | REQ-SERIAL-01   | `[serial]` | passing |
 | D-S10 | Mode 1 at 64fs: don't care, then bits 19 to 0 ending at the channel boundary | D  | p.10 Fig.2             | medium | REQ-SERIAL-01   | `[serial]` | passing |
 | D-S11 | Mode 2 at 64fs: bits 19 to 0 from the channel boundary, then don't care  | D     | p.10 Fig.3             | medium | REQ-SERIAL-01   | `[serial]` | passing |
-| D-S12 | SDTO (ADC output) changes on SCLK falling edge; outside the DAC contract | D     | p.9                    | high   | REQ-SCOPE-01    | n/a        | planned |
+| D-S12 | SDTO (ADC output) changes on SCLK falling edge; outside the DAC contract | D     | p.9                    | high   | REQ-SCOPE-01    | n/a        | planned (M7) |
 
 ### Serial timing (slave mode)
 
@@ -147,8 +147,8 @@ D-A16 is a figure annotation, not a table value. It agrees with D-A12 and suppor
 | D-C03 | MCLK 384fs: 6.144 to 18.432 MHz; low/high width >= 20 ns                 | D     | p.7               | high  | REQ-CLOCK-01  | `[clock]` | passing |
 | D-C04 | MCLK 512fs: 8.192 to 24.576 MHz; low/high width >= 15 ns                 | D     | p.7               | high  | REQ-CLOCK-01  | `[clock]` | passing |
 | D-C05 | LRCK must be synchronized with MCLK; phase is not critical               | D     | p.9               | high  | REQ-CLOCK-01  | `[clock]` | passing |
-| D-C06 | Internal timing synchronizes to LRCK at power-up                         | D     | p.9               | high  | REQ-RESET-02  | `[reset]` | planned |
-| D-C07 | All external clocks must be present unless PD is low; otherwise abnormal operation | D | p.9         | high  | REQ-CLOCK-01  | `[clock]` | planned |
+| D-C06 | Internal timing synchronizes to LRCK at power-up                         | D     | p.9               | high  | REQ-RESET-02  | `[serial]` | passing |
+| D-C07 | All external clocks must be present unless PD is low; otherwise abnormal operation | D | p.9         | high  | REQ-CLOCK-01  | `[clock]` | planned (clock-stop report, P-31) |
 | I-C01 | At 44.1 kHz: MCLK 11.2896, 16.9344, 22.5792 MHz (Table 1 prints 22.579)  | I     | ratio x fs        | high  | REQ-CLOCK-01  | `[clock]` | passing |
 | I-C02 | MCLK ranges equal ratio x 16 kHz to ratio x 48 kHz                      | I     | D-C02 to D-C04 vs D-04 | high | REQ-CLOCK-01 | `[clock]` | passing |
 
@@ -160,41 +160,41 @@ D-A16 is a figure annotation, not a table value. It agrees with D-A12 and suppor
 | D-E02 | DEM1,DEM0: 00 = 44.1 kHz, 01 = OFF, 10 = 48 kHz, 11 = 32 kHz            | D     | p.11 Table 3   | high  | REQ-DEEM-01    | `[deemph]` | passing |
 | D-E03 | Filter applies to input audio data                                      | D     | p.11           | high  | REQ-ARCH-03    | `[deemph]` | passing |
 | I-E01 | Reference `H(s) = (1 + s*15e-6) / (1 + s*50e-6)`; unity DC, HF asymptote 0.3 (-10.4576 dB) | I | Standard 50/15 us shelf from D-E01 | high | REQ-DEEM-01 | `[deemph]` | passing |
-| I-E02 | Coefficients, switching transients, and state retention are unpublished | I     | Absent from p.11 | high | REQ-DEEM-02, REQ-DEEM-03 | `[deemph]` | planned |
+| I-E02 | Coefficients, switching transients, and state retention are unpublished | I     | Absent from p.11 | high | REQ-DEEM-02, REQ-DEEM-03 | `[deemph]` | passing (fitted sets and switching policy, P-60 to P-64) |
 
 ## 8. Soft mute
 
 | ID    | Fact                                                                    | Class | Source            | Conf.  | Requirement   | Test     | Status  |
 | ----- | ----------------------------------------------------------------------- | ----- | ----------------- | ------ | ------------- | -------- | ------- |
-| D-M01 | Soft mute operates in the digital domain                                | D     | p.11              | high   | REQ-MUTE-01   | `[mute]` | planned |
+| D-M01 | Soft mute operates in the digital domain                                | D     | p.11              | high   | REQ-MUTE-01   | `[mute]` | passing |
 | D-M02 | SMUTE H attenuates to -infinity over 1024 LRCK cycles                   | D     | p.11; Fig.5 note 1 | high  | REQ-MUTE-01   | `[mute]` | passing |
 | D-M03 | SMUTE L returns to 0 dB over 1024 LRCK cycles                           | D     | p.11; Fig.5       | high   | REQ-MUTE-01   | `[mute]` | passing |
 | D-M04 | Cancelling within 1024 cycles discontinues attenuation and returns to 0 dB | D  | p.11; Fig.5 note 3 | high  | REQ-MUTE-02   | `[mute]` | passing |
 | D-M05 | Analog output follows the digital attenuation after the group delay     | D     | p.11 Fig.5 note 2 | high   | REQ-MUTE-02   | `[mute]` | passing |
 | D-M06 | Signal transmission continues during mute                               | D     | p.11              | high   | REQ-MUTE-02   | `[mute]` | passing |
 | I-M01 | Full transition durations: 32 ms at 32 kHz, 23.21995 ms at 44.1 kHz, 21.33333 ms at 48 kHz | I | 1024 / fs | high | REQ-MUTE-01 | `[mute]` | passing |
-| I-M02 | Ramp law and partial-reversal slope are not numerically specified; Fig.5 (3) draws the reversal with a slope similar to the full ramp | I | p.11 Fig.5 | low | REQ-MUTE-02 | `[mute]` | planned |
+| I-M02 | Ramp law and partial-reversal slope are not numerically specified; Fig.5 (3) draws the reversal with a slope similar to the full ramp | I | p.11 Fig.5 | low | REQ-MUTE-02 | `[mute]` | passing (policy P-50, P-51) |
 
 ## 9. Reset and startup
 
 | ID    | Fact                                                                    | Class | Source                | Conf.  | Requirement    | Test      | Status  |
 | ----- | ----------------------------------------------------------------------- | ----- | --------------------- | ------ | -------------- | --------- | ------- |
 | D-R01 | PD is active low and resets both ADC and DAC                            | D     | p.3 pin 20; p.12      | high   | REQ-RESET-01   | `[reset]` | passing |
-| D-R02 | Reset should always be performed after power-up                         | D     | p.12                  | high   | REQ-RESET-02   | `[reset]` | planned |
+| D-R02 | Reset should always be performed after power-up                         | D     | p.12                  | high   | REQ-RESET-02   | `[control]` | passing (P-70) |
 | D-R03 | Minimum PD low pulse tPD                                                | D     | p.7 (150 ns)          | high   | REQ-RESET-01   | `[reset]` | passing |
 | D-R04 | Clocks may be stopped while PD is low                                   | D     | p.12 Fig.6            | high   | REQ-RESET-01   | `[reset]` | passing |
 | D-R05 | DAC returns to normal operation at PD release; the 516-cycle initialization does not affect the DAC | D | p.12 text and Fig.6 | high | REQ-RESET-01 | `[reset]` | passing |
-| D-R06 | Click noise occurs at PD edges; external analog mute recommended        | D     | p.12 Fig.6 notes 5,6  | high   | REQ-RESET-02   | `[reset]` | planned |
+| D-R06 | Click noise occurs at PD edges; external analog mute recommended        | D     | p.12 Fig.6 notes 5,6  | high   | REQ-RESET-02   | `[reset]` | not modeled (no click synthesized without captures, REQ-RESET-02) |
 | I-R01 | DAC analog output during reset is drawn flat (no signal)                | I     | p.12 Fig.6 DAC Out    | medium | REQ-RESET-02   | `[reset]` | passing |
 
 ## 10. Analog output scaling and external circuit
 
 | ID    | Fact                                                                    | Class | Source       | Conf.  | Requirement   | Test       | Status  |
 | ----- | ----------------------------------------------------------------------- | ----- | ------------ | ------ | ------------- | ---------- | ------- |
-| D-O01 | Analog Outputs section: "The input signal range scales with the supply voltage and nominally 0.58 x VREFH Vpp"; see DISC-01 | D | p.16 s.4 | medium | REQ-ANALOG-01 | `[analog]` | planned |
-| D-O02 | Fig.11 example: 27 uF input coupling, 10 kohm input, 18 kohm feedback, inverting NJM5532, 10 uF output coupling into 27 kohm; 2.9 Vpp in, 5.2 Vpp out; labeled 6 dB gain | D | p.16 Fig.11 | high | REQ-ANALOG-02 | n/a | planned |
-| I-O01 | Nominal output 2.9 Vpp at VREFH = 5 V, scaling with VREFH; peak `0.29 x VREFH`; `Vout = VCOM + 1.45 x` at 5 V | I | D-A07 typ, D-O01, Fig.11 (AOUTL 2.9 Vpp) | high | REQ-ANALOG-01 | `[analog]` | planned |
-| I-O02 | Fig.11 gain is -1.8 (5.1 dB), not 6 dB                                  | I     | 18k / 10k; 2.9 x 1.8 = 5.22 Vpp | high | REQ-ANALOG-02 | n/a | planned |
+| D-O01 | Analog Outputs section: "The input signal range scales with the supply voltage and nominally 0.58 x VREFH Vpp"; see DISC-01 | D | p.16 s.4 | medium | REQ-ANALOG-01 | `[analog]` | passing |
+| D-O02 | Fig.11 example: 27 uF input coupling, 10 kohm input, 18 kohm feedback, inverting NJM5532, 10 uF output coupling into 27 kohm; 2.9 Vpp in, 5.2 Vpp out; labeled 6 dB gain | D | p.16 Fig.11 | high | REQ-ANALOG-02 | n/a | planned (optional board circuit model) |
+| I-O01 | Nominal output 2.9 Vpp at VREFH = 5 V, scaling with VREFH; peak `0.29 x VREFH`; `Vout = VCOM + 1.45 x` at 5 V | I | D-A07 typ, D-O01, Fig.11 (AOUTL 2.9 Vpp) | high | REQ-ANALOG-01 | `[analog]` | passing |
+| I-O02 | Fig.11 gain is -1.8 (5.1 dB), not 6 dB                                  | I     | 18k / 10k; 2.9 x 1.8 = 5.22 Vpp | high | REQ-ANALOG-02 | n/a | planned (optional board circuit model) |
 
 ## 11. ADC behavior excluded from the DAC path
 
