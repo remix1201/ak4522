@@ -70,4 +70,15 @@ if(AK4522_BUILD_TESTS)
     else()
         message(WARNING "Python 3.9+ not found; documentation checks are disabled")
     endif()
+
+    # Response analysis tools (numpy/scipy through the uv-locked environment).
+    find_program(AK4522_UV uv)
+    if(AK4522_UV)
+        add_test(NAME tools.analysis
+            COMMAND ${AK4522_UV} run --directory ${PROJECT_SOURCE_DIR}/tools
+                python -m unittest discover -s tests -t .)
+        set_tests_properties(tools.analysis PROPERTIES LABELS "tools" TIMEOUT 600)
+    else()
+        message(WARNING "uv not found; analysis tool tests are disabled")
+    endif()
 endif()
