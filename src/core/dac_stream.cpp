@@ -4,11 +4,13 @@
 #include "ak4522/pcm.hpp"
 #include "core/config_validation.hpp"
 #include "core/control_timeline.hpp"
+#include "core/dither.hpp"
 #include "core/host_alignment.hpp"
 #include "core/wide_math.hpp"
 #include "dsp/resampler.hpp"
 
 #include <algorithm>
+#include <cmath>
 #include <atomic>
 #include <numeric>
 #include <type_traits>
@@ -56,14 +58,29 @@ Pcm20Frame convert(std::int32_t l, std::int32_t r, DacSampleFormat format, Quant
     return {fromInteger(l, format, c), fromInteger(r, format, c)};
 }
 
-Pcm20Frame convert(float l, float r, DacSampleFormat, QuantizeCounters& c) noexcept
+// Float input, with optional TPDF dither (P-12); dither is null when off.
+double dithered(double x, std::uint64_t* state) noexcept
 {
-    return {quantizeToPcm20(static_cast<double>(l), c), quantizeToPcm20(static_cast<double>(r), c)};
+    return state != nullptr && std::isfinite(x) ? x + detail::TpdfDither::next(*state, 0x1.0p-19) : x;
 }
 
-Pcm20Frame convert(double l, double r, DacSampleFormat, QuantizeCounters& c) noexcept
+Pcm20Frame convert(float l, float r, DacSampleFormat, QuantizeCounters& c, detail::TpdfDither* dither) noexcept
 {
-    return {quantizeToPcm20(l, c), quantizeToPcm20(r, c)};
+    return {quantizeToPcm20(dithered(static_cast<double>(l), dither ? &dither->left : nullptr), c),
+            quantizeToPcm20(dithered(static_cast<double>(r), dither ? &dither->right : nullptr), c)};
+}
+
+Pcm20Frame convert(double l, double r, DacSampleFormat, QuantizeCounters& c, detail::TpdfDither* dither) noexcept
+{
+    return {quantizeToPcm20(dithered(l, dither ? &dither->left : nullptr), c),
+            quantizeToPcm20(dithered(r, dither ? &dither->right : nullptr), c)};
+}
+
+// Integer input is exact; the dither argument is ignored.
+Pcm20Frame convert(std::int32_t l, std::int32_t r, DacSampleFormat format, QuantizeCounters& c,
+                   detail::TpdfDither*) noexcept
+{
+    return convert(l, r, format, c);
 }
 
 template <typename T>
@@ -116,6 +133,15 @@ struct DacStream::Impl {
     std::atomic<std::uint64_t> framesRead{0};
     std::atomic<std::uint64_t> eventsWritten{0};
     std::atomic<std::uint64_t> eventsRead{0};
+
+    // Used by whichever thread converts float input: render in pull mode,
+    // push in push mode.
+    detail::TpdfDither dither;
+
+    [[nodiscard]] detail::TpdfDither* ditherIfOn() noexcept
+    {
+        return config.inputDither ? &dither : nullptr;
+    }
 
     std::atomic<std::uint64_t> nonFinite{0};
     std::atomic<std::uint64_t> clipped{0};
@@ -180,8 +206,8 @@ struct DacStream::Impl {
         QuantizeCounters c;
         for (std::size_t j = 0; j < k; ++j) {
             switch (config.format) {
-            case DacSampleFormat::float32: pcm[j] = convert(floatL[j], floatR[j], config.format, c); break;
-            case DacSampleFormat::float64: pcm[j] = convert(doubleL[j], doubleR[j], config.format, c); break;
+            case DacSampleFormat::float32: pcm[j] = convert(floatL[j], floatR[j], config.format, c, ditherIfOn()); break;
+            case DacSampleFormat::float64: pcm[j] = convert(doubleL[j], doubleR[j], config.format, c, ditherIfOn()); break;
             default: pcm[j] = convert(intL[j], intR[j], config.format, c); break;
             }
         }
@@ -335,7 +361,7 @@ struct DacStream::Impl {
         QuantizeCounters c;
         for (std::size_t j = 0; j < accept; ++j) {
             ring[static_cast<std::size_t>((write + j) % ring.size())]
-                = convert(frames.left[j], frames.right[j], config.format, c);
+                = convert(frames.left[j], frames.right[j], config.format, c, ditherIfOn());
         }
         addCounters(c);
         framesWritten.store(write + accept, std::memory_order_release);
@@ -420,6 +446,7 @@ Status DacStream::prepare(const DacStreamConfig& config)
     s.dropped = 0;
     s.underrunFrames = 0;
     s.overrunFrames = 0;
+    s.dither.seed(config.ditherSeed); // continues across reset() (P-74)
     s.resetStreams();
     s.prepared = true;
     return Status::ok;
