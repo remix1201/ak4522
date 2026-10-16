@@ -7,6 +7,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <limits>
 #include <optional>
 
 namespace ak4522 {
@@ -65,40 +66,72 @@ private:
 
 enum class Pin : std::uint8_t { mclk, lrck, sclk, sdti, pd };
 
-// A pin transition with an absolute timestamp in nanoseconds.
+// A pin level with an absolute timestamp in nanoseconds. An edge whose level
+// equals the pin's current level is not a transition and is ignored.
 struct PinEdge {
     double timeNs = 0.0;
     Pin pin = Pin::sclk;
     bool level = false;
 };
 
-// Timing checks from D-T01 to D-T08, D-C02 to D-C04, and D-R03.
+// Timing checks ([DS] p.7 unless noted). Limits are inclusive: a value equal
+// to a datasheet minimum or maximum passes.
 enum class TimingViolation : std::uint8_t {
-    sclkPeriod,
-    sclkPulseWidth,
-    lrckToSclkRise,
-    sclkRiseToLrck,
-    sclkRiseCoincidesWithLrck,
-    sdtiSetup,
-    sdtiHold,
-    lrckDutyCycle,
-    mclkFrequency,
-    mclkPulseWidth,
-    pdPulseWidth,
+    sclkPeriod,                // rise to rise < 160 ns (D-T01)
+    sclkPulseWidth,            // high or low < 65 ns (D-T02)
+    lrckToSclkRise,            // LRCK edge to next SCLK rise < 45 ns (D-T03)
+    sclkRiseToLrck,            // SCLK rise to next LRCK edge < 45 ns (D-T04)
+    sclkRiseCoincidesWithLrck, // equal timestamps (D-T08); counted instead of D-T03/D-T04
+    sdtiSetup,                 // SDTI change to next SCLK rise < 25 ns (D-T06)
+    sdtiHold,                  // SCLK rise to next SDTI change < 40 ns (D-T05)
+    lrckDutyCycle,             // high time outside 45 to 55 % of the period (D-T07)
+    lrckFrequency,             // outside 16 to 48 kHz (D-04)
+    mclkFrequency,             // outside the CMODE range (D-C02 to D-C04)
+    mclkPulseWidth,            // high or low below 27, 20, or 15 ns for 256, 384, 512fs
+    mclkNotSynchronized,       // MCLK rises per LRCK period differ from the CMODE ratio (D-C05)
+    pdPulseWidth,              // PD low pulse < 150 ns (D-R03)
     count_,
 };
 
-// Reports violations; does not model metastability (P-24).
+// Checks timestamped pin transitions against the datasheet timing limits.
+// Reports violations; does not model metastability or recovery (P-24).
+// Timestamps must not decrease; an edge earlier than the previous one is
+// ignored. A period, width, or spacing is checked only when both of its edges
+// have been observed since reset. Real-time safe.
 class TimingValidator {
 public:
-    [[nodiscard]] Status prepare(CmodePin cmode, double dacRate);
+    [[nodiscard]] Status prepare(CmodePin cmode);
     void reset() noexcept;
     void observe(const PinEdge& edge) noexcept;
     [[nodiscard]] std::uint64_t violations(TimingViolation kind) const noexcept;
+    [[nodiscard]] std::uint64_t totalViolations() const noexcept;
 
 private:
-    // Edge history is fixed-size and defined with the M1 implementation.
+    static constexpr std::size_t pinCount = 5;
+
+    void count(TimingViolation kind) noexcept;
+    void onSclk(double t, bool rising) noexcept;
+    void onLrck(double t, bool rising) noexcept;
+    void onSdti(double t) noexcept;
+    void onMclk(double t, bool rising) noexcept;
+    void onPd(double t, bool rising) noexcept;
+
     std::array<std::uint64_t, static_cast<std::size_t>(TimingViolation::count_)> counts_{};
+    CmodePin cmode_ = CmodePin::low;
+    double lastTimeNs_ = 0.0;
+    bool anyEdge_ = false;
+    std::array<bool, pinCount> known_{};  // pin level observed since reset
+    std::array<bool, pinCount> level_{};
+
+    // Times of the latest edges; NaN until observed.
+    static constexpr double unseen_ = std::numeric_limits<double>::quiet_NaN();
+    double sclkRise_ = unseen_, sclkFall_ = unseen_;
+    double lrckRise_ = unseen_, lrckFall_ = unseen_, lrckEdge_ = unseen_;
+    double sdtiEdge_ = unseen_;
+    double mclkRise_ = unseen_, mclkFall_ = unseen_;
+    double pdFall_ = unseen_;
+    std::uint32_t mclkRisesThisLrck_ = 0;
+    bool mclkCounting_ = false; // the current LRCK period started with MCLK running
 };
 
 } // namespace ak4522

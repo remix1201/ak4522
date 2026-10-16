@@ -13,7 +13,7 @@ Last substantive update: 2026-10-16. M0 was merged into `main` and approved by t
 | Public API proposal             | REQ-ARCH-01, REQ-ARCH-02, REQ-RT-02   | in progress (declared, not implemented) | compile-time contract checks pass | approved 2026-10-16 (`m0-approved`) | merged into `main` |
 | PCM mapping and quantization    | REQ-PCM-01 to REQ-PCM-03              | implemented    | passing (see below)      | not yet approved                  | merged into `main`    |
 | Serial decoder                  | REQ-SERIAL-01, REQ-SERIAL-03          | implemented    | passing (see below)      | not yet approved                  | merged into `main`    |
-| Serial timing validator         | REQ-SERIAL-02                         | planned (M1)   | none                     | none                              | none                  |
+| Serial timing validator         | REQ-SERIAL-02                         | implemented    | passing (see below)      | not yet approved                  | merged into `main`    |
 | Configuration validation        | REQ-CLOCK-01, REQ-RATE-03             | implemented    | passing (see below)      | not yet approved                  | merged into `main`    |
 | Reset and control timeline      | REQ-RESET-01, REQ-RESET-02, REQ-CTRL-01 | implemented  | passing (see below)     | not yet approved                  | merged into `main`    |
 | Soft mute                       | REQ-MUTE-01, REQ-MUTE-02              | implemented    | passing (see below)      | not yet approved                  | merged into `main`    |
@@ -130,6 +130,17 @@ None of the emulator's signal processing is usable yet. PCM conversion exists as
   - The format is fixed until the next `prepare`.
 - **Validation:** 12 test cases in `tests/serial_decoder_test.cpp` against an encoder that places each bit by slot number from Figures 1 to 4, itself checked against those figures. All four modes at 16, 18, 20, 21, 24, 32, and 64 bit clocks per channel where valid (32fs to 128fs), 208 words each including both full-scale codes; unequal half lengths; the I2S boundary bit; startup alignment; short words; reset, including reset followed by a right-channel start; no allocations. Eleven deliberate mutations detected (`tools/mutations/serial_decoder.txt`). Passes in `dev` and `asan`.
 - **Limitations:** nanosecond timing is checked separately by the timing validator (planned). SDTO output belongs to the ADC (M7).
+- **Updated:** 2026-10-16.
+
+## Serial timing validator
+
+- **Purpose:** check timestamped pin transitions against the datasheet timing limits in conformance tests.
+- **Requirements:** REQ-SERIAL-02; evidence D-T01 to D-T08, D-04, D-C02 to D-C05, D-R03, I-T01; policies P-24, P-36; API decision O-06 (proposed).
+- **Usage:** `TimingValidator::prepare(cmode)`, then `observe(PinEdge{timeNs, pin, level})` for each transition in time order; read `violations(kind)` or `totalViolations()`.
+- **Checks** (inclusive limits): SCLK period >= 160 ns; SCLK high and low >= 65 ns; LRCK edge to first SCLK rise >= 45 ns; SCLK rise to LRCK edge >= 45 ns; an SCLK rise at the same time as an LRCK edge (reported instead of the two spacing checks); SDTI setup >= 25 ns and hold >= 40 ns; LRCK duty 45 to 55 %; LRCK 16 to 48 kHz; MCLK frequency and pulse width per CMODE (4.096 to 12.288 MHz and 27 ns; 6.144 to 18.432 MHz and 20 ns; 8.192 to 24.576 MHz and 15 ns); MCLK cycles per LRCK period equal to 256, 384, or 512; PD low >= 150 ns.
+- **Behavior:** a level equal to the pin's current level is not a transition; edges earlier than the previous one are ignored; a check runs only when both of its edges were observed since reset; MCLK synchronization is counted only over LRCK periods that begin with MCLK running. Frequency limits have a 1e-9 relative tolerance (P-36).
+- **Validation:** 22 test cases in `tests/timing_validator_test.cpp`: generated ideal clocks for every CMODE, 16/32/44.1/48 kHz, and 32/64/128fs with no violations; SCLK at 256fs and 48 kHz flagged; each limit at its value (passes) and just beyond (fails); coincidence in both orders; synchronization with and without MCLK; ignored edges; reset; no allocations. Passes in `dev` and `asan`.
+- **Limitations:** clock loss while PD is high (D-C07) needs a time-out policy and is not reported. Metastability and recovery are not modeled (P-24).
 - **Updated:** 2026-10-16.
 
 ## Documentation process

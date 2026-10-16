@@ -6,7 +6,7 @@ The goal is to reproduce documented signal processing and control behavior, then
 
 ## Status
 
-**Alpha, milestone M0 complete, M1 in progress.** The project has an engineering specification ([AGENTS.md](AGENTS.md)), a C++20 build and test foundation, a public API proposal, and evidence and assumptions ledgers. **No signal processing is implemented yet**: there is no usable DAC model, compiled plugin, or hardware validation result.
+**Alpha, milestone M0 complete, M1 implemented and awaiting review.** The project has an engineering specification ([AGENTS.md](AGENTS.md)), a C++20 build and test foundation, a public API proposal, evidence and assumptions ledgers, and the M1 control-path components: PCM conversion, configuration validation, soft mute, the reset and control timeline, the serial SDTI decoder, and the serial timing validator. **The DAC does not produce audio yet**: the filters and `DacCore::process` arrive in M2, and there is no compiled plugin or hardware validation result.
 
 See [docs/features.md](docs/features.md) for the current status of each feature.
 
@@ -107,7 +107,7 @@ The intended toolchain is C++20 with CMake and CTest. The plugin adapter may use
 
 Detailed requirements and acceptance gates are maintained in [AGENTS.md](AGENTS.md).
 
-Progress: M0 (evidence ledger, build foundation, API proposal, requirement-to-test mapping) is complete and approved (tag `m0-approved`). M1 is next.
+Progress: M0 (evidence ledger, build foundation, API proposal, requirement-to-test mapping) is complete and approved (tag `m0-approved`). M1 deliverables are implemented and tested; the M1 gate awaits project-owner review. M2 is next.
 
 ## Verification
 

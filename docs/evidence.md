@@ -126,15 +126,15 @@ D-A16 is a figure annotation, not a table value. It agrees with D-A12 and suppor
 
 | ID    | Parameter                              | Limit      | Class | Source          | Conf. | Requirement    | Test       | Status  |
 | ----- | -------------------------------------- | ---------- | ----- | --------------- | ----- | -------------- | ---------- | ------- |
-| D-T01 | SCLK period tSCK                       | >= 160 ns  | D     | p.7             | high  | REQ-SERIAL-02  | `[serial]` | planned |
-| D-T02 | SCLK low and high widths tSCKL, tSCKH  | >= 65 ns   | D     | p.7             | high  | REQ-SERIAL-02  | `[serial]` | planned |
-| D-T03 | LRCK edge to SCLK rise tLRS            | >= 45 ns   | D     | p.7, note 13    | high  | REQ-SERIAL-02  | `[serial]` | planned |
-| D-T04 | SCLK rise to LRCK edge tSLR            | >= 45 ns   | D     | p.7, note 13    | high  | REQ-SERIAL-02  | `[serial]` | planned |
-| D-T05 | SDTI hold tSDH                         | >= 40 ns   | D     | p.7             | high  | REQ-SERIAL-02  | `[serial]` | planned |
-| D-T06 | SDTI setup tSDS                        | >= 25 ns   | D     | p.7             | high  | REQ-SERIAL-02  | `[serial]` | planned |
-| D-T07 | LRCK duty cycle                        | 45 to 55 % | D     | p.7             | high  | REQ-SERIAL-02  | `[serial]` | planned |
-| D-T08 | *new* SCLK rising edge must not coincide with an LRCK edge | n/a | D | p.7 note 13 | high  | REQ-SERIAL-02  | `[serial]` | planned |
-| I-T01 | *new* Maximum SCLK frequency; 128fs is valid at every supported rate | <= 6.25 MHz (130fs at 48 kHz) | I | 1 / 160 ns; 128 x 48 kHz = 6.144 MHz | high | REQ-SERIAL-02 | `[serial]` | planned |
+| D-T01 | SCLK period tSCK                       | >= 160 ns  | D     | p.7             | high  | REQ-SERIAL-02  | `[serial]` | passing |
+| D-T02 | SCLK low and high widths tSCKL, tSCKH  | >= 65 ns   | D     | p.7             | high  | REQ-SERIAL-02  | `[serial]` | passing |
+| D-T03 | LRCK edge to SCLK rise tLRS            | >= 45 ns   | D     | p.7, note 13    | high  | REQ-SERIAL-02  | `[serial]` | passing |
+| D-T04 | SCLK rise to LRCK edge tSLR            | >= 45 ns   | D     | p.7, note 13    | high  | REQ-SERIAL-02  | `[serial]` | passing |
+| D-T05 | SDTI hold tSDH                         | >= 40 ns   | D     | p.7             | high  | REQ-SERIAL-02  | `[serial]` | passing |
+| D-T06 | SDTI setup tSDS                        | >= 25 ns   | D     | p.7             | high  | REQ-SERIAL-02  | `[serial]` | passing |
+| D-T07 | LRCK duty cycle                        | 45 to 55 % | D     | p.7             | high  | REQ-SERIAL-02  | `[serial]` | passing |
+| D-T08 | *new* SCLK rising edge must not coincide with an LRCK edge | n/a | D | p.7 note 13 | high  | REQ-SERIAL-02  | `[serial]` | passing |
+| I-T01 | *new* Maximum SCLK frequency; 128fs is valid at every supported rate | <= 6.25 MHz (130fs at 48 kHz) | I | 1 / 160 ns; 128 x 48 kHz = 6.144 MHz | high | REQ-SERIAL-02 | `[serial]` | passing |
 
 ## 6. Clocks
 
@@ -179,7 +179,7 @@ D-A16 is a figure annotation, not a table value. It agrees with D-A12 and suppor
 | ----- | ----------------------------------------------------------------------- | ----- | --------------------- | ------ | -------------- | --------- | ------- |
 | D-R01 | PD is active low and resets both ADC and DAC                            | D     | p.3 pin 20; p.12      | high   | REQ-RESET-01   | `[reset]` | passing |
 | D-R02 | Reset should always be performed after power-up                         | D     | p.12                  | high   | REQ-RESET-02   | `[reset]` | planned |
-| D-R03 | Minimum PD low pulse tPD                                                | D     | p.7 (150 ns)          | high   | REQ-RESET-01   | `[reset]` | planned |
+| D-R03 | Minimum PD low pulse tPD                                                | D     | p.7 (150 ns)          | high   | REQ-RESET-01   | `[reset]` | passing |
 | D-R04 | Clocks may be stopped while PD is low                                   | D     | p.12 Fig.6            | high   | REQ-RESET-01   | `[reset]` | passing |
 | D-R05 | DAC returns to normal operation at PD release; the 516-cycle initialization does not affect the DAC | D | p.12 text and Fig.6 | high | REQ-RESET-01 | `[reset]` | passing |
 | D-R06 | Click noise occurs at PD edges; external analog mute recommended        | D     | p.12 Fig.6 notes 5,6  | high   | REQ-RESET-02   | `[reset]` | planned |

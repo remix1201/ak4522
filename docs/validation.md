@@ -121,6 +121,37 @@ A twelfth control mutation survived: removing the PD check before updating the m
 | Mutation check | 12 deliberate faults | 10 detected at first. One survivor exposed a missing test (reset followed by a right-channel start could pair a stale left word); the test was added and the fault is now detected. The other survivor removed a redundant line with no observable effect; the line was deleted. Final: 11 of 11 detected. |
 | Sanitizers | `asan` preset, all 69 tests | pass |
 
+### 2026-10-16: serial timing validator (branch `m1-timing`, merged into `main`)
+
+| Check | Method | Result |
+| ----- | ------ | ------ |
+| Ideal clocks | generated MCLK, SCLK, LRCK, SDTI for 3 CMODE ratios x 4 rates x 32/64/128fs | no violations |
+| SCLK at 256fs, 48 kHz | generated stream | period and width violations reported (I-T01) |
+| Each limit | value at the limit passes; 0.1 ns or 0.1 % beyond fails; only the intended kind is counted | pass |
+| Coincidence, MCLK synchronization, ignored edges, reset | targeted cases | pass |
+| Real-time | no allocations | pass |
+| Mutation check | 15 deliberate faults | 14 detected at first. The survivor (tLRS checked on every SCLK rise, not only the first) exposed a test whose second rise was too far from the LRCK edge to distinguish the two; the test now uses a sub-45 ns SCLK and the fault is detected. Final: 15 of 15. |
+| Sanitizers | `asan` preset, all 90 tests | pass |
+
+Development notes: the first version reported MCLK as unsynchronized when no MCLK edges were supplied at all (zero cycles per LRCK period). The check now counts only LRCK periods that begin with MCLK running.
+
+## M1 gate status
+
+AGENTS.md section 16, M1: "boundary/serial/control tests pass, including I2S short-word framing and partial mute reversal. No plugin GUI yet."
+
+| Gate item | Evidence | Status |
+| --------- | -------- | ------ |
+| PCM boundary tests | `pcm_test.cpp`, exhaustive 20-bit and 16-bit | pass |
+| Serial tests, all four modes | `serial_decoder_test.cpp` | pass |
+| I2S short-word framing | 32fs and 18-bit-clock I2S cases, boundary-bit test | pass |
+| Timing validator | `timing_validator_test.cpp` | pass |
+| Clock configuration | `config_validation_test.cpp` | pass |
+| Reset and control | `control_timeline_test.cpp` | pass |
+| Partial mute reversal | reversals after 1, 511, 1023 frames | pass |
+| No plugin GUI | none exists | met |
+
+Awaiting project-owner review. The M1 components are not yet connected to `DacCore::process`; that happens in M2.
+
 No signal-processing measurements exist yet. DSP gates from AGENTS.md section 13.2 begin in M1 and M2.
 
 ## Known deviations
