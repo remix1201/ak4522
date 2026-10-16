@@ -62,8 +62,8 @@ class CheckDocsTest(unittest.TestCase):
         self.assertFlags("D-02: class 'Q'")
 
     def test_undefined_policy_citation(self):
-        self.append("docs/features.md", "\nSee P-99.\n")
-        self.assertFlags("cites P-99")
+        self.append("docs/features.md", "\nSee P-00.\n")
+        self.assertFlags("cites P-00")
 
     def test_undefined_requirement_citation(self):
         self.append("docs/api.md", "\nSee REQ-FAKE-01.\n")

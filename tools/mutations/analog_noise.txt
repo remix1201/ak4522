@@ -1,0 +1,4 @@
+[('power counted over full band', '    sigma_ = std::sqrt(designedDensity * sampleRate / 2.0);', '    sigma_ = std::sqrt(designedDensity * sampleRate);'),
+ ('Box-Muller radius halved', '    const double radius = std::sqrt(-2.0 * std::log(u1));', '    const double radius = std::sqrt(-std::log(u1));'),
+ ('seed ignored', '    std::uint64_t s = seed;', '    std::uint64_t s = 1;'),
+ ('uniform instead of Gaussian', '    return radius * std::cos(angle);', '    return (u2 - 0.5) * 3.4641016151377544;')]

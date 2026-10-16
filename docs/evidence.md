@@ -77,22 +77,22 @@ Conditions: Ta = 25 degrees C, VA = VD = 5 V, VREFH = VA, fs = 44.1 kHz, SCLK = 
 
 | ID    | Quantity                                 | Min      | Typ             | Max      | Class | Source        | Conf. | Requirement    | Test       | Status  |
 | ----- | ---------------------------------------- | -------- | --------------- | -------- | ----- | ------------- | ----- | -------------- | ---------- | ------- |
-| D-A01 | S/(N+D)                                  | 80 dB    | 90 dB           |          | D     | p.5           | high  | REQ-DIST-01    | `[analog]` | planned |
-| D-A02 | Dynamic range, -60 dB output, A-weighted | 95 dB    | 100 dB          |          | D     | p.5, note 5   | high  | REQ-NOISE-01   | `[analog]` | planned |
-| D-A03 | S/N, A-weighted                          | 95 dB    | 100 dB          |          | D     | p.5, notes 6,9 | high | REQ-NOISE-01   | `[analog]` | planned |
-| D-A04 | Interchannel isolation                   | 90 dB    | 110 dB          |          | D     | p.5           | high  | REQ-CHANNEL-01 | `[analog]` | planned |
-| D-A05 | Interchannel gain mismatch               |          | 0.2 dB          | 0.5 dB   | D     | p.5           | high  | REQ-CHANNEL-01 | `[analog]` | planned |
+| D-A01 | S/(N+D)                                  | 80 dB    | 90 dB           |          | D     | p.5           | high  | REQ-DIST-01    | `[analog]` | passing |
+| D-A02 | Dynamic range, -60 dB output, A-weighted | 95 dB    | 100 dB          |          | D     | p.5, note 5   | high  | REQ-NOISE-01   | `[analog]` | passing |
+| D-A03 | S/N, A-weighted                          | 95 dB    | 100 dB          |          | D     | p.5, notes 6,9 | high | REQ-NOISE-01   | `[analog]` | passing |
+| D-A04 | Interchannel isolation                   | 90 dB    | 110 dB          |          | D     | p.5           | high  | REQ-CHANNEL-01 | `[analog]` | passing |
+| D-A05 | Interchannel gain mismatch               |          | 0.2 dB          | 0.5 dB   | D     | p.5           | high  | REQ-CHANNEL-01 | `[analog]` | passing |
 | D-A06 | Gain drift                               |          | 20 ppm/degree C |          | D     | p.5           | high  | n/a (not modeled) | n/a     | planned |
-| D-A07 | Output voltage (labeled AOUT = 0.6 x VREFH) | 2.65 Vpp | 2.9 Vpp      | 3.15 Vpp | D     | p.5           | high  | REQ-ANALOG-01  | `[analog]` | planned |
+| D-A07 | Output voltage (labeled AOUT = 0.6 x VREFH) | 2.65 Vpp | 2.9 Vpp      | 3.15 Vpp | D     | p.5           | high  | REQ-ANALOG-01  | `[analog]` | passing |
 | D-A08 | Load resistance                          | 5 kohm   |                 |          | D     | p.5           | high  | n/a (not modeled) | n/a     | planned |
 | D-A09 | Load capacitance                         |          |                 | 25 pF    | D     | p.5           | high  | n/a (not modeled) | n/a     | planned |
 | D-A10 | Power-supply rejection                   |          | 50 dB           |          | D     | p.5, note 8   | high  | n/a (not modeled) | n/a     | planned |
-| D-A11 | 16-bit DAC dynamic range                 |          | 98 dB           |          | D     | p.5 note 5    | high  | REQ-NOISE-01   | `[analog]` | planned |
-| D-A12 | Zero-input S/N, any resolution           |          | 100 dB          |          | D     | p.5 note 9    | high  | REQ-NOISE-01   | `[analog]` | planned |
-| D-A13 | S/N, CCIR-ARM weighted, each converter   |          | 96 dB           |          | D     | p.5 note 6    | high  | REQ-NOISE-01   | `[analog]` | planned |
+| D-A11 | 16-bit DAC dynamic range                 |          | 98 dB           |          | D     | p.5 note 5    | high  | REQ-NOISE-01   | `[analog]` | passing |
+| D-A12 | Zero-input S/N, any resolution           |          | 100 dB          |          | D     | p.5 note 9    | high  | REQ-NOISE-01   | `[analog]` | passing |
+| D-A13 | S/N, CCIR-ARM weighted, each converter   |          | 96 dB           |          | D     | p.5 note 6    | high  | REQ-NOISE-01   | `[analog]` | deviation |
 | D-A14 | PSR stimulus: 1 kHz, 50 mVpp on VA and VD; VREFH held constant | |     |          | D     | p.5 note 8    | high  | n/a            | n/a        | planned |
-| D-A15 | Physical DC offset at outputs: "a few mV"; removed by AC coupling |   |    |          | D     | p.16 s.4      | medium | REQ-ANALOG-02 | `[analog]` | planned |
-| D-A16 | *new* Output noise level while soft-muted is shown as -100 dB | |       |          | D     | p.11 Fig.5    | medium | REQ-NOISE-02  | `[mute][analog]` | planned |
+| D-A15 | Physical DC offset at outputs: "a few mV"; removed by AC coupling |   |    |          | D     | p.16 s.4      | medium | REQ-ANALOG-02 | `[analog]` | passing |
+| D-A16 | *new* Output noise level while soft-muted is shown as -100 dB | |       |          | D     | p.11 Fig.5    | medium | REQ-NOISE-02  | `[mute][analog]` | passing |
 
 D-A16 is a figure annotation, not a table value. It agrees with D-A12 and supports keeping analog noise audible after digital mute.
 
@@ -219,6 +219,7 @@ These facts are documented but belong to the ADC. They MUST NOT appear in the DA
 | DISC-05 | Fig.11 is labeled 6 dB gain, but its 10 kohm / 18 kohm network gives 5.1 dB; the drawn 5.2 Vpp output agrees with 5.1 dB.                                                        | p.16 Fig.11      | Calculate from components if the example circuit is modeled (AGENTS.md section 11).                                                | open   |
 | DISC-06 | *new* Pin table marks AOUTL and AOUTR (pins 22, 23) as I/O type "I"; they are outputs per p.1, p.13, and p.16.                                                                   | p.3              | Treat as outputs. No model impact.                                                                                                  | open   |
 | DISC-07 | *new* p.3 says all inputs "except pull-down pins" must not float; p.13 says all inputs "except CMODE pin". CMODE has internal pull-up and pull-down (p.6 note 12).               | p.3; p.13; p.6   | Only CMODE may float, and floating selects 512fs. No other model impact.                                                            | open   |
+| DISC-08 | *new* For flat (white) noise, an A-weighted S/N of 100 dB implies a CCIR-ARM S/N of 97.3 dB, but [DS] gives 96 dB typical (a 1.3 dB difference). Not explained by band limits (10 Hz to 20 kHz vs 22 Hz to 22 kHz: 0.07 dB), 1 kHz calibration (the ARM curve is 0 dB at 2 kHz by definition), noise crest factor or type (at most 0.36 dB), sample rate or filter warping (none: exact curves per FFT bin), or level. Matching both would need noise concentrated near 6 to 8 kHz | p.5 notes 6, 9 | White noise calibrated to the A-weighted figure (owner agreement, 2026-10-16); CCIR-ARM reported as a disclosed deviation. The noise spectrum is unknown (U-09) | open |
 
 ## Policies referenced by this ledger
 

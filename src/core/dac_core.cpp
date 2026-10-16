@@ -1,5 +1,7 @@
 #include "ak4522/dac_core.hpp"
 
+#include "analog/analog_noise.hpp"
+#include "analog/output_stage.hpp"
 #include "core/config_validation.hpp"
 #include "core/control_timeline.hpp"
 #include "dsp/deemphasis.hpp"
@@ -26,6 +28,7 @@ bool analogOptionsRequested(const AnalogOptions& options) noexcept
         || options.dcOffset;
 }
 
+
 void zero(std::span<double> samples) noexcept
 {
     std::fill(samples.begin(), samples.end(), 0.0);
@@ -43,6 +46,9 @@ struct DacCore::Impl {
     detail::Interpolator8x interpolator;
     detail::PipelineDelay pipeline;
     detail::Reconstruction reconstruction;
+    detail::AnalogNoise noise;
+    bool noiseEnabled = false;
+    detail::OutputStage outputStage;
 
     // DAC-rate scratch for one chunk.
     std::vector<double> left;
@@ -64,6 +70,7 @@ struct DacCore::Impl {
         interpolator.reset();
         pipeline.reset();
         reconstruction.reset();
+        outputStage.reset();
     }
 
     // Runs frames [begin, begin + count) of a segment with constant controls.
@@ -84,7 +91,12 @@ struct DacCore::Impl {
         }
         interpolator.process(l, r, output.left, output.right);
         pipeline.process(output.left, output.right);
+        if (noiseEnabled) {
+            // Analog noise, after the mute so it stays audible (P-54, P-94).
+            noise.add(output.left, output.right);
+        }
         reconstruction.process(output.left, output.right);
+        outputStage.process(output.left, output.right); // NominalAnalog output stage (P-96 to P-99)
     }
 };
 
@@ -106,8 +118,9 @@ Status DacCore::prepare(const DacConfig& config, std::size_t maxBlockFrames)
     if (maxBlockFrames == 0) {
         return Status::invalidBlockSize;
     }
-    // The NominalAnalog profile and analog imperfections arrive in M4.
-    if (config.profile != ModelProfile::specification || analogOptionsRequested(config.analog)) {
+    // The Specification profile has no analog imperfections (REQ-SCOPE-03);
+    // NominalAnalog accepts the options implemented so far.
+    if (config.profile == ModelProfile::specification && analogOptionsRequested(config.analog)) {
         return Status::invalidConfiguration;
     }
 
@@ -119,6 +132,13 @@ Status DacCore::prepare(const DacConfig& config, std::size_t maxBlockFrames)
     impl_->rejectedBlocks = 0;
     impl_->ignoredEvents = 0;
     impl_->deemphasis = detail::Deemphasis{};
+    impl_->noiseEnabled = config.profile == ModelProfile::nominalAnalog && config.analog.noise;
+    impl_->noise.prepare(config.analog.noiseSeed, config.dacRate * static_cast<double>(oversampling));
+    if (config.profile == ModelProfile::nominalAnalog) {
+        impl_->outputStage.prepare(config.analog, config.dacRate * static_cast<double>(oversampling));
+    } else {
+        impl_->outputStage.prepare(AnalogOptions{}, 1.0);
+    }
     impl_->resetState();
     impl_->prepared = true;
     return Status::ok;

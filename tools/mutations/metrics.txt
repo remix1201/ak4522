@@ -1,0 +1,6 @@
+[
+ ("full-scale RMS 1.0", "FULL_SCALE_RMS = 1.0 / np.sqrt(2.0)", "FULL_SCALE_RMS = 1.0"),
+ ("SINAD residual A-weighted", "    band_limited = weighting.apply(residual, rate, None, BAND)", "    band_limited = weighting.apply(residual, rate, weighting.a_weighting_db, BAND)"),
+ ("DR residual unweighted", "    weighted = weighting.apply(residual, rate, weighting.a_weighting_db, BAND)", "    weighted = weighting.apply(residual, rate, None, BAND)"),
+ ("tone RMS as amplitude", "    return residual, float(np.hypot(coef[1], coef[2]) / np.sqrt(2.0))", "    return residual, float(np.hypot(coef[1], coef[2]))"),
+]

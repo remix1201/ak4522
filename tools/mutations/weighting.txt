@@ -1,0 +1,8 @@
+[
+ ("A-weighting offset 1.9 dB", "        return 20.0 * np.log10(ra) + 2.0", "        return 20.0 * np.log10(ra) + 1.9"),
+ ("A-weighting pole 12200 Hz", "    ra = (12194.0**2 * f2 * f2) / (\n        (f2 + 20.6**2) * np.sqrt((f2 + 107.7**2) * (f2 + 737.9**2)) * (f2 + 12194.0**2))", "    ra = (12500.0**2 * f2 * f2) / (\n        (f2 + 20.6**2) * np.sqrt((f2 + 107.7**2) * (f2 + 737.9**2)) * (f2 + 12500.0**2))"),
+ ("468 offset 18.0 dB", "        return 18.2 + 20.0 * np.log10(r)", "        return 18.0 + 20.0 * np.log10(r)"),
+ ("CCIR-ARM not renormalized", "    return itu468_db(f) - float(itu468_db(2000.0))", "    return itu468_db(f)"),
+ ("band to 22 kHz", "    inside = (f >= band[0]) & (f <= band[1])", "    inside = (f >= band[0]) & (f <= band[1] * 1.1)"),
+ ("average meter uncalibrated", "    return float(np.mean(np.abs(x)) * np.pi / (2.0 * np.sqrt(2.0)))", "    return float(np.mean(np.abs(x)))"),
+]

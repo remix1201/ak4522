@@ -53,14 +53,46 @@ enum class ModelProfile : std::uint8_t {
                    // it with invalidConfiguration until a profile exists
 };
 
-// Optional analog imperfections. Each flag is independent (REQ-SCOPE-03).
+// Harmonic character of the NominalAnalog distortion. Every shape gives the
+// same total distortion at 0 dBFS, 1 kHz (P-96).
+enum class DistortionShape : std::uint8_t {
+    equal2nd3rd, // equal 2nd- and 3rd-harmonic power (default)
+    mostly3rd,   // odd order only, as from a balanced stage
+    mostly2nd,   // even order only, as from a single-ended stage
+};
+
+// Frequency shape of the NominalAnalog crosstalk; -110 dB at 1 kHz (P-97).
+enum class CrosstalkShape : std::uint8_t {
+    capacitive, // rising 6 dB per octave, +90 degrees (default)
+    flat,       // the same at every frequency, in phase
+};
+
+// How the NominalAnalog channel gain mismatch is chosen (P-98).
+enum class MismatchMode : std::uint8_t {
+    fixed,       // left +0.1 dB, right -0.1 dB (default)
+    perInstance, // drawn from noiseSeed around 0.2 dB, at most 0.5 dB
+};
+
+// Optional analog imperfections, used only by the NominalAnalog profile.
+// Each flag is independent (REQ-SCOPE-03); all are synthetic until measured.
 struct AnalogOptions {
     bool noise = false;
     bool distortion = false;
     bool channelMismatch = false;
     bool crosstalk = false;
     bool dcOffset = false;
+    DistortionShape distortionShape = DistortionShape::equal2nd3rd;
+    CrosstalkShape crosstalkShape = CrosstalkShape::capacitive;
+    MismatchMode mismatchMode = MismatchMode::fixed;
     std::uint64_t noiseSeed = 0x4B4135323256464Bull; // persisted in presets (P-91)
+
+    // Every imperfection on except the DC offset, with the default shapes.
+    [[nodiscard]] static constexpr AnalogOptions nominal() noexcept
+    {
+        AnalogOptions o;
+        o.noise = o.distortion = o.channelMismatch = o.crosstalk = true;
+        return o;
+    }
 };
 
 // Chip-level configuration, applied by prepare(). Defaults follow P-01; they

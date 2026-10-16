@@ -136,13 +136,15 @@ TEST_CASE("Prepare validates the configuration", "[unit][core]")
     config.profile = ModelProfile::measured;
     CHECK(core.prepare(config, 64) == Status::invalidConfiguration);
 
-    // Not available until M4.
-    config = DacConfig{};
-    config.profile = ModelProfile::nominalAnalog;
-    CHECK(core.prepare(config, 64) == Status::invalidConfiguration);
+    // The Specification profile has no imperfections (REQ-SCOPE-03).
     config = DacConfig{};
     config.analog.noise = true;
     CHECK(core.prepare(config, 64) == Status::invalidConfiguration);
+    // NominalAnalog accepts every option.
+    config.profile = ModelProfile::nominalAnalog;
+    config.analog = AnalogOptions::nominal();
+    config.analog.dcOffset = true;
+    CHECK(core.prepare(config, 64) == Status::ok);
 
     CHECK(core.prepare(DacConfig{}, 64) == Status::ok);
     CHECK(core.isPrepared());

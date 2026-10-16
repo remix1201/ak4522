@@ -240,6 +240,82 @@ The project owner decided the response reference is 1 kHz as stated in [DS] p.6 
 
 Development note: the first long-run test also required the start and end amplitude estimates to agree within 1e-6 dB; they differ by a few 1e-6 dB from 20-bit quantization noise (about -125 dBFS), so that tolerance is now 1e-4 dB. Drift is detected by the phase check.
 
+### 2026-10-16: Specification profile lock (branch `m4-lock`, merged into `main`)
+
+Golden outputs of `DacCore` and `HostProcessor` were recorded before any M4 change. The regression test (tolerance 1e-12) detects a one-sample pipeline change and a 1e-9 gain error.
+
+### 2026-10-16: weighted measurement tools (branch `m4-measure`, merged into `main`)
+
+| Check | Method | Result |
+| ----- | ------ | ------ |
+| A-weighting | IEC 61672-1 table at 13 exact band frequencies | within 0.05 dB |
+| ITU-R 468 | BS.468-4 table at 20 frequencies | within 0.15 dB |
+| CCIR-ARM | 0 dB at 2 kHz; -5.63 dB at 1 kHz | pass |
+| Metrics | white noise against the analytic integral; known harmonics; DR equal to S/N after the notch | pass |
+| Mutation check | 10 deliberate faults | 9 detected at first. A wrong full-scale reference (1.0 instead of 1/sqrt 2, a 3 dB error in every S/N and DR) went unnoticed because the test took its expected value from the same constant. Final: 10 of 10. |
+
+Development note: the IEC 61672-1 table is tabulated at exact base-ten frequencies (1000 x 10^(n/10)) under nominal labels; the first test evaluated the formula at the labels (31.5 Hz rather than 31.62 Hz) and missed by up to 0.13 dB.
+
+**CCIR-ARM versus A-weighting (DISC-08).** With white noise set to 100 dB A-weighted, CCIR-ARM gives 97.33 dB against the 96 dB typical. Checks of possible measurement causes:
+
+| Hypothesis | Test | CCIR-ARM minus A-weighted |
+| ---------- | ---- | ------------------------: |
+| Analytic, white noise, 10 Hz to 20 kHz | integral of the analog curves | -2.67 dB |
+| Band limits | 22 Hz to 22 kHz; 20 Hz to 20 kHz | -2.60; -2.67 dB |
+| 1 kHz reference instead of 2 kHz | ITU-R 468 with ARM meter | -8.26 dB (further from -4.0) |
+| Leakage without a brick wall | unlimited to 48 kHz | A-weighting gains 0.30 dB; CCIR-ARM 0.001 dB |
+| Noise statistics, 10 s windows | Gaussian; clipped at 3x RMS; uniform; MLS-like | -2.67; -2.69; -2.84; -3.03 dB |
+| Sample rate and filter warping | 44.1, 48, 96 kHz, exact curves per FFT bin | -2.67 dB at all three |
+| Level dependence | 10 dB lower | unchanged |
+
+The datasheet pair implies -4.0 dB. No measurement effect accounts for the remaining 1.3 dB.
+
+### 2026-10-16: NominalAnalog noise (branch `m4-noise`, merged into `main`)
+
+| Check | Method | Result |
+| ----- | ------ | ------ |
+| A-weighted S/N | 10 s zero input, 44.1 kHz host and DAC, `measure_profile.py` | 100.006 dB (100 +/- 1, P-90) |
+| Noise while muted | 10 s, full-scale tone with SMUTE high from the start | 100.006 dB, identical to zero input (P-54) |
+| CCIR-ARM S/N | same capture | 97.32 dB (analysed 97.33; 96 dB typical, DISC-08) |
+| Generator statistics and wiring | 8 C++ test cases | pass |
+| Clean profile | golden lock | unchanged |
+| Mutation check | 8 deliberate faults | 7 detected; one equivalent (see the feature record) |
+
+### 2026-10-16: NominalAnalog output stage (branch `m4-imperfections`, merged into `main`)
+
+| Check | Method | Result |
+| ----- | ------ | ------ |
+| S/(N+D) at 0 dBFS, 997 Hz | 5 s captures, `measure_profile.py` | equal 2nd/3rd 90.004 dB; 3rd only 90.006 dB; 2nd only 90.002 dB; full nominal profile 89.88 dB (90 +/- 1) |
+| Dynamic range | -60 dBFS, A-weighted, 10 s | 99.89 dB (100 +/- 1) |
+| Harmonics, mismatch, crosstalk, offset | joint sine fits on `DacCore` output | within 0.05 dB of design |
+| Isolation through the host path | 10 s with noise, coherent fit (gate 7) | 110 dB at 1 kHz (after the 0.2 dB mismatch) |
+| Mutation check | 10 deliberate faults | 8 detected at first. Coupling from the wrong channel went unnoticed because only one direction was tested; gate 7 requires both, and a test now covers it. The cubic sign was invisible to magnitude tests; the model was changed to the physically usual compressive sign, and a phase test pins it. Final: 10 of 10. |
+
+Development notes: a level-scaling test at -20 dBFS measured the harmonics of the periodic 20-bit quantization error of a 1 kHz test tone rather than the distortion; the tests now use 997 Hz at -6 dBFS. A first phase test fitted the 3rd harmonic alone and picked up leakage from the fundamental (about 9e-5); it now uses a joint fit.
+
+### 2026-10-16: NominalAnalog report (branch `m4-verify`, merged into `main`)
+
+[analog_profile.md](analog_profile.md) records the measured profile against the datasheet. Notes: the full profile's A-weighted S/N (99.91 dB) is 0.1 dB below the noise alone because the fixed mismatch raises the left channel's gain, noise included. 16-bit dynamic range is 97.13 dB without dither, within 1 dB of the 98 dB typical, which most likely refers to undithered input; TPDF dither adds noise by design (94.30 dB).
+
+## M4 gate status
+
+AGENTS.md section 16, M4: "Deliver calibrated noise, optional distortion/mismatch/crosstalk/voltage diagnostics, and profile metadata. Gate: weighted measurement methods are validated; synthetic assumptions are explicit; typical-target reports pass within project tolerances. Hardware fidelity claims remain limited."
+
+| Gate item | Evidence | Status |
+| --------- | -------- | ------ |
+| Calibrated noise | P-94; A-weighted S/N 100.006 dB alone, 99.91 dB in the full profile | pass |
+| Optional distortion, mismatch, crosstalk | P-96 to P-98; selectable shapes; each flag independent | pass |
+| Voltage diagnostics | `outputVolts()`; DC offset option (P-99) | pass |
+| Profile metadata | `describe(ModelProfile)` | pass |
+| Weighted measurement methods validated | A-weighting and ITU-R 468 against their standard tables; metrics against analytic results | pass |
+| Synthetic assumptions explicit | P-94 to P-99, U-09, U-10, DISC-08; `describe()` marks the profile synthetic | pass |
+| Typical-target reports within tolerance | S/(N+D) 89.87, DR 99.89, S/N 99.91 dB against 90 / 100 / 100 +/- 1; isolation 110 dB; mismatch 0.2 dB | pass |
+| CCIR-ARM | 97.22 dB against 96 dB typical | disclosed deviation (DISC-08) |
+| Clean profile unchanged | golden lock | pass |
+| Hardware fidelity claims limited | report preamble; `describe()`; README | pass |
+
+Awaiting project-owner review. API decision O-10 approved on 2026-10-16.
+
 ## M3 gate status
 
 AGENTS.md section 16, M3: "Deliver SRC, all supported rate pairs, event mapping, latency alignment, and public examples. Gate: alias/count/block-invariance tests and real-time allocation checks pass. Publish core versus wrapper response separately."

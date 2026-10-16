@@ -13,13 +13,16 @@ include(Catch)
 
 add_executable(ak4522_tests
     allocation_counter_test.cpp
+    analog_noise_test.cpp
     api_contract_test.cpp
     config_validation_test.cpp
     control_timeline_test.cpp
     dac_core_test.cpp
     deemphasis_test.cpp
+    golden_test.cpp
     host_processor_test.cpp
     interpolator_test.cpp
+    output_stage_test.cpp
     pcm_test.cpp
     reconstruction_test.cpp
     resampler_test.cpp
@@ -32,6 +35,8 @@ add_executable(ak4522_tests
 # Tests may include internal headers under src/.
 target_include_directories(ak4522_tests PRIVATE
     ${PROJECT_SOURCE_DIR}/src ${CMAKE_CURRENT_SOURCE_DIR})
+target_compile_definitions(ak4522_tests PRIVATE
+    AK4522_TEST_DATA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/data")
 target_link_libraries(ak4522_tests PRIVATE
     ak4522::ak4522 ak4522_options Catch2::Catch2WithMain)
 
