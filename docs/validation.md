@@ -257,7 +257,7 @@ AGENTS.md section 16, M3: "Deliver SRC, all supported rate pairs, event mapping,
 | Real-time allocation checks | every component and every matrix pair | pass |
 | Core versus wrapper response | [responses.md](responses.md) | published |
 
-Awaiting project-owner review.
+Approved by the project owner on 2026-10-16; the approved state is tagged `m3-approved`.
 
 ## M2 gate status
 

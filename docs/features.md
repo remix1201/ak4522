@@ -2,7 +2,7 @@
 
 What exists in this branch, as distinct from what AGENTS.md specifies. Implementation, validation, approval, and availability are tracked separately: a feature can be implemented without being approved or released (REQ-DOC-01, REQ-DOC-02).
 
-Last substantive update: 2026-10-16. M0, M1, and M2 were merged into `main` and approved by the project owner on 2026-10-16; the approved states are tagged `m0-approved`, `m1-approved`, and `m2-approved`.
+Last substantive update: 2026-10-16. M0 to M3 were merged into `main` and approved by the project owner on 2026-10-16; the approved states are tagged `m0-approved` to `m3-approved`.
 
 ## Summary
 
@@ -22,9 +22,9 @@ Last substantive update: 2026-10-16. M0, M1, and M2 were merged into `main` and 
 | Response analysis tools         | REQ-FILTER-01, REQ-LAT-02, REQ-DEEM-02 | implemented   | passing (see below)      | approved 2026-10-16 (`m2-approved`)       | merged into `main`    |
 | 8x interpolator                 | REQ-FILTER-01                         | implemented    | passing (see below)      | approved 2026-10-16 (`m2-approved`)       | merged into `main`    |
 | Analog reconstruction and pipeline delay | REQ-FILTER-02, REQ-LAT-02    | implemented    | passing (see below)      | approved 2026-10-16 (`m2-approved`)       | merged into `main`    |
-| Sample-rate converter           | REQ-RATE-02, REQ-RATE-04              | implemented    | passing (see below)      | not yet approved                  | merged into `main`    |
-| Host-rate adaptation            | REQ-RATE-01, REQ-RATE-03, REQ-CTRL-01, REQ-LAT-03 | implemented | passing (see below) | not yet approved           | merged into `main`    |
-| Host-rate matrix verification, example, published responses | REQ-RATE-01 to REQ-RATE-04, REQ-RT-01 | implemented | passing (see below) | not yet approved | merged into `main` |
+| Sample-rate converter           | REQ-RATE-02, REQ-RATE-04              | implemented    | passing (see below)      | approved 2026-10-16 (`m3-approved`)                  | merged into `main`    |
+| Host-rate adaptation            | REQ-RATE-01, REQ-RATE-03, REQ-CTRL-01, REQ-LAT-03 | implemented | passing (see below) | approved 2026-10-16 (`m3-approved`)           | merged into `main`    |
+| Host-rate matrix verification, example, published responses | REQ-RATE-01 to REQ-RATE-04, REQ-RT-01 | implemented | passing (see below) | approved 2026-10-16 (`m3-approved`) | merged into `main` |
 | NominalAnalog profile           | REQ-NOISE-01, REQ-NOISE-02, REQ-DIST-01, REQ-CHANNEL-01 | planned (M4) | none     | none                              | none                  |
 | VST3 plugin adapter             | REQ-VST-01, REQ-VST-02, REQ-LAT-03    | planned (M5)   | none                     | none                              | none                  |
 | Measured profile                | AGENTS.md s.14                        | planned (M6, conditional on hardware) | none | none                         | none                  |
