@@ -4,6 +4,7 @@
 #include "ak4522/pcm.hpp"
 #include "core/config_validation.hpp"
 #include "core/control_timeline.hpp"
+#include "core/wide_math.hpp"
 #include "dsp/resampler.hpp"
 
 #include <algorithm>
@@ -14,8 +15,6 @@
 namespace ak4522 {
 
 namespace {
-
-using Wide = __int128;
 
 constexpr double coreDelayFrames = 14.7;     // D-F06; see DacCore
 constexpr std::int64_t coreDelayNum = 147;   // 14.7 = 147 / 10
@@ -146,8 +145,9 @@ struct HostProcessor::Impl {
     // DAC frame j represents host time j * P1 / Q1.
     [[nodiscard]] std::int64_t dacFrameFor(std::int64_t hostFrame) const noexcept
     {
-        const Wide num = static_cast<Wide>(hostFrame) * hostPerDacDen;
-        return static_cast<std::int64_t>((num + hostPerDacNum - 1) / hostPerDacNum);
+        return static_cast<std::int64_t>(detail::mulDivCeil(static_cast<std::uint64_t>(hostFrame),
+                                                            static_cast<std::uint64_t>(hostPerDacDen),
+                                                            static_cast<std::uint64_t>(hostPerDacNum)));
     }
 
     void enqueue(const ControlEvent& event) noexcept
@@ -317,9 +317,9 @@ Status HostProcessor::prepare(const HostConfig& config)
     // Latency alignment (P-39): the core delays by 14.7 DAC frames, which is
     // 14.7 * P1 / Q1 host frames. K is its whole part; the output converter
     // starts phi 8x samples late so the remaining fraction cancels exactly.
-    const Wide num = static_cast<Wide>(coreDelayNum) * h.hostPerDacNum;
-    const Wide den = static_cast<Wide>(coreDelayDen) * h.hostPerDacDen;
-    h.latencyWhole = static_cast<std::int64_t>(num / den);
+    h.latencyWhole = static_cast<std::int64_t>(
+        detail::mulDivFloor(static_cast<std::uint64_t>(coreDelayNum), static_cast<std::uint64_t>(h.hostPerDacNum),
+                            static_cast<std::uint64_t>(coreDelayDen * h.hostPerDacDen)));
     const double hostPerDac = static_cast<double>(h.hostPerDacNum) / static_cast<double>(h.hostPerDacDen);
     h.outputOffset = static_cast<double>(os)
         * (coreDelayFrames - static_cast<double>(h.latencyWhole) / hostPerDac);

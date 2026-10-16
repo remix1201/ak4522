@@ -14,7 +14,7 @@ APIs, parameters, presets, serialized state, and internal formats may change wit
 
 ## Building
 
-Requirements: CMake 3.24 or later and a C++20 compiler. The test framework (Catch2) is downloaded at configure time. Only macOS with Apple clang has been tested so far.
+Requirements: CMake 3.24 or later and a C++20 compiler (AppleClang, Clang, MSVC, or GCC). The test framework (Catch2) is downloaded at configure time. The full test suite passes on macOS (Apple Silicon), Windows ARM64 and x64 (MSVC), and Linux (GCC, aarch64); see [docs/validation.md](docs/validation.md) (REQ-PLATFORM-01).
 
 ```sh
 cmake --preset dev                # Debug, warnings as errors
@@ -28,6 +28,32 @@ The `asan` preset adds address and undefined-behavior sanitizers; `release` buil
 cmake --preset release && cmake --build --preset release
 ctest --test-dir build/release -L matrix
 ```
+
+### Windows
+
+Install Visual Studio 2022 or later, or just its Build Tools (Build Tools 2026 works), with the "Desktop development with C++" workload, which includes CMake; on Windows on ARM also add the "MSVC ARM64 build tools" component. Then install Git and Python 3.9 or later. CMake picks the newest installed Visual Studio automatically. [uv](https://docs.astral.sh/uv/) is optional and enables the analysis-tool and response tests. In a Developer PowerShell (or any PowerShell; CMake finds Visual Studio itself):
+
+```powershell
+git clone <repository> ak4522
+cd ak4522
+cmake --preset dev
+cmake --build --preset dev
+ctest --preset dev -LE matrix
+```
+
+The default presets build for the machine's own architecture. On Windows, `dev-x64` and `release-x64` build for x64 explicitly; on Windows on ARM they cross-compile and the tests run under Windows' x64 emulation:
+
+```powershell
+cmake --preset dev-x64
+cmake --build --preset dev-x64
+ctest --preset dev-x64 -LE matrix
+```
+
+32-bit Windows (x86) is not supported (REQ-PLATFORM-01).
+
+In a virtual machine, clone into a local folder rather than building from a shared host folder; shared folders are slow and can report file times that confuse incremental builds.
+
+Continuous integration (`.github/workflows/ci.yml`) defines the same steps for macOS, Windows, and Linux; it has not run yet because the repository is not on GitHub.
 
 ## Using the library
 

@@ -31,6 +31,7 @@ add_executable(ak4522_tests
     soft_mute_test.cpp
     status_test.cpp
     timing_validator_test.cpp
+    wide_math_test.cpp
     support/allocation_counter.cpp)
 # Tests may include internal headers under src/.
 target_include_directories(ak4522_tests PRIVATE

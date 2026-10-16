@@ -263,6 +263,8 @@ Supply noise, temperature, load effects, jitter, clipping recovery, and intersam
 
 **REQ-RT-02:** Perform prepare/configuration off-thread. `process` must not throw. Invalid inputs produce bounded documented behavior and counters readable off-thread. All states remain finite under supported full-scale and overload tests. Offline and realtime output are deterministic for the same configuration, seed, input, and events, within the declared floating-point tolerance.
 
+**REQ-PLATFORM-01:** Support macOS (Apple Silicon and x86_64) and Windows (x64 and ARM64; not 32-bit x86) with AppleClang, Clang, and MSVC; Linux with GCC or Clang SHOULD be supported. Use only standard C++20 in the library: no compiler extensions such as `__int128`, and no platform APIs. A platform counts as supported only when the full test suite passes there. Results are deterministic per platform; across platforms they may differ within the documented floating-point tolerances (the golden comparison allows 1e-12), and seeded noise may differ in the last bit because platform math libraries differ.
+
 **REQ-PERF-01:** Establish a named reference CPU, compiler, build settings, sample rate, profile, block size, and plugin count. Initial P budget: one clean stereo instance at 48 kHz host/44.1 kHz DAC uses <10% of a callback period at the 99.9th percentile for blocks >=64 on that reference machine. Record maximum duration and underruns separately. Benchmarks are not portable hardware guarantees. Do not sacrifice documented response silently to meet a CPU budget.
 
 ## 13. Verification and acceptance

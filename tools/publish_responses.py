@@ -17,6 +17,7 @@ from pathlib import Path
 
 import numpy as np
 
+from ak4522_tools import tool_path
 from ak4522_tools import dac_gates, response
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -29,7 +30,7 @@ FREQS = [20.0, 100.0, 1000.0, 5000.0, 10000.0, 15000.0, 19000.0, 20000.0]
 def core_section(build: Path) -> list[str]:
     ir = build / "dsp/publish_dac_core_impulse.txt"
     ir.parent.mkdir(parents=True, exist_ok=True)
-    subprocess.run([str(build / "ak4522_impulse_dump"), "dac-core", str(ir), "1000"], check=True)
+    subprocess.run([str(tool_path.find(build, "ak4522_impulse_dump")), "dac-core", str(ir), "1000"], check=True)
     h = np.loadtxt(ir)
     fs_high = 8 * dac_gates.DATASHEET_RATE
     checks = dac_gates.digital_filter_checks(h, fs_high, dac_gates.DATASHEET_RATE)
@@ -60,7 +61,7 @@ def wrapper_section(build: Path) -> list[str]:
     for host, dac in PAIRS:
         edge = 20.0 / 44.1 * min(host, dac)
         freqs = [f for f in FREQS if f <= edge + 1e-6]
-        out = subprocess.run([str(build / "ak4522_host_response"), str(host), str(dac)]
+        out = subprocess.run([str(tool_path.find(build, "ak4522_host_response")), str(host), str(dac)]
                              + [str(f) for f in freqs], check=True, capture_output=True, text=True).stdout
         rows = [l.split(",") for l in out.strip().splitlines()]
         latency = int(rows[0][1])

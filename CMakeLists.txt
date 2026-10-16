@@ -19,6 +19,9 @@ option(AK4522_WARNINGS_AS_ERRORS "Treat compiler warnings as errors" OFF)
 add_library(ak4522_options INTERFACE)
 if(MSVC)
     target_compile_options(ak4522_options INTERFACE /W4 /permissive-)
+    # The standard C file functions used by the tools are deprecated in
+    # favor of Microsoft-specific variants; keep the portable ones.
+    target_compile_definitions(ak4522_options INTERFACE _CRT_SECURE_NO_WARNINGS)
     if(AK4522_WARNINGS_AS_ERRORS)
         target_compile_options(ak4522_options INTERFACE /WX)
     endif()
