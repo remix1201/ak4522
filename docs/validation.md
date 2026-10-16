@@ -12,7 +12,7 @@ Measurement methods, results, and known deviations. Every result states the mode
 | Catch2     | v3.16.0 (commit 317ac1ed)                     |
 | Python     | 3.12.15; numpy 2.5.4, scipy 1.18.1, matplotlib 3.11.2 |
 
-Proposed reference machine for REQ-PERF-01 (P-93): Apple M1 Max, macOS 26.5.2, Apple clang 21.0.0, `release` preset. Pending owner approval.
+Reference machine for REQ-PERF-01 (P-93): Apple M1 Max, macOS 26.5.2, Apple clang 21.0.0, `release` preset. Approved by the project owner on 2026-10-16.
 
 ## Results
 
@@ -360,7 +360,7 @@ Development note: the push example first rendered as fast as the CPU allowed, wh
 
 ### 2026-10-16: CPU benchmark (branch `m5-package`)
 
-`build/release/ak4522_benchmark --check --seconds 60` on the proposed reference machine, one instance, ordinary thread priority, other virtual machines idle. Shares of the callback period:
+`build/release/ak4522_benchmark --check --seconds 60` on the reference machine, one instance, ordinary thread priority, other virtual machines idle. Shares of the callback period:
 
 | Case | Block | Median | p99.9 | Max | Over the period |
 | ---- | ----: | -----: | ----: | --: | --------------: |
@@ -376,6 +376,8 @@ Budget (p99.9 below 10% for blocks of 64 or more): met. Before the output conver
 
 ## M5 gate status
 
+M5 approved by the project owner on 2026-10-16 (tag `m5-approved`).
+
 AGENTS.md section 16, M5: "Deliver, in this order: `DacStream` ...; the opt-in extended rate range (REQ-CLOCK-02); the C API (REQ-API-02); packaging, the integration guide, and generic examples (REQ-API-03). Gate: library tests for each new API, including block-partition invariance, drift-free long runs at a fractional DAC rate, push and pull equivalence, and real-time allocation checks; a C API test built as C; a consumer project, outside the library's own build, built against the installed package and run; release benchmark meeting the stated budget."
 
 | Gate item | Evidence | Status |
@@ -387,7 +389,7 @@ AGENTS.md section 16, M5: "Deliver, in this order: `DacStream` ...; the opt-in e
 | Real-time allocation checks | render, push, and C calls under the allocation counter | pass |
 | C API test built as C | `tests/c_api/c_api_test.c`, C99, warnings as errors | pass |
 | Consumer against the installed package | `package.install`, plus `add_subdirectory` and shared-library variants | pass |
-| Release benchmark meets the budget | p99.9 3.4% at 64 frames on the proposed reference machine (budget 10%); Linux VM 5.4% | pass, reference machine pending approval |
+| Release benchmark meets the budget | p99.9 3.4% at 64 frames on the reference machine (budget 10%); Linux VM 5.4% | pass |
 | Platforms | macOS, Windows ARM64 and x64, Linux aarch64: full suite, package tests, and matrix at `a210911` | pass |
 
 ## M4 gate status
