@@ -3,10 +3,12 @@
 
 #include "ak4522/ak4522.h"
 
+#include "ak4522/adc_core.hpp"
 #include "ak4522/dac_stream.hpp"
 #include "ak4522/host_processor.hpp"
 #include "ak4522/serial.hpp"
 #include "ak4522/version.hpp"
+#include "core/control_timeline.hpp"
 
 #include <new>
 #include <vector>
@@ -39,6 +41,9 @@ static_assert(AK4522_PIN_LRCK == static_cast<int>(Pin::lrck));
 static_assert(AK4522_TIMING_CLOCK_STOPPED == static_cast<int>(TimingViolation::clockStopped));
 static_assert(AK4522_TIMING_MCLK_NOT_SYNCHRONIZED == static_cast<int>(TimingViolation::mclkNotSynchronized));
 static_assert(AK4522_TIMING_KINDS == static_cast<int>(TimingViolation::count_));
+static_assert(AK4522_PATH_ADC == static_cast<int>(HostPath::adc));
+static_assert(AK4522_PATH_LOOPBACK == static_cast<int>(HostPath::loopback));
+static_assert(AK4522_INPUT_SINGLE_ENDED == static_cast<int>(AdcInputMode::singleEnded));
 
 // Out-of-range enum values become values the C++ validation rejects.
 template <typename Enum>
@@ -120,7 +125,7 @@ ak4522_diagnostics toC(const Diagnostics& d) noexcept
 {
     return {d.nonFiniteInputSamples, d.clippedInputSamples, d.chunkedBlocks, d.rejectedBlocks,
             d.ignoredEvents, d.droppedEvents, d.hostUnderruns, d.sourceUnderrunFrames,
-            d.sourceOverrunFrames};
+            d.sourceOverrunFrames, d.adcClippedSamples};
 }
 
 // Converts C events into preallocated scratch. Type and value must fit the
@@ -162,6 +167,16 @@ struct ak4522_serial_decoder {
 
 struct ak4522_timing_validator {
     TimingValidator validator;
+};
+
+struct ak4522_adc {
+    AdcCore core;
+    std::vector<ControlEvent> events;
+    std::vector<Pcm20Frame> frames;
+};
+
+struct ak4522_serial_encoder {
+    SerialEncoder encoder;
 };
 
 struct ak4522_circuit {
@@ -266,6 +281,8 @@ void ak4522_host_config_default(ak4522_host_config* config)
     config->max_events_per_call = 256;
     config->example_output_circuit = h.exampleOutputCircuit;
     config->example_circuit = toC(h.exampleCircuit);
+    config->path = static_cast<int32_t>(h.path);
+    config->adc_input_mode = static_cast<int32_t>(h.adcInputMode);
     config->dac = toC(h.dac);
 }
 
@@ -317,6 +334,8 @@ ak4522_status ak4522_host_prepare(ak4522_host* host, const ak4522_host_config* c
     h.ditherSeed = config->dither_seed;
     h.exampleOutputCircuit = config->example_output_circuit;
     h.exampleCircuit = toCpp(config->example_circuit);
+    h.path = toEnum<HostPath>(config->path);
+    h.adcInputMode = toEnum<AdcInputMode>(config->adc_input_mode);
     h.dac = toCpp(config->dac);
     if (config->max_events_per_call == 0) {
         return AK4522_INVALID_CONFIGURATION;
@@ -685,4 +704,191 @@ ak4522_status ak4522_circuit_process_f32(ak4522_circuit* circuit, float* left, f
 ak4522_status ak4522_circuit_process_f64(ak4522_circuit* circuit, double* left, double* right, size_t frames)
 {
     return circuitProcess(circuit, left, right, frames);
+}
+
+void ak4522_adc_config_default(ak4522_adc_config* config)
+{
+    if (config == nullptr) {
+        return;
+    }
+    const AdcConfig a;
+    *config = {};
+    config->adc_rate = a.adcRate;
+    config->allow_extended_rate = a.allowExtendedRate;
+    config->cmode = static_cast<int32_t>(a.cmode);
+    config->master_clock_hz = a.masterClockHz.value_or(0.0);
+    config->profile = static_cast<int32_t>(a.profile);
+    config->analog = toC(a.analog);
+    config->input_mode = static_cast<int32_t>(a.inputMode);
+    config->max_block_frames = 512;
+    config->max_events_per_call = 256;
+}
+
+double ak4522_adc_input_from_volts(double volts, double vrefh)
+{
+    return adcInputFromVolts(volts, vrefh);
+}
+
+ak4522_adc* ak4522_adc_create(void)
+{
+    return new (std::nothrow) ak4522_adc;
+}
+
+void ak4522_adc_destroy(ak4522_adc* adc)
+{
+    delete adc;
+}
+
+ak4522_status ak4522_adc_prepare(ak4522_adc* adc, const ak4522_adc_config* config)
+{
+    if (adc == nullptr || config == nullptr) {
+        return AK4522_INVALID_ARGUMENT;
+    }
+    if (config->max_events_per_call == 0) {
+        return AK4522_INVALID_CONFIGURATION;
+    }
+    AdcConfig a;
+    a.adcRate = config->adc_rate;
+    a.allowExtendedRate = config->allow_extended_rate;
+    a.cmode = toEnum<CmodePin>(config->cmode);
+    if (config->master_clock_hz != 0.0) {
+        a.masterClockHz = config->master_clock_hz;
+    }
+    a.profile = toEnum<ModelProfile>(config->profile);
+    a.analog = toCpp(config->analog);
+    a.inputMode = toEnum<AdcInputMode>(config->input_mode);
+    const Status s = adc->core.prepare(a, config->max_block_frames);
+    if (s == Status::ok) {
+        adc->events.assign(config->max_events_per_call, ControlEvent{});
+        adc->frames.assign(config->max_block_frames, Pcm20Frame{});
+    }
+    return status(s);
+}
+
+ak4522_status ak4522_adc_reset(ak4522_adc* adc)
+{
+    if (adc == nullptr) {
+        return AK4522_INVALID_ARGUMENT;
+    }
+    adc->core.reset();
+    return adc->core.isPrepared() ? AK4522_OK : AK4522_NOT_PREPARED;
+}
+
+ak4522_status ak4522_adc_process(ak4522_adc* adc, const double* in_left, const double* in_right,
+                                 int32_t* out_left, int32_t* out_right, size_t frames,
+                                 const ak4522_event* events, size_t event_count)
+{
+    if (adc == nullptr
+        || (frames > 0 && (in_left == nullptr || in_right == nullptr || out_left == nullptr || out_right == nullptr))) {
+        return AK4522_INVALID_ARGUMENT;
+    }
+    if (!adc->core.isPrepared()) {
+        return AK4522_NOT_PREPARED;
+    }
+    std::span<const ControlEvent> e;
+    if (const ak4522_status s = convertEvents(events, event_count, adc->events, e); s != AK4522_OK) {
+        return s;
+    }
+    // The whole block's events first: pieces below would otherwise skip an
+    // event beyond the block instead of rejecting it.
+    if (const Status s = detail::ControlTimeline::validate(frames, e); s != Status::ok) {
+        return status(s);
+    }
+    // Convert in pieces of the prepared block size, so the frame scratch stays
+    // bounded; events are split with them.
+    const std::size_t block = adc->frames.size();
+    std::size_t next = 0;
+    for (std::size_t at = 0; at < frames || (frames == 0 && at == 0);) {
+        const std::size_t n = std::min(block, frames - at);
+        std::size_t end = next;
+        while (end < e.size() && e[end].offset < at + n) {
+            ++end;
+        }
+        // Shift this piece's events to its start, in the event scratch.
+        for (std::size_t i = next; i < end; ++i) {
+            adc->events[i].offset -= static_cast<std::uint32_t>(at);
+        }
+        const ProcessResult r = adc->core.process(
+            {{in_left + at * AdcCore::oversampling, n * AdcCore::oversampling},
+             {in_right + at * AdcCore::oversampling, n * AdcCore::oversampling}},
+            std::span<const ControlEvent>(adc->events.data() + next, end - next), std::span(adc->frames).first(n));
+        if (r.status != Status::ok) {
+            return status(r.status);
+        }
+        for (std::size_t j = 0; j < n; ++j) {
+            out_left[at + j] = adc->frames[j].left.code;
+            out_right[at + j] = adc->frames[j].right.code;
+        }
+        next = end;
+        at += n;
+        if (frames == 0) {
+            break;
+        }
+    }
+    return AK4522_OK;
+}
+
+ak4522_status ak4522_adc_latency(const ak4522_adc* adc, ak4522_adc_latency_info* latency)
+{
+    if (adc == nullptr || latency == nullptr) {
+        return AK4522_INVALID_ARGUMENT;
+    }
+    const AdcLatencyInfo l = adc->core.latency();
+    *latency = {l.adcRate, l.coreAdcFrames, l.nominalAdcFrames, l.initializationFrames, l.totalSeconds};
+    return adc->core.isPrepared() ? AK4522_OK : AK4522_NOT_PREPARED;
+}
+
+ak4522_status ak4522_adc_diagnostics(const ak4522_adc* adc, ak4522_diagnostics* diagnostics)
+{
+    if (adc == nullptr || diagnostics == nullptr) {
+        return AK4522_INVALID_ARGUMENT;
+    }
+    *diagnostics = toC(adc->core.diagnostics());
+    return AK4522_OK;
+}
+
+ak4522_serial_encoder* ak4522_serial_encoder_create(void)
+{
+    return new (std::nothrow) ak4522_serial_encoder;
+}
+
+void ak4522_serial_encoder_destroy(ak4522_serial_encoder* encoder)
+{
+    delete encoder;
+}
+
+ak4522_status ak4522_serial_encoder_prepare(ak4522_serial_encoder* encoder, int32_t format)
+{
+    if (encoder == nullptr) {
+        return AK4522_INVALID_ARGUMENT;
+    }
+    return status(encoder->encoder.prepare(toEnum<SerialFormat>(format)));
+}
+
+ak4522_status ak4522_serial_encoder_reset(ak4522_serial_encoder* encoder)
+{
+    if (encoder == nullptr) {
+        return AK4522_INVALID_ARGUMENT;
+    }
+    encoder->encoder.reset();
+    return AK4522_OK;
+}
+
+ak4522_status ak4522_serial_encoder_set_frame(ak4522_serial_encoder* encoder, int32_t left, int32_t right)
+{
+    if (encoder == nullptr || left < Pcm20::minCode || left > Pcm20::maxCode || right < Pcm20::minCode
+        || right > Pcm20::maxCode) {
+        return AK4522_INVALID_ARGUMENT;
+    }
+    encoder->encoder.setFrame({Pcm20{left}, Pcm20{right}});
+    return AK4522_OK;
+}
+
+ak4522_status ak4522_serial_encoder_sclk_falling_edge(ak4522_serial_encoder* encoder, bool lrck, bool* sdto)
+{
+    if (encoder == nullptr || sdto == nullptr) {
+        return AK4522_INVALID_ARGUMENT;
+    }
+    *sdto = encoder->encoder.sclkFallingEdge(lrck);
+    return AK4522_OK;
 }

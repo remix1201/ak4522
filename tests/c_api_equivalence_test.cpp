@@ -1,6 +1,7 @@
 // The C API gives the same results as the C++ API it wraps (REQ-API-02).
 
 #include "ak4522/ak4522.h"
+#include "ak4522/adc_core.hpp"
 #include "ak4522/dac_stream.hpp"
 #include "ak4522/host_processor.hpp"
 #include "ak4522/serial.hpp"
@@ -91,7 +92,7 @@ TEST_CASE("C host processing equals HostProcessor", "[unit][capi]")
 {
     // Each variant sets one field on both sides, so a field mapped to the
     // wrong C++ member changes the output.
-    const int variant = GENERATE(range(0, 16));
+    const int variant = GENERATE(range(0, 19));
     CAPTURE(variant);
     HostConfig cfg;
     ak4522_host_config c;
@@ -144,6 +145,25 @@ TEST_CASE("C host processing equals HostProcessor", "[unit][capi]")
         cfg.exampleOutputCircuit = c.example_output_circuit = true;
         cfg.exampleCircuit = {false, false, 10e3};
         c.example_circuit = {false, false, 10e3};
+        break;
+    case 16:
+        cfg.path = HostPath::loopback;
+        c.path = AK4522_PATH_LOOPBACK;
+        break;
+    case 17:
+        cfg.path = HostPath::adc;
+        c.path = AK4522_PATH_ADC;
+        nominal();
+        cfg.dac.analog = AnalogOptions::nominal();
+        c.dac.analog.noise = c.dac.analog.distortion = c.dac.analog.channel_mismatch = c.dac.analog.crosstalk = true;
+        break;
+    case 18:
+        cfg.path = HostPath::adc;
+        c.path = AK4522_PATH_ADC;
+        nominal();
+        cfg.dac.analog.distortion = c.dac.analog.distortion = true;
+        cfg.adcInputMode = AdcInputMode::singleEnded;
+        c.adc_input_mode = AK4522_INPUT_SINGLE_ENDED;
         break;
     case 13:
         cfg.hostRate = c.host_rate = 96000.0;
@@ -404,4 +424,76 @@ TEST_CASE("C stream dither equals DacStream dither", "[unit][capi][stream]")
     REQUIRE(ak4522_stream_render_f64(s, y.data(), yr.data(), y.size()) == AK4522_OK);
     CHECK(x == y);
     ak4522_stream_destroy(s);
+}
+
+TEST_CASE("C ADC equals AdcCore, across pieces of the prepared block", "[unit][capi][adc]")
+{
+    AdcConfig cfg;
+    cfg.profile = ModelProfile::nominalAnalog;
+    cfg.analog = AnalogOptions::nominal();
+    cfg.analog.mismatchMode = MismatchMode::perInstance;
+    cfg.analog.noiseSeed = 31;
+    cfg.inputMode = AdcInputMode::singleEnded;
+    const std::size_t frames = 5000;
+    std::vector<double> in(8 * frames);
+    for (std::size_t n = 0; n < in.size(); ++n) {
+        in[n] = 0.6 * std::sin(0.0021 * static_cast<double>(n));
+    }
+    const std::vector<ControlEvent> events{ControlEvent::powerDown(1200, false), ControlEvent::powerDown(1300, true),
+                                           ControlEvent::softMute(4000, true)};
+    AdcCore cpp;
+    REQUIRE(cpp.prepare(cfg, frames) == Status::ok);
+    std::vector<Pcm20Frame> expected(frames);
+    REQUIRE(cpp.process({in, in}, events, expected).status == Status::ok);
+
+    ak4522_adc_config c;
+    ak4522_adc_config_default(&c);
+    c.profile = AK4522_PROFILE_NOMINAL_ANALOG;
+    c.analog.noise = c.analog.distortion = c.analog.channel_mismatch = c.analog.crosstalk = true;
+    c.analog.mismatch_mode = AK4522_MISMATCH_PER_INSTANCE;
+    c.analog.noise_seed = 31;
+    c.input_mode = AK4522_INPUT_SINGLE_ENDED;
+    c.max_block_frames = 700; // the call below is split into pieces
+    ak4522_adc* adc = ak4522_adc_create();
+    REQUIRE(ak4522_adc_prepare(adc, &c) == AK4522_OK);
+    const ak4522_event ce[3] = {{1200, AK4522_EVENT_POWER_DOWN, 0}, {1300, AK4522_EVENT_POWER_DOWN, 1},
+                                {4000, AK4522_EVENT_SOFT_MUTE, 1}};
+    std::vector<int32_t> l(frames), r(frames);
+    REQUIRE(ak4522_adc_process(adc, in.data(), in.data(), l.data(), r.data(), frames, ce, 3) == AK4522_OK);
+    for (std::size_t j = 0; j < frames; ++j) {
+        REQUIRE(l[j] == expected[j].left.code);
+        REQUIRE(r[j] == expected[j].right.code);
+    }
+    ak4522_diagnostics d;
+    REQUIRE(ak4522_adc_diagnostics(adc, &d) == AK4522_OK);
+    CHECK(d.ignored_events == cpp.diagnostics().ignoredEvents);
+    ak4522_adc_destroy(adc);
+}
+
+TEST_CASE("C serial encoder equals SerialEncoder", "[unit][capi][serial]")
+{
+    const int format = GENERATE(0, 1, 2, 3);
+    CAPTURE(format);
+    SerialEncoder cpp;
+    REQUIRE(cpp.prepare(static_cast<SerialFormat>(format)) == Status::ok);
+    ak4522_serial_encoder* c = ak4522_serial_encoder_create();
+    REQUIRE(ak4522_serial_encoder_prepare(c, format) == AK4522_OK);
+    std::mt19937_64 rng(static_cast<std::uint64_t>(format) + 9);
+    std::uniform_int_distribution<std::int32_t> code(Pcm20::minCode, Pcm20::maxCode);
+    std::uniform_int_distribution<int> slots(16, 40);
+    bool lrck = false;
+    for (int half = 0; half < 300; ++half) {
+        lrck = !lrck;
+        if (half % 2 == 0) {
+            const Pcm20Frame f{Pcm20{code(rng)}, Pcm20{code(rng)}};
+            cpp.setFrame(f);
+            REQUIRE(ak4522_serial_encoder_set_frame(c, f.left.code, f.right.code) == AK4522_OK);
+        }
+        for (int s = slots(rng); s > 0; --s) {
+            bool bit = false;
+            REQUIRE(ak4522_serial_encoder_sclk_falling_edge(c, lrck, &bit) == AK4522_OK);
+            REQUIRE(bit == cpp.sclkFallingEdge(lrck));
+        }
+    }
+    ak4522_serial_encoder_destroy(c);
 }

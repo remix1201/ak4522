@@ -458,6 +458,26 @@ Development notes: the first crosstalk test, without noise, measured a 1.5 LSB l
 
 Development note: the first startup and PD tests expected silence up to the reported latency plus 516 frames. The ADC's "0" frames reach the host after the buffering alone; the reported latency also includes the chip's delay to the signal, which the zeros do not carry. The tests now use the buffering.
 
+## M7 gate status
+
+AGENTS.md section 16, M7: "Deliver the ADC evidence entries, `AdcCore`, SDTO serial encoder, ADC reset and initialization behavior, and the optional DAC-to-ADC loopback chain, exposed through the integration modes and C API. Gate: decimation response, high-pass response, initialization timing, serial output framing, and streaming tests pass under the same rules as the DAC; ADC and DAC results are reported separately."
+
+| Gate item | Evidence | Status |
+| --------- | -------- | ------ |
+| ADC evidence entries | `docs/evidence.md` section 12, verified against the PDF text layer and column coordinates; DISC-09, DISC-10 | pass |
+| Decimation response | P-105, P-106: ripple 0.0048 dB, points within 0.01 dB, -6 dB at 0.5 fs, 80.55 dB stopband, 29.3125 frames | pass |
+| High-pass response | P-107: -3 dB at 0.9 Hz scaled with fs; -0.46 dB at 2.7 Hz (first order); -0.1 dB at 6 Hz | pass |
+| Initialization timing | 516 "0" frames after PD release and at startup, in `AdcCore` and both host paths | pass |
+| Serial output framing | every slot against Figs.1 to 4; round trips through the decoder | pass |
+| Streaming | bitwise block invariance with PD events in `AdcCore` and both host paths; no underruns | pass |
+| Reset | `AdcCore` and host paths return to the state after prepare | pass |
+| Loopback | `DacCore` into `AdcCore` (44.0125 frames); `HostPath::loopback`; CCIR-ARM 94.24 dB against 94 typical | pass |
+| Integration modes and C API | `HostPath::loopback` and `adc`; `ak4522_adc_*`, `ak4522_serial_encoder_*`; bit-identical to C++ | pass |
+| ADC and DAC reported separately | ADC section of [analog_profile.md](analog_profile.md#adc-m7); ADC rows in this record | pass |
+| NominalAnalog (REQ-ADC-07) | S/(N+D) 91.97 / 79.93 dB, DR and S/N 99.99 dB; CCIR-ARM 97.32 dB per converter (DISC-08) | pass, with the disclosed deviation |
+
+Not modeled: content near multiples of 64fs (AD-08), the end-of-initialization click (AD-10), gain drift, input resistance, and supply rejection (AD-A06, AD-A08, AD-A09).
+
 ## M5 gate status
 
 M5 approved by the project owner on 2026-10-16 (tag `m5-approved`).

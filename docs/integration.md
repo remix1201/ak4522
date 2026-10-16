@@ -50,6 +50,8 @@ As a subproject the library builds no tests or examples and installs nothing unl
 | Host audio to process, as an effect | `HostProcessor` | host-rate float or double | host-rate audio, fixed latency |
 | A source that runs at its own rate: an instrument, an emulated system, a decoder | `DacStream` | DAC frames at the source's exact rate | host-rate audio |
 | Your own rate conversion, or analysis at the DAC rate | `DacCore` | 20-bit frames at the DAC rate | 8x the DAC rate |
+| Host audio through the DAC into the ADC, or through the ADC alone | `HostProcessor` with `path = loopback` or `adc` | host-rate audio | host-rate audio, fixed latency |
+| An analog-like signal to digitize at the ADC rate | `AdcCore` | normalized samples at 8x the ADC rate | 20-bit codes at the ADC rate |
 | A C program or another language | `ak4522/ak4522.h` | as above | as above |
 
 Each has an example: [examples/host_processor_example.cpp](../examples/host_processor_example.cpp), [examples/dac_stream_example.cpp](../examples/dac_stream_example.cpp) (pull), [examples/dac_stream_push_example.cpp](../examples/dac_stream_push_example.cpp) (push), [examples/dac_core_example.cpp](../examples/dac_core_example.cpp), and [examples/c_api_example.c](../examples/c_api_example.c).
@@ -88,6 +90,10 @@ static void pull(void* context, ak4522::DacPullBlock& block) noexcept
 **Push** suits a source on its own thread. Call `push(frames, events)` from that thread and `render` from the audio thread. The queue holds `pushCapacityFrames`. Prime it before rendering, and keep it ahead using `queuedFrames()`, `freeFrames()`, and `dacFramesFor(n)`. If it runs dry, the missing frames play as silence and `diagnostics().sourceUnderrunFrames` counts them. If it is full, the extra frames are dropped and `sourceOverrunFrames` counts them.
 
 **Formats.** `int16` (scaled to 20-bit weight), `int20`, `int24` (the top 20 bits are used, as the chip's serial input does), `float32`, and `float64`. Float is quantized to 20 bits with rounding to nearest, ties to even; `inputDither` adds optional TPDF dither first.
+
+## The ADC
+
+The chip's ADC is modeled separately (`AdcCore`) and shares the DAC's clocks and PD pin. Feed it normalized samples at 8x its rate, where 1.0 is full scale (`adcInputFromVolts` converts volts); it returns 20-bit codes 29.3125 frames later, after 516 frames of "0" at startup and after each PD release. `DacCore`'s output can drive it directly. In a host, `HostConfig::path` adds the ADC: `loopback` plays host audio through the DAC and records it back through the ADC; `adc` treats host audio as the ADC's analog input. Both keep the reported latency exact. For a serial bit stream, `SerialEncoder` produces SDTO.
 
 ## Events
 
