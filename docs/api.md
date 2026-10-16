@@ -41,6 +41,7 @@ REQ-ARCH-01 names ten abstractions. Four are public types: `DacConfig`, `DacCore
 | `diagnostics.hpp`    | `Diagnostics` counters                                                                         |
 | `status.hpp`         | `Status`                                                                                       |
 | `ak4522.hpp`         | Umbrella include                                                                               |
+| `ak4522.h`           | C API (REQ-API-02); see below                                                                  |
 
 ## Lifecycle
 
@@ -91,6 +92,17 @@ Events on the same frame apply in `ControlType` order: PD, then DEM, then SMUTE 
 - **Latency.** DAC frame j is presented at host time j H / fs and appears `latency().reportedHostFrames` host frames later.
 
 `prepare()`, `reset()`, and destruction run off the audio thread and never concurrently with `render()` or `push()`. `render()` and `push()` may run on two different threads.
+
+## C API
+
+`include/ak4522/ak4522.h` exposes `HostProcessor` and `DacStream` to C99 and later and to any language with a C foreign function interface (REQ-API-02). It adds no behavior; results are identical to the C++ classes.
+
+- **Handles.** `ak4522_host_create` and `ak4522_stream_create` return opaque handles (NULL when out of memory); `*_destroy` frees them and ignores NULL. Create, prepare, and destroy off the audio thread.
+- **Configuration.** Plain structs mirroring the C++ ones. Fill them with `ak4522_dac_config_default`, `ak4522_host_config_default`, or `ak4522_stream_config_default`, then change fields. Enum fields take the `AK4522_*` constants; out-of-range values are rejected by `prepare`. `master_clock_hz` 0 means not given. The stream's exact rate is `dac_rate_numerator / dac_rate_denominator`; its `dac.dac_rate` is ignored.
+- **Status.** Every fallible call returns `ak4522_status`: the C++ `Status` values, plus `AK4522_INVALID_ARGUMENT` (a required pointer was NULL, or an event's type or value is out of range) and `AK4522_TOO_MANY_EVENTS`. `ak4522_status_string` describes any value.
+- **Buffers and events.** Planar channel pointers and a frame count, owned by the caller. Events are `ak4522_event` arrays; each call accepts at most `max_events_per_call` of them (default 256), converted into preallocated storage so the call stays allocation-free.
+- **Pull sources.** `ak4522_pull_fn` receives an `ak4522_pull_block` whose pointers for the configured format are set and the others NULL. Events written beyond `event_capacity`, or with an invalid type or value, cause the block's events to be dropped and counted.
+- **Threads.** As the C++ classes: `ak4522_stream_push_*` may run on a producer thread while `ak4522_stream_render_*` runs on the audio thread; diagnostics and queue queries from any thread.
 
 ## Latency and diagnostics
 

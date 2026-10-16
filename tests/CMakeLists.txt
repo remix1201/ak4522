@@ -15,6 +15,7 @@ add_executable(ak4522_tests
     allocation_counter_test.cpp
     analog_noise_test.cpp
     api_contract_test.cpp
+    c_api_equivalence_test.cpp
     config_validation_test.cpp
     control_timeline_test.cpp
     dac_core_test.cpp
@@ -69,3 +70,28 @@ catch_discover_tests(ak4522_matrix_tests
     REPORTER junit
     OUTPUT_DIR ${CMAKE_BINARY_DIR}/test-results
     OUTPUT_SUFFIX .xml)
+
+# The C API, built as C (REQ-API-02). Linked by the C++ linker because the
+# library is C++.
+enable_language(C)
+add_executable(ak4522_c_api_test c_api/c_api_test.c)
+set_target_properties(ak4522_c_api_test PROPERTIES
+    C_STANDARD 99 C_STANDARD_REQUIRED ON C_EXTENSIONS OFF LINKER_LANGUAGE CXX)
+target_link_libraries(ak4522_c_api_test PRIVATE ak4522::ak4522)
+if(MSVC)
+    target_compile_options(ak4522_c_api_test PRIVATE /W4)
+else()
+    target_compile_options(ak4522_c_api_test PRIVATE -Wall -Wextra -Wpedantic -Wconversion)
+    if(AK4522_SANITIZE)
+        target_compile_options(ak4522_c_api_test PRIVATE -fsanitize=address,undefined -fno-omit-frame-pointer)
+        target_link_options(ak4522_c_api_test PRIVATE -fsanitize=address,undefined)
+    endif()
+endif()
+if(AK4522_WARNINGS_AS_ERRORS)
+    target_compile_options(ak4522_c_api_test PRIVATE $<IF:$<C_COMPILER_ID:MSVC>,/WX,-Werror>)
+endif()
+if(UNIX AND NOT APPLE)
+    target_link_libraries(ak4522_c_api_test PRIVATE m)
+endif()
+add_test(NAME capi.c_test COMMAND ak4522_c_api_test)
+set_tests_properties(capi.c_test PROPERTIES LABELS "unit;capi")

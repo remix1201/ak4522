@@ -33,13 +33,13 @@ Last substantive update: 2026-10-16. M0 to M4 were merged into `main` and approv
 | NominalAnalog output stage      | REQ-DIST-01, REQ-CHANNEL-01, REQ-ANALOG-01, REQ-ANALOG-02 | implemented | passing (see below) | approved 2026-10-16 (`m4-approved`)          | merged into `main`    |
 | DacStream (pull and push, fractional DAC rates) | REQ-API-01, REQ-RATE-02 | implemented | passing (see below) | not yet approved              | branch `m5-stream`    |
 | Extended DAC-rate range (opt-in, up to 50.4 kHz) | REQ-CLOCK-02          | implemented    | passing (see below)      | not yet approved                  | branch `m5-extended-rate` |
-| C API                           | REQ-API-02                            | planned (M5)   | none                     | none                              | none                  |
+| C API                           | REQ-API-02                            | implemented    | passing (see below)      | not yet approved                  | branch `m5-c-api`     |
 | Packaging, integration guide, examples | REQ-API-03                     | planned (M5)   | none                     | none                              | none                  |
 | Demo plugin (VST3, AU), separate project | REQ-VST-01, REQ-VST-02, REQ-LAT-03 | planned (after M5) | none                     | none                              | none                  |
 | Measured profile                | AGENTS.md s.14                        | planned (M6, conditional on hardware) | none | none                         | none                  |
 | ADC section and loopback        | REQ-SCOPE-04, REQ-ADC-01 to REQ-ADC-07 | planned (M7)  | none                     | none                              | none                  |
 
-Available on `main`: `DacCore` (DAC-rate PCM in, 8x the DAC rate out), `HostProcessor` (host-rate audio in and out), the Specification profile, and the optional NominalAnalog profile. On branch `m5-extended-rate` (stacked on `m5-stream`): `DacStream` for sources at their own DAC rate and the opt-in extended rate range. Planned for M5: a C API, and packaging. A demo plugin follows in a separate project.
+Available on `main`: `DacCore` (DAC-rate PCM in, 8x the DAC rate out), `HostProcessor` (host-rate audio in and out), the Specification profile, and the optional NominalAnalog profile. On branch `m5-extended-rate` (stacked on `m5-stream`): `DacStream` for sources at their own DAC rate and the opt-in extended rate range; on `m5-c-api`, the C API. Planned for M5: packaging. A demo plugin follows in a separate project.
 
 ## Build and test foundation
 
@@ -330,6 +330,16 @@ Available on `main`: `DacCore` (DAC-rate PCM in, 8x the DAC rate out), `HostProc
 - **Usage:** set `DacConfig::allowExtendedRate = true` (in `HostConfig::dac` or `DacStreamConfig::dac`). Rates up to 50 400 Hz are then accepted; without it they are rejected with `invalidDacRate`. `latency().outsideDocumentedRate` is true for any rate above 48 kHz.
 - **Behavior:** not documented chip behavior (P-103). The model is unchanged: filters keep their normalized frequencies, so the response scales with the rate; de-emphasis keeps the selected set; soft mute still takes 1024 frames (20.3 ms at 50.4 kHz). The lower limit stays 16 kHz. `TimingValidator` still reports LRCK above 48 kHz.
 - **Validation:** 6 test cases (`[extended]`): opt-in required; rejection above 50.4 kHz and below 16 kHz; latency flag in `DacCore` and `HostProcessor`; identical core output at 50.4 and 44.1 kHz; `HostProcessor` at 48 and 96 kHz hosts with a 50.4 kHz DAC, level within the response tolerance and timing within 0.01 frame; `DacStream` at 112 MHz / 2304 with exact frame consumption, level, and timing. A mutation check detected 4 of 4 faults. Documented-range gates are not claimed above 48 kHz.
+- **Updated:** 2026-10-16.
+
+## C API
+
+- **Purpose:** use the library from C and from any language with a C foreign function interface (REQ-API-02).
+- **Status:** implemented on branch `m5-c-api`; not yet approved.
+- **Usage:** `#include "ak4522/ak4522.h"`; see [docs/api.md](api.md#c-api). Handles for the host processor and the stream; plain configuration structs filled by `*_default` functions; status codes; caller-owned planar buffers; C pull callbacks.
+- **Supported:** everything the C++ `HostProcessor` and `DacStream` offer, including every profile and analog option, exact and extended rates, all stream formats, push and pull, events, latency, and diagnostics.
+- **Validation:** `tests/c_api/c_api_test.c`, compiled as C99 with warnings as errors, calls every function from C: NULL handling, status strings, host processing with a soft mute to exact silence, a C pull source at 112 MHz / 2304 with the extended range and an event, push with underrun and overrun accounting, format mismatch. `tests/c_api_equivalence_test.cpp` compares C and C++ output bit for bit in 14 configurations, each setting one field, and for a pull stream with events; checks defaults, master-clock and CMODE validation, dropped malformed events, and that processing does not allocate. A mutation check detected 14 of 14 faults in the wrapper after one test was added (swapped underrun and overrun counters first survived).
+- **Limitations:** no ABI stability during alpha; the serial decoder and timing validator are not exposed.
 - **Updated:** 2026-10-16.
 
 ## Documentation process

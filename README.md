@@ -6,7 +6,7 @@ The goal is to reproduce documented signal processing and control behavior, then
 
 ## Status
 
-**Alpha, milestones M0 to M4 complete.** The DAC core produces audio through the public `DacCore` API: 20-bit PCM frames and DEM, SMUTE, and PD events in, the reconstructed signal out at 8x the DAC rate, with the datasheet's filter response and 14.7-frame delay. `HostProcessor` wraps it for plugin use: host audio at 44.1 to 192 kHz in and out, with exactly reported latency. On branch `m5-extended-rate`, `DacStream` plays sources that run at their own DAC rate, and an opt-in range reaches 50.4 kHz (M5, in progress). An optional NominalAnalog profile adds synthetic noise, distortion, channel mismatch, crosstalk, and DC offset calibrated to the datasheet's typical values ([docs/analog_profile.md](docs/analog_profile.md)); the clean Specification profile remains the default. The plugin and hardware validation do not exist yet.
+**Alpha, milestones M0 to M4 complete.** The DAC core produces audio through the public `DacCore` API: 20-bit PCM frames and DEM, SMUTE, and PD events in, the reconstructed signal out at 8x the DAC rate, with the datasheet's filter response and 14.7-frame delay. `HostProcessor` wraps it for plugin use: host audio at 44.1 to 192 kHz in and out, with exactly reported latency. On branch `m5-c-api`, `DacStream` plays sources that run at their own DAC rate, an opt-in range reaches 50.4 kHz, and a C API exposes both entry points (M5, in progress). An optional NominalAnalog profile adds synthetic noise, distortion, channel mismatch, crosstalk, and DC offset calibrated to the datasheet's typical values ([docs/analog_profile.md](docs/analog_profile.md)); the clean Specification profile remains the default. The plugin and hardware validation do not exist yet.
 
 See [docs/features.md](docs/features.md) for the current status of each feature.
 
@@ -79,6 +79,8 @@ ak4522::DacStream stream;
 stream.prepare(config);                   // off the audio thread
 stream.render(output);                    // N host frames out
 ```
+
+From C or another language, include `ak4522/ak4522.h`, which exposes both with handles, plain structs, and status codes ([docs/api.md](docs/api.md#c-api)).
 
 Measured responses are in [docs/responses.md](docs/responses.md).
 

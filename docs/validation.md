@@ -338,6 +338,15 @@ Development note: the first threaded test pushed more frames than the renders wo
 
 Above 48 kHz these are consistency checks of the unchanged model; the datasheet's gates are claimed only from 16 to 48 kHz (P-103).
 
+### 2026-10-16: C API (branch `m5-c-api`)
+
+| Check | Method | Result |
+| ----- | ------ | ------ |
+| Built and run as C | `tests/c_api/c_api_test.c`, C99, warnings as errors, every function called from C | passes |
+| Equivalence with C++ | host output in 14 configurations, one field set in each; pull stream with events; latency and diagnostics | bit-identical |
+| Real-time safety | allocation counter around host processing, push, render, diagnostics | no allocations |
+| Mutation check | 14 deliberate faults in `src/c_api/ak4522_c.cpp` | 13 detected at first; swapped underrun and overrun counters survived because no test produced both. A C test of push accounting now does: 14 of 14 |
+
 ## M4 gate status
 
 AGENTS.md section 16, M4: "Deliver calibrated noise, optional distortion/mismatch/crosstalk/voltage diagnostics, and profile metadata. Gate: weighted measurement methods are validated; synthetic assumptions are explicit; typical-target reports pass within project tolerances. Hardware fidelity claims remain limited."
