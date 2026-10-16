@@ -81,7 +81,7 @@ Available on `main`: `DacCore` (DAC-rate PCM in, 8x the DAC rate out), `HostProc
   - `quantizeToPcm20(x, counters)`: NaN and infinity become 0 and increment `nonFinite`; otherwise `x * 2^19` rounded to nearest with ties to even (implemented explicitly, independent of the floating-point rounding mode), then saturated to [-524288, 524287] with `clipped` incremented. +1.0 is not representable and saturates to 524287; -1.0 maps exactly to -524288.
   - `toNormalized(pcm)`: `code / 2^19`.
 - **Validation:** 12 tests in `tests/pcm_test.cpp`, including all 2^20 raw words, all 2^20 codes through normalize and quantize, all 65,536 16-bit samples, half-LSB ties on both signs and at both range ends, saturation, non-finite input, and 200,000 random and tie inputs against the C library's `std::nearbyint`. Seven deliberate code mutations were each caught by the tests (`tools/mutations/pcm.txt`). Passes in the `dev` and `asan` presets.
-- **Limitations:** optional TPDF dither (P-12) and the host-side 16-bit input resolution are not implemented; they belong to `HostProcessor` (M3).
+- **Limitations:** none in the mapping itself. Optional TPDF dither (P-12) and 16-bit input resolution are host-input features, offered by `HostProcessor` and, for float input, `DacStream`.
 - **Updated:** 2026-10-16.
 
 ## Configuration validation
@@ -95,7 +95,7 @@ Available on `main`: `DacCore` (DAC-rate PCM in, 8x the DAC rate out), `HostProc
   - `ModelProfile::measured` and out-of-range enum values are rejected (`invalidConfiguration`).
   - Host rate must be exactly 44.1, 48, 88.2, 96, 176.4, or 192 kHz (`unsupportedHostRate`); `maxBlockFrames` and `maxPendingEvents` must be non-zero.
 - **Validation:** 14 test cases in `tests/config_validation_test.cpp`, including the nine p.9 Table 1 clock values, MCLK endpoints at both rate limits, the synchronization tolerance on both sides, and NaN inputs. All eight deliberate mutations are detected (see [validation.md](validation.md)).
-- **Limitations:** the host/DAC rate-pair matrix (`unsupportedRatePair`) is defined in M3 with the SRC. Clock loss while running (D-C07) is a runtime fault for the serial adapter, not a configuration check.
+- **Limitations:** the host/DAC rate-pair matrix (`unsupportedRatePair`) is defined in M3 with the SRC. Clock loss while running (D-C07) is a runtime fault reported by the timing validator, not a configuration check.
 - **Updated:** 2026-10-16.
 
 ## Soft mute
@@ -151,11 +151,12 @@ Available on `main`: `DacCore` (DAC-rate PCM in, 8x the DAC rate out), `HostProc
 
 - **Purpose:** check timestamped pin transitions against the datasheet timing limits in conformance tests.
 - **Requirements:** REQ-SERIAL-02; evidence D-T01 to D-T08, D-04, D-C02 to D-C05, D-R03, I-T01; policies P-24, P-36; API decision O-06 (approved).
-- **Usage:** `TimingValidator::prepare(cmode)`, then `observe(PinEdge{timeNs, pin, level})` for each transition in time order; read `violations(kind)` or `totalViolations()`.
+- **Usage:** `TimingValidator::prepare(cmode)`, then `observe(PinEdge{timeNs, pin, level})` for each transition in time order, and `advanceTo(timeNs)` at the end of a capture; read `violations(kind)` or `totalViolations()`. Also in the C API.
 - **Checks** (inclusive limits): SCLK period >= 160 ns; SCLK high and low >= 65 ns; LRCK edge to first SCLK rise >= 45 ns; SCLK rise to LRCK edge >= 45 ns; an SCLK rise at the same time as an LRCK edge (reported instead of the two spacing checks); SDTI setup >= 25 ns and hold >= 40 ns; LRCK duty 45 to 55 %; LRCK 16 to 48 kHz; MCLK frequency and pulse width per CMODE (4.096 to 12.288 MHz and 27 ns; 6.144 to 18.432 MHz and 20 ns; 8.192 to 24.576 MHz and 15 ns); MCLK cycles per LRCK period equal to 256, 384, or 512; PD low >= 150 ns.
 - **Behavior:** a level equal to the pin's current level is not a transition; edges earlier than the previous one are ignored; a check runs only when both of its edges were observed since reset; MCLK synchronization is counted only over LRCK periods that begin with MCLK running. Frequency limits have a 1e-9 relative tolerance (P-36).
 - **Validation:** 22 test cases in `tests/timing_validator_test.cpp`: generated ideal clocks for every CMODE, 16/32/44.1/48 kHz, and 32/64/128fs with no violations; SCLK at 256fs and 48 kHz flagged; each limit at its value (passes) and just beyond (fails); coincidence in both orders; synchronization with and without MCLK; ignored edges; reset; no allocations. Passes in `dev` and `asan`.
-- **Limitations:** clock loss while PD is high (D-C07) needs a time-out policy and is not reported. Metastability and recovery are not modeled (P-24).
+- **Clock stop** (D-C07, P-31): with PD high, an observed MCLK, SCLK, or LRCK with no transition for more than 62.5 us counts once as `clockStopped`; not checked while PD is low, and the clocks have 62.5 us to resume after release. 6 test cases: a stop mid-stream, the limit exactly and just beyond, stops found by `advanceTo`, PD low and release, two stops counted twice. A mutation check detected 6 of 6 faults after the last test was added.
+- **Limitations:** metastability and recovery are not modeled (P-24).
 - **Updated:** 2026-10-16.
 
 ## Response analysis tools
@@ -321,7 +322,7 @@ Available on `main`: `DacCore` (DAC-rate PCM in, 8x the DAC rate out), `HostProc
 - **Supported:** host rates of P-32; DAC rates as exact fractions inside 16 to 48 kHz, or to 50.4 kHz with the extended range, denominator up to 2^20 (P-100); 16-, 20-, and 24-bit integer and 32- and 64-bit float input; float and double output; every profile and analog option of `DacConfig`; DEM, SMUTE, and PD events in DAC frames.
 - **Behavior:** after T host frames exactly ceil(T fs / H) DAC frames are consumed (P-101); latency alignment as `HostProcessor` without the input converter (P-39); push underruns play zeros and overruns drop frames, both counted (P-102). 24-bit input keeps its top 20 bits (I-P03).
 - **Validation:** 13 test cases (`[stream]`): exact consumption at a 44 100 000 / 1001 Hz rate against four host rates over 400 random blocks; block-size invariance with events (gate 8); phase-delay timing within 0.01 frame of the reported latency and level within the response tolerance, at fractional and whole rates (gate 3); format equivalences (16-bit times 16, 24-bit floor over 16, exact float); saturation counts; invalid callback events; push and pull identical, also with the producer on another thread; underrun and overrun accounting; mismatched calls; reset; no allocations. Passes under the address and undefined-behavior sanitizers, and the push tests under ThreadSanitizer. A mutation check detected 14 of 14 deliberate faults.
-- **Limitations:** no input dither for float sources (`HostProcessor` offers it).
+- **Dither:** `inputDither` adds TPDF dither of +/-1 20-bit LSB to float input before quantization (P-12), off by default, seeded by `ditherSeed` and continuing across `reset()`; integer input is never dithered. Tested: a 0.3 LSB level averages to within 10% with dither and to zero without; reproducible per seed; independent channels; push and pull identical.
 - **Updated:** 2026-10-16.
 
 ## Extended DAC-rate range
@@ -340,7 +341,8 @@ Available on `main`: `DacCore` (DAC-rate PCM in, 8x the DAC rate out), `HostProc
 - **Usage:** `#include "ak4522/ak4522.h"`; see [docs/api.md](api.md#c-api). Handles for the host processor and the stream; plain configuration structs filled by `*_default` functions; status codes; caller-owned planar buffers; C pull callbacks.
 - **Supported:** everything the C++ `HostProcessor` and `DacStream` offer, including every profile and analog option, exact and extended rates, all stream formats, push and pull, events, latency, and diagnostics.
 - **Validation:** `tests/c_api/c_api_test.c`, compiled as C99 with warnings as errors, calls every function from C: NULL handling, status strings, host processing with a soft mute to exact silence, a C pull source at 112 MHz / 2304 with the extended range and an event, push with underrun and overrun accounting, format mismatch. `tests/c_api_equivalence_test.cpp` compares C and C++ output bit for bit in 14 configurations, each setting one field, and for a pull stream with events; checks defaults, master-clock and CMODE validation, dropped malformed events, and that processing does not allocate. A mutation check detected 14 of 14 faults in the wrapper after one test was added (swapped underrun and overrun counters first survived).
-- **Limitations:** no ABI stability during alpha; the serial decoder and timing validator are not exposed.
+- **Also exposed:** the serial decoder and timing validator (`ak4522_serial_decoder_*`, `ak4522_timing_validator_*`) and the stream's dither option. Tested from C and against the C++ classes (all four serial formats with random framing; random pin edges producing at least eight kinds of violation). Mutation check of these additions: 7 of 8 detected; the survivor removes a range check that the C++ call repeats, so it changes nothing observable.
+- **Limitations:** no ABI stability during alpha.
 - **Updated:** 2026-10-16.
 
 ## Packaging, integration guide, and examples
@@ -350,7 +352,8 @@ Available on `main`: `DacCore` (DAC-rate PCM in, 8x the DAC rate out), `HostProc
 - **Usage:** [docs/integration.md](integration.md). `cmake --install` installs the library, headers, and a `find_package(ak4522)` config with the target `ak4522::ak4522`; `add_subdirectory` and FetchContent also work. Static by default; `BUILD_SHARED_LIBS=ON` builds a shared library. Alpha compatibility: the same minor version only.
 - **Examples** (each built and run by CTest, label `examples`): `host_processor_example.cpp` (effect), `dac_stream_example.cpp` (pull source at 112 MHz / 2304 with the extended range and a mute event), `dac_stream_push_example.cpp` (producer thread), `dac_core_example.cpp` (chip model alone, impulse delay), `c_api_example.c` (C).
 - **Validation:** CTest label `package` builds `tests/package/consumer`, a separate project with a C++ and a C program, three ways: against this build installed to a prefix, through `add_subdirectory`, and against a shared library built and installed for the test; each program runs and checks its result. The shared case was confirmed to link the shared library.
-- **Limitations:** no pkg-config file; no binary packages.
+- **pkg-config:** the install includes a relocatable `lib/pkgconfig/ak4522.pc` (not with MSVC); `pkg-config --static --cflags --libs ak4522` also names the C++ standard library for C programs. CTest `package.pkgconfig` compiles the C consumer with those flags, without CMake, where pkg-config exists.
+- **Limitations:** no binary packages.
 - **Updated:** 2026-10-16.
 
 ## CPU benchmark

@@ -148,7 +148,7 @@ D-A16 is a figure annotation, not a table value. It agrees with D-A12 and suppor
 | D-C04 | MCLK 512fs: 8.192 to 24.576 MHz; low/high width >= 15 ns                 | D     | p.7               | high  | REQ-CLOCK-01  | `[clock]` | passing |
 | D-C05 | LRCK must be synchronized with MCLK; phase is not critical               | D     | p.9               | high  | REQ-CLOCK-01  | `[clock]` | passing |
 | D-C06 | Internal timing synchronizes to LRCK at power-up                         | D     | p.9               | high  | REQ-RESET-02  | `[serial]` | passing |
-| D-C07 | All external clocks must be present unless PD is low; otherwise abnormal operation | D | p.9         | high  | REQ-CLOCK-01  | `[clock]` | planned (clock-stop report, P-31) |
+| D-C07 | All external clocks must be present unless PD is low; otherwise abnormal operation | D | p.9         | high  | REQ-CLOCK-01  | `[clock]` | passing |
 | I-C01 | At 44.1 kHz: MCLK 11.2896, 16.9344, 22.5792 MHz (Table 1 prints 22.579)  | I     | ratio x fs        | high  | REQ-CLOCK-01  | `[clock]` | passing |
 | I-C02 | MCLK ranges equal ratio x 16 kHz to ratio x 48 kHz                      | I     | D-C02 to D-C04 vs D-04 | high | REQ-CLOCK-01 | `[clock]` | passing |
 
