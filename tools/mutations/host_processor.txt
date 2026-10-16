@@ -1,0 +1,15 @@
+[
+ ("prefill margin removed", "                           / static_cast<double>(os)))\n        + 2;", "                           / static_cast<double>(os)))\n        - 4;"),
+ ("latency whole off by one", "    h.latencyWhole = static_cast<std::int64_t>(num / den);", "    h.latencyWhole = static_cast<std::int64_t>(num / den) + 1;"),
+ ("no alignment offset", "    out.startOffset = h.outputOffset;", "    out.startOffset = 0.0;"),
+ ("event mapped one frame early", "        return static_cast<std::int64_t>((num + hostPerDacNum - 1) / hostPerDacNum);", "        return static_cast<std::int64_t>(num / hostPerDacNum);"),
+ ("events mapped to host frames", "        const std::int64_t frame = dacFrameFor(hostConsumed + static_cast<std::int64_t>(event.offset));", "        const std::int64_t frame = hostConsumed + static_cast<std::int64_t>(event.offset);"),
+ ("dropped events not counted", "            dropped.fetch_add(1, std::memory_order_relaxed);\n            return;", "            return;"),
+ ("dither always on", "        if (config.inputDither && std::isfinite(x)) {", "        if (std::isfinite(x)) {"),
+ ("16-bit mode ignored", "        const bool sixteen = config.inputResolution == InputResolution::bits16;", "        const bool sixteen = false;"),
+ ("reset skips prefill", "        for (std::size_t i = 0; i < prefill; ++i) {\n            fifo.push(0.0, 0.0);\n        }", ""),
+ ("input bypass disabled", "    h.inputBypass = host == dac;", "    h.inputBypass = false;"),
+ ("chunk events taken one frame late", "            if (p.dacFrame >= dacProduced + static_cast<std::int64_t>(k)) {", "            if (p.dacFrame > dacProduced + static_cast<std::int64_t>(k)) {"),
+ ("reset keeps pending events", "        pendingRead = 0;\n        pendingCount = 0;", ""),
+ ("counters not reported", "        nonFinite.fetch_add(quantize.nonFinite - before.nonFinite, std::memory_order_relaxed);", ""),
+]

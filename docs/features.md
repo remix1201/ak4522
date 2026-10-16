@@ -23,7 +23,7 @@ Last substantive update: 2026-10-16. M0, M1, and M2 were merged into `main` and 
 | 8x interpolator                 | REQ-FILTER-01                         | implemented    | passing (see below)      | approved 2026-10-16 (`m2-approved`)       | merged into `main`    |
 | Analog reconstruction and pipeline delay | REQ-FILTER-02, REQ-LAT-02    | implemented    | passing (see below)      | approved 2026-10-16 (`m2-approved`)       | merged into `main`    |
 | Sample-rate converter           | REQ-RATE-02, REQ-RATE-04              | implemented    | passing (see below)      | not yet approved                  | merged into `main`    |
-| Host-rate adaptation            | REQ-RATE-01, REQ-RATE-03, REQ-CTRL-01, REQ-LAT-03 | planned (M3) | none          | none                              | none                  |
+| Host-rate adaptation            | REQ-RATE-01, REQ-RATE-03, REQ-CTRL-01, REQ-LAT-03 | implemented | passing (see below) | not yet approved           | branch `m3-host`      |
 | NominalAnalog profile           | REQ-NOISE-01, REQ-NOISE-02, REQ-DIST-01, REQ-CHANNEL-01 | planned (M4) | none     | none                              | none                  |
 | VST3 plugin adapter             | REQ-VST-01, REQ-VST-02, REQ-LAT-03    | planned (M5)   | none                     | none                              | none                  |
 | Measured profile                | AGENTS.md s.14                        | planned (M6, conditional on hardware) | none | none                         | none                  |
@@ -217,6 +217,27 @@ The DAC core produces audio through the public `DacCore` API at the DAC rate in,
 - **Implementation:** internal `detail::Resampler` in `src/dsp/resampler.hpp`. Kaiser-windowed sinc designed for 125 dB, per-phase unity DC gain; exact phase rows for ratios such as 147/160 and 8/1, interpolated rows (4096 plus linear interpolation) otherwise. Rates are exact integers in micro-hertz; output m is input time m P / Q exactly; delay W input samples (`halfWidth()`). The kernel is designed in `prepare`, off the audio thread.
 - **Validation:** 20 test cases across 14 rate pairs from both sides of the plugin path (including 44 123 Hz, which needs interpolated rows), measured by least-squares sine fits: passband error <= 0.005 dB and residual <= -110 dBFS at 12 frequencies per pair; stopband <= -120 dB where the input reaches the stopband; transition-band content folding only above the passband edge; exact output timing (impulse peak and sine phase); unity DC; exact output counts over 3 million inputs in random blocks; block invariance; reset; channels; no allocations. Twelve deliberate mutations detected. Passes in `dev` and `asan`.
 - **Limitations:** not yet used by `HostProcessor` (next branch).
+- **Updated:** 2026-10-16.
+
+## Host-rate adaptation
+
+- **Purpose:** the plugin-facing path: host audio at any supported host rate in, the emulated DAC output at the host rate out, with a fixed, exactly reported latency.
+- **Requirements:** REQ-RATE-01, REQ-RATE-03, REQ-CTRL-01, REQ-LAT-01, REQ-LAT-03, REQ-VST-01; policies P-10, P-12, P-39, P-41, P-74, P-84; API decision O-09 (proposed).
+- **Usage** (`include/ak4522/host_processor.hpp`):
+
+  ```cpp
+  ak4522::HostConfig config;              // host 48 kHz, DAC 44.1 kHz by default
+  ak4522::HostProcessor host;
+  host.prepare(config);                   // off the audio thread
+  host.process(input, output, events);    // float or double, N frames in, N out
+  auto frames = host.latency().reportedHostFrames;
+  ```
+
+- **Signal path:** input converter host to DAC rate (bypassed at equal rates), 20-bit quantization (or 16-bit, with optional TPDF dither), `DacCore`, output converter from 8x the DAC rate to the host rate, output FIFO. Host events become DAC-frame events through a fixed-capacity queue.
+- **Latency:** the output converter's time origin is shifted so the total is whole host frames, reported as `reportedHostFrames`; the components are in `LatencyInfo`. Measured timing matches the report within 0.01 frame at 10 rate pairs.
+- **Behavior:** at host rates whose band reaches the DAC images (for example 96 kHz with a 32 kHz DAC), the images appear in the output at the DAC's own stopband level, as in the analog output. `reset()` restores the post-prepare state but continues the dither stream (P-74).
+- **Validation:** 19 test cases: configuration and call validation; latency bookkeeping; output timing within 0.01 frame by passband sine-phase fits at 10 rate pairs (equal rates, 44.1 / 48 in both directions, up to 192 kHz host, DAC 16 to 48 kHz including 37.8 kHz); no underruns with random blocks; level within 0.01 dB at the reference frequency; image level at high host rates; bitwise block-partition invariance with events; mute aligned with the reported latency and exact silence after; exact event-to-frame mapping at a grid point; pending events cleared by reset; dropped-event counting; float and double agreement; in-place processing; 16-bit resolution; seeded dither; non-finite and clipped counting; reset; no allocations. Thirteen deliberate mutations detected. Passes in `dev` and `asan`.
+- **Limitations:** the full rate matrix, long runs, near-Nyquist sweeps, and alias containment are the next branch (`m3-verify`).
 - **Updated:** 2026-10-16.
 
 ## Documentation process

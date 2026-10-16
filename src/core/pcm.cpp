@@ -71,6 +71,32 @@ Pcm20 quantizeToPcm20(double sample, QuantizeCounters& counters) noexcept
     return Pcm20{static_cast<std::int32_t>(rounded)};
 }
 
+Pcm20 quantizeTo16Bit(double sample, QuantizeCounters& counters) noexcept
+{
+    if (!std::isfinite(sample)) {
+        ++counters.nonFinite;
+        return Pcm20{};
+    }
+    constexpr double scale = 32768.0;
+    constexpr double limit = scale + 1.0;
+    double scaled = sample * scale;
+    if (scaled > limit) {
+        scaled = limit;
+    } else if (scaled < -limit) {
+        scaled = -limit;
+    }
+    const double rounded = roundHalfToEven(scaled);
+    if (rounded > 32767.0) {
+        ++counters.clipped;
+        return pcm20FromInt16(32767);
+    }
+    if (rounded < -32768.0) {
+        ++counters.clipped;
+        return pcm20FromInt16(-32768);
+    }
+    return pcm20FromInt16(static_cast<std::int16_t>(rounded));
+}
+
 double toNormalized(Pcm20 sample) noexcept
 {
     return static_cast<double>(sample.code) / fullScale;

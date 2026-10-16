@@ -18,6 +18,7 @@ add_executable(ak4522_tests
     control_timeline_test.cpp
     dac_core_test.cpp
     deemphasis_test.cpp
+    host_processor_test.cpp
     interpolator_test.cpp
     pcm_test.cpp
     reconstruction_test.cpp

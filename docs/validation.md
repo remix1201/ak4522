@@ -209,6 +209,19 @@ Development notes: a guessed bound on the Nyquist gain (0.25 to 0.36) failed for
 
 Development notes: the first stopband test generated tones below the stopband edge for 44.1 / 48 kHz pairs, whose stopband lies above the input Nyquist frequency; it now tests only where a stopband exists, and a fold-over test covers the transition band. One mutation (lost remainder carry) made the long-run test effectively endless; C++ tests now have a 120-second CTest timeout.
 
+### 2026-10-16: host-rate adaptation, branch `m3-host`
+
+| Check | Method | Result |
+| ----- | ------ | ------ |
+| Timing alignment, 10 rate pairs | phase delay from sine fits at six passband frequencies against `reportedHostFrames` | within 0.01 frame on average (P-84); single frequencies within the reconstruction dispersion |
+| Sample counts | random blocks from 0 to 700 frames and single frames, maximum block 256 | no underruns |
+| Level and images | tone at the reference frequency; first DAC image at 96 kHz host / 32 kHz DAC | level within 0.01 dB; image -61.1 dB re the tone (<= -43 dB) |
+| Events | mute alignment, grid-point mapping, pending queue across reset, overflow | pass |
+| Mutation check | 13 deliberate faults | 11 detected at first. Rounding the event mapping down instead of up, and keeping pending events across reset, went unnoticed. Floor and ceil group host frames identically except at exact grid points (multiples of 160 host frames at 48 / 44.1 kHz), so the mapping test now uses one. Final: 13 of 13. |
+| Sanitizers | `asan` preset, unit, host, and rate labels | pass |
+
+Development note: the first level test expected only the tone in the output at every rate pair; at 96 kHz host with a 32 kHz DAC the DAC's images are inside the host band (O-01) and are now checked against the stopband level instead.
+
 ## M2 gate status
 
 AGENTS.md section 16, M2: "Deliver reproducible coefficient generation, interpolation/reconstruction, three de-emphasis modes, and core delay accounting. Gate: frequency, stopband-image, delay, stability, and streaming tests pass. If filter fit and delay cannot simultaneously meet targets, document the conflict and revise before claiming completion."

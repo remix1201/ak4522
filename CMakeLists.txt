@@ -40,6 +40,7 @@ add_library(ak4522
     src/core/config_validation.cpp
     src/core/control_timeline.cpp
     src/core/dac_core.cpp
+    src/core/host_processor.cpp
     src/core/pcm.cpp
     src/core/soft_mute.cpp
     src/core/status.cpp
