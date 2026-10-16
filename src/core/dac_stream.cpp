@@ -189,6 +189,9 @@ struct DacStream::Impl {
     // Pull mode: asks the source for k frames and converts them.
     std::size_t pullFrames(std::size_t k) noexcept
     {
+        if (k == 0) {
+            return 0; // a short render needing no new frame: the source is not called (P-101)
+        }
         DacPullBlock block;
         block.frames = k;
         switch (config.format) {

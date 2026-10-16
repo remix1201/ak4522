@@ -89,6 +89,19 @@ static void pull(void* context, ak4522::DacPullBlock& block) noexcept
 
 **Push** suits a source on its own thread. Call `push(frames, events)` from that thread and `render` from the audio thread. The queue holds `pushCapacityFrames`. Prime it before rendering, and keep it ahead using `queuedFrames()`, `freeFrames()`, and `dacFramesFor(n)`. If it runs dry, the missing frames play as silence and `diagnostics().sourceUnderrunFrames` counts them. If it is full, the extra frames are dropped and `sourceOverrunFrames` counts them.
 
+**An emulator at its own clock, under any host rate.** Run the emulated system at the rate its hardware fed the chip, for example 112 MHz / 2304 (48 611.1 Hz, which needs `dac.allowExtendedRate`), and let `DacStream` convert to whatever rate the DAW uses. The emulator never resamples; the chip model runs in the chip's own time, so filters, delay, and mute timing do not depend on the host rate; and one converter takes the model's 8x output to the host rate. A higher host rate adds no audio bandwidth (the DAC itself rolls off at 20/44.1 of its rate, about 22 kHz here), but it keeps more of what the real analog output carries above that: images and residue the chip's filters attenuate, up to about 0.45 of the host rate, instead of removing them at the host's Nyquist frequency. Use `HostProcessor` only if the engine itself runs at the host rate; it would convert down to the chip rate and back.
+
+Measured with this configuration on the reference machine (release build):
+
+| Host rate | Reported latency | CPU per callback, median | 99.9th percentile, 64-frame blocks |
+| --------- | ---------------- | ------------------------ | ---------------------------------- |
+| 44.1 kHz | 62 frames, 1.41 ms | 2.1% | 4.6% |
+| 48 kHz | 63 frames, 1.31 ms | 2.1% | 4.2% |
+| 96 kHz | 80 frames, 0.83 ms | 2.1% | 4.5% |
+| 192 kHz | 113 frames, 0.59 ms | 2.1% | 5.1% |
+
+The chip's own delay is 0.30 ms of each; the cost follows the chip rate, not the host rate. In pull mode the source runs on the audio thread: it must be real-time safe and produce about 48 600 frames a second with headroom. A render that needs no new frame does not call it.
+
 **Formats.** `int16` (scaled to 20-bit weight), `int20`, `int24` (the top 20 bits are used, as the chip's serial input does), `float32`, and `float64`. Float is quantized to 20 bits with rounding to nearest, ties to even; `inputDither` adds optional TPDF dither first.
 
 ## The ADC

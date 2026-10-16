@@ -106,10 +106,10 @@ struct Tone {
     }
 };
 
-void streamCase(std::size_t block, double seconds)
+void streamCase(double host, std::size_t block, double seconds)
 {
     ak4522::DacStreamConfig config;
-    config.hostRate = 48000.0;
+    config.hostRate = host;
     config.dacRate = {112000000, 2304};
     config.dac.allowExtendedRate = true;
     config.maxBlockFrames = std::max<std::size_t>(block, 512);
@@ -124,7 +124,9 @@ void streamCase(std::size_t block, double seconds)
     std::vector<float> outL(block), outR(block);
     const auto calls = static_cast<std::size_t>(seconds * config.hostRate / static_cast<double>(block));
     auto samples = time(calls, [&] { static_cast<void>(stream.render(ak4522::StereoView<float>{outL, outR})); });
-    print("DacStream 48 kHz / 48.611 kHz", block, summarize(samples, static_cast<double>(block) / config.hostRate));
+    char name[64];
+    std::snprintf(name, sizeof name, "DacStream %.0f kHz / 48.611 kHz", host / 1000.0);
+    print(name, block, summarize(samples, static_cast<double>(block) / config.hostRate));
 }
 
 } // namespace
@@ -157,7 +159,9 @@ int main(int argc, char** argv)
         high.hostRate = 192000.0;
         high.dac.dacRate = 48000.0;
         hostCase("HostProcessor 192 / 48 kHz clean", high, block, seconds);
-        streamCase(block, seconds);
+        for (const double host : {48000.0, 96000.0, 192000.0}) {
+            streamCase(host, block, seconds); // a synth at its own clock under any host rate
+        }
     }
     std::printf("budget (clean 48 / 44.1 kHz, p99.9 < 10%% for blocks >= 64): %s\n", pass ? "met" : "MISSED");
     return check && !pass ? 1 : 0;
