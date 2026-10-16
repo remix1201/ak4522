@@ -5,6 +5,7 @@
 #include "ak4522/diagnostics.hpp"
 #include "ak4522/events.hpp"
 #include "ak4522/latency.hpp"
+#include "ak4522/output_circuit.hpp"
 #include "ak4522/status.hpp"
 
 #include <cstddef>
@@ -26,6 +27,11 @@ struct HostConfig {
     bool inputDither = false;    // TPDF before quantization; host feature (P-12)
     std::size_t maxPendingEvents = 256; // events deferred past the block by SRC latency
     std::uint64_t ditherSeed = 0x4449544845520001ull; // TPDF dither stream (P-12, P-91)
+    // Board behavior after the DAC, off by default: the datasheet's example
+    // output circuit (Fig.11), applied at the host rate (P-104).
+    bool exampleOutputCircuit = false;
+    ExampleCircuitOptions exampleCircuit{};
+
     DacConfig dac{};
 };
 

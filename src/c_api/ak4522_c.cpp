@@ -99,6 +99,16 @@ ak4522_dac_config toC(const DacConfig& d) noexcept
     return c;
 }
 
+ExampleCircuitOptions toCpp(const ak4522_circuit_options& o) noexcept
+{
+    return {o.include_gain, o.invert, o.load_ohms};
+}
+
+ak4522_circuit_options toC(const ExampleCircuitOptions& o) noexcept
+{
+    return {o.includeGain, o.invert, o.loadOhms};
+}
+
 ak4522_latency toC(const LatencyInfo& l) noexcept
 {
     return {l.dacRate, l.hostRate, l.outsideDocumentedRate, l.inputSrcHostFrames, l.coreDacFrames,
@@ -152,6 +162,10 @@ struct ak4522_serial_decoder {
 
 struct ak4522_timing_validator {
     TimingValidator validator;
+};
+
+struct ak4522_circuit {
+    ExampleOutputCircuit circuit;
 };
 
 struct ak4522_host {
@@ -229,6 +243,13 @@ void ak4522_dac_config_default(ak4522_dac_config* config)
     }
 }
 
+void ak4522_circuit_options_default(ak4522_circuit_options* options)
+{
+    if (options != nullptr) {
+        *options = toC(ExampleCircuitOptions{});
+    }
+}
+
 void ak4522_host_config_default(ak4522_host_config* config)
 {
     if (config == nullptr) {
@@ -243,6 +264,8 @@ void ak4522_host_config_default(ak4522_host_config* config)
     config->max_pending_events = h.maxPendingEvents;
     config->dither_seed = h.ditherSeed;
     config->max_events_per_call = 256;
+    config->example_output_circuit = h.exampleOutputCircuit;
+    config->example_circuit = toC(h.exampleCircuit);
     config->dac = toC(h.dac);
 }
 
@@ -265,6 +288,8 @@ void ak4522_stream_config_default(ak4522_stream_config* config)
     config->push_capacity_frames = s.pushCapacityFrames;
     config->push_capacity_events = s.pushCapacityEvents;
     config->max_events_per_call = 256;
+    config->example_output_circuit = s.exampleOutputCircuit;
+    config->example_circuit = toC(s.exampleCircuit);
     config->dac = toC(s.dac);
 }
 
@@ -290,6 +315,8 @@ ak4522_status ak4522_host_prepare(ak4522_host* host, const ak4522_host_config* c
     h.inputDither = config->input_dither;
     h.maxPendingEvents = config->max_pending_events;
     h.ditherSeed = config->dither_seed;
+    h.exampleOutputCircuit = config->example_output_circuit;
+    h.exampleCircuit = toCpp(config->example_circuit);
     h.dac = toCpp(config->dac);
     if (config->max_events_per_call == 0) {
         return AK4522_INVALID_CONFIGURATION;
@@ -386,6 +413,8 @@ ak4522_status ak4522_stream_prepare(ak4522_stream* stream, const ak4522_stream_c
     s.maxEventsPerBlock = config->max_events_per_block;
     s.pushCapacityFrames = config->push_capacity_frames;
     s.pushCapacityEvents = config->push_capacity_events;
+    s.exampleOutputCircuit = config->example_output_circuit;
+    s.exampleCircuit = toCpp(config->example_circuit);
     s.dac = toCpp(config->dac);
     if (config->pull != nullptr) {
         s.pull = &ak4522_stream::trampoline;
@@ -606,4 +635,54 @@ uint64_t ak4522_timing_validator_violations(const ak4522_timing_validator* valid
 uint64_t ak4522_timing_validator_total_violations(const ak4522_timing_validator* validator)
 {
     return validator == nullptr ? 0 : validator->validator.totalViolations();
+}
+
+ak4522_circuit* ak4522_circuit_create(void)
+{
+    return new (std::nothrow) ak4522_circuit;
+}
+
+void ak4522_circuit_destroy(ak4522_circuit* circuit)
+{
+    delete circuit;
+}
+
+ak4522_status ak4522_circuit_prepare(ak4522_circuit* circuit, double sample_rate, const ak4522_circuit_options* options)
+{
+    if (circuit == nullptr || options == nullptr) {
+        return AK4522_INVALID_ARGUMENT;
+    }
+    return status(circuit->circuit.prepare(sample_rate, toCpp(*options)));
+}
+
+ak4522_status ak4522_circuit_reset(ak4522_circuit* circuit)
+{
+    if (circuit == nullptr) {
+        return AK4522_INVALID_ARGUMENT;
+    }
+    circuit->circuit.reset();
+    return AK4522_OK;
+}
+
+template <typename Sample>
+ak4522_status circuitProcess(ak4522_circuit* circuit, Sample* left, Sample* right, size_t frames) noexcept
+{
+    if (circuit == nullptr || (frames > 0 && (left == nullptr || right == nullptr))) {
+        return AK4522_INVALID_ARGUMENT;
+    }
+    if (!circuit->circuit.isPrepared()) {
+        return AK4522_NOT_PREPARED;
+    }
+    circuit->circuit.process(StereoView<Sample>{{left, frames}, {right, frames}});
+    return AK4522_OK;
+}
+
+ak4522_status ak4522_circuit_process_f32(ak4522_circuit* circuit, float* left, float* right, size_t frames)
+{
+    return circuitProcess(circuit, left, right, frames);
+}
+
+ak4522_status ak4522_circuit_process_f64(ak4522_circuit* circuit, double* left, double* right, size_t frames)
+{
+    return circuitProcess(circuit, left, right, frames);
 }

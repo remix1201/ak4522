@@ -147,6 +147,14 @@ typedef struct ak4522_dac_config {
     bool initial_soft_mute;
 } ak4522_dac_config;
 
+/* The datasheet's example output circuit (Fig.11), board behavior after the
+ * DAC; see ExampleCircuitOptions. */
+typedef struct ak4522_circuit_options {
+    bool include_gain; /* -1.8 stage gain; false keeps the DAC level */
+    bool invert;       /* the stage inverts; false restores polarity */
+    double load_ohms;  /* external load across the 27 kohm output; 0 = none */
+} ak4522_circuit_options;
+
 typedef struct ak4522_host_config {
     double host_rate;
     size_t max_block_frames;
@@ -155,6 +163,8 @@ typedef struct ak4522_host_config {
     size_t max_pending_events;
     uint64_t dither_seed;
     size_t max_events_per_call; /* events accepted by one process call */
+    bool example_output_circuit; /* apply the Fig.11 circuit at the host rate */
+    ak4522_circuit_options example_circuit;
     ak4522_dac_config dac;
 } ak4522_host_config;
 
@@ -192,6 +202,8 @@ typedef struct ak4522_stream_config {
     size_t push_capacity_frames;
     size_t push_capacity_events;
     size_t max_events_per_call; /* events accepted by one push call */
+    bool example_output_circuit; /* apply the Fig.11 circuit at the host rate */
+    ak4522_circuit_options example_circuit;
     ak4522_dac_config dac;
 } ak4522_stream_config;
 
@@ -224,6 +236,7 @@ typedef struct ak4522_host ak4522_host;
 typedef struct ak4522_stream ak4522_stream;
 typedef struct ak4522_serial_decoder ak4522_serial_decoder;
 typedef struct ak4522_timing_validator ak4522_timing_validator;
+typedef struct ak4522_circuit ak4522_circuit;
 
 /* Library */
 const char* ak4522_version(void);
@@ -231,6 +244,7 @@ const char* ak4522_status_string(ak4522_status status);
 
 /* Defaults: the same as the C++ structs. */
 void ak4522_dac_config_default(ak4522_dac_config* config);
+void ak4522_circuit_options_default(ak4522_circuit_options* options);
 void ak4522_host_config_default(ak4522_host_config* config);
 void ak4522_stream_config_default(ak4522_stream_config* config);
 
@@ -294,6 +308,15 @@ ak4522_status ak4522_timing_validator_observe(ak4522_timing_validator* validator
 ak4522_status ak4522_timing_validator_advance_to(ak4522_timing_validator* validator, double time_ns);
 uint64_t ak4522_timing_validator_violations(const ak4522_timing_validator* validator, int32_t kind);
 uint64_t ak4522_timing_validator_total_violations(const ak4522_timing_validator* validator);
+
+/* The example output circuit on its own, for example after the bare core
+ * (ExampleOutputCircuit). Processes in place. */
+ak4522_circuit* ak4522_circuit_create(void);
+void ak4522_circuit_destroy(ak4522_circuit* circuit);
+ak4522_status ak4522_circuit_prepare(ak4522_circuit* circuit, double sample_rate, const ak4522_circuit_options* options);
+ak4522_status ak4522_circuit_reset(ak4522_circuit* circuit);
+ak4522_status ak4522_circuit_process_f32(ak4522_circuit* circuit, float* left, float* right, size_t frames);
+ak4522_status ak4522_circuit_process_f64(ak4522_circuit* circuit, double* left, double* right, size_t frames);
 
 #ifdef __cplusplus
 }

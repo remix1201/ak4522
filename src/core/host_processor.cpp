@@ -52,6 +52,7 @@ struct HostProcessor::Impl {
     std::vector<double> outL, outR;
     std::vector<ControlEvent> chunkEvents;
     detail::StereoFifo fifo;
+    ExampleOutputCircuit circuit;
 
     std::vector<Pending> pending; // ring of capacity maxPendingEvents
     std::size_t pendingRead = 0;
@@ -80,6 +81,7 @@ struct HostProcessor::Impl {
         inputSrc.reset();
         outputSrc.reset();
         fifo.clear();
+        circuit.reset();
         for (std::size_t i = 0; i < prefill; ++i) {
             fifo.push(0.0, 0.0);
         }
@@ -172,6 +174,9 @@ struct HostProcessor::Impl {
             } else {
                 underruns.fetch_add(1, std::memory_order_relaxed);
             }
+            if (config.exampleOutputCircuit) {
+                circuit.processFrame(l, r);
+            }
             outLeft[i] = static_cast<Sample>(l);
             outRight[i] = static_cast<Sample>(r);
         }
@@ -258,6 +263,9 @@ Status HostProcessor::prepare(const HostConfig& config)
     }
 
     if (const Status s = h.core.prepare(config.dac, dacCapacity); s != Status::ok) {
+        return s;
+    }
+    if (const Status s = h.circuit.prepare(host, config.exampleCircuit); s != Status::ok) {
         return s;
     }
 

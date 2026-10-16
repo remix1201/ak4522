@@ -192,9 +192,10 @@ D-A16 is a figure annotation, not a table value. It agrees with D-A12 and suppor
 | ID    | Fact                                                                    | Class | Source       | Conf.  | Requirement   | Test       | Status  |
 | ----- | ----------------------------------------------------------------------- | ----- | ------------ | ------ | ------------- | ---------- | ------- |
 | D-O01 | Analog Outputs section: "The input signal range scales with the supply voltage and nominally 0.58 x VREFH Vpp"; see DISC-01 | D | p.16 s.4 | medium | REQ-ANALOG-01 | `[analog]` | passing |
-| D-O02 | Fig.11 example: 27 uF input coupling, 10 kohm input, 18 kohm feedback, inverting NJM5532, 10 uF output coupling into 27 kohm; 2.9 Vpp in, 5.2 Vpp out; labeled 6 dB gain | D | p.16 Fig.11 | high | REQ-ANALOG-02 | n/a | planned (optional board circuit model) |
+| D-O02 | Fig.11 example: 27 uF input coupling, 10 kohm input, 18 kohm feedback, inverting NJM5532, 10 uF output coupling into 27 kohm; 2.9 Vpp in, 5.2 Vpp out; labeled 6 dB gain | D | p.16 Fig.11 | high | REQ-ANALOG-02 | `[circuit]` | passing |
 | I-O01 | Nominal output 2.9 Vpp at VREFH = 5 V, scaling with VREFH; peak `0.29 x VREFH`; `Vout = VCOM + 1.45 x` at 5 V | I | D-A07 typ, D-O01, Fig.11 (AOUTL 2.9 Vpp) | high | REQ-ANALOG-01 | `[analog]` | passing |
-| I-O02 | Fig.11 gain is -1.8 (5.1 dB), not 6 dB                                  | I     | 18k / 10k; 2.9 x 1.8 = 5.22 Vpp | high | REQ-ANALOG-02 | n/a | planned (optional board circuit model) |
+| I-O02 | Fig.11 gain is -1.8 (5.1 dB), not 6 dB                                  | I     | 18k / 10k; 2.9 x 1.8 = 5.22 Vpp | high | REQ-ANALOG-02 | `[circuit]` | passing |
+| I-O03 | Fig.11 high-pass corners: 27 uF into the 10 kohm input resistor (virtual ground) and 10 uF into 27 kohm, each 1 / (2 pi R C) = 0.589 Hz; an external load in parallel with 27 kohm raises the second | I | D-O02 component values | high | REQ-ANALOG-02 | `[circuit]` | passing |
 
 ## 11. ADC behavior excluded from the DAC path
 

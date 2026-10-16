@@ -389,6 +389,18 @@ The 24 ledger rows still marked *planned* were checked against the tests. 11 are
 
 The shared dither generator (`src/core/dither.hpp`) leaves `HostProcessor` output unchanged; the golden lock passes.
 
+### 2026-10-16: example output circuit, Fig.11 (branch `fig11-circuit`, merged into `main`)
+
+| Check | Method | Result |
+| ----- | ------ | ------ |
+| Components | corners 1 / (2 pi R C) and gain -18k / 10k | 0.589 Hz, 0.589 Hz, -1.8 (5.1 dB, DISC-05) |
+| Response | sine fits at 0.2 Hz to 40 kHz, at 1, 48, and 192 kHz, against the analog transfer function, with and without a 10 kohm load | within 0.01 dB and 0.5 degrees |
+| Audio band | 1 kHz sample by sample against -1.8 times the input | within 0.00135 of full scale |
+| DC | constant input; NominalAnalog +3 mV offset through `HostProcessor` | removed to exactly zero; mean below 1e-9 |
+| Integration | `HostProcessor` and `DacStream` options against the circuit applied to their plain output | bit-identical; latency unchanged |
+| C API | C99 test; C/C++ equivalence | pass |
+| Mutation check | 8 deliberate faults in `src/analog/example_output_circuit.cpp` | 8 detected |
+
 ## M5 gate status
 
 M5 approved by the project owner on 2026-10-16 (tag `m5-approved`).

@@ -11,6 +11,7 @@
 #include "ak4522/events.hpp"
 #include "ak4522/host_processor.hpp"
 #include "ak4522/latency.hpp"
+#include "ak4522/output_circuit.hpp"
 #include "ak4522/pcm.hpp"
 #include "ak4522/serial.hpp"
 #include "ak4522/status.hpp"
