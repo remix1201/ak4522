@@ -38,6 +38,7 @@ endif()
 
 # Framework-independent core library.
 add_library(ak4522
+    src/analog/analog_noise.cpp
     src/core/config_validation.cpp
     src/core/control_timeline.cpp
     src/core/dac_core.cpp
@@ -95,6 +96,30 @@ if(AK4522_BUILD_TESTS)
             COMMAND ${AK4522_UV} run --directory ${PROJECT_SOURCE_DIR}/tools
                 python -m unittest discover -s tests -t .)
         set_tests_properties(tools.analysis PROPERTIES LABELS "tools" TIMEOUT 600)
+
+        # NominalAnalog captures measured by tools/measure_profile.py
+        # (AGENTS.md section 13.2 gates 4 to 6, at the datasheet's 44.1 kHz).
+        add_executable(ak4522_capture tools/cpp/capture.cpp)
+        target_link_libraries(ak4522_capture PRIVATE ak4522 ak4522_options)
+        function(ak4522_profile_gate name metric expect tolerance)
+            set(file ${CMAKE_BINARY_DIR}/dsp/${name}.f64)
+            add_test(NAME analog.${name}_capture COMMAND ak4522_capture ${file} ${ARGN})
+            set_tests_properties(analog.${name}_capture PROPERTIES
+                LABELS "analog" FIXTURES_SETUP ${name})
+            add_test(NAME analog.${name}
+                COMMAND ${AK4522_UV} run --directory ${PROJECT_SOURCE_DIR}/tools
+                    python measure_profile.py ${file} --rate 44100 --metric ${metric}
+                    --expect ${expect} --tolerance ${tolerance})
+            set_tests_properties(analog.${name} PROPERTIES
+                LABELS "analog" FIXTURES_REQUIRED ${name} TIMEOUT 600)
+        endfunction()
+        # S/N, A-weighted: 100 +/- 1 dB (D-A03, P-90), 10 s of zero input.
+        ak4522_profile_gate(noise_snr_a snr_a 100 1 --noise --seconds 10)
+        # The noise stays when muted (P-54): same S/N with a tone held by SMUTE.
+        ak4522_profile_gate(noise_muted_snr_a snr_a 100 1 --noise --mute --tone 1000 --level 0 --seconds 10)
+        # CCIR-ARM: 97.33 dB for this flat noise, against 96 dB typical
+        # (DISC-08). Locked to the disclosed value, not to the datasheet.
+        ak4522_profile_gate(noise_snr_ccir_arm snr_ccir_arm 97.33 0.3 --noise --seconds 10)
 
         # Golden Specification-profile outputs for tests/data (regenerate only
         # on a deliberate change to the clean signal path).

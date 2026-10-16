@@ -13,6 +13,7 @@ include(Catch)
 
 add_executable(ak4522_tests
     allocation_counter_test.cpp
+    analog_noise_test.cpp
     api_contract_test.cpp
     config_validation_test.cpp
     control_timeline_test.cpp

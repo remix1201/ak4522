@@ -270,6 +270,17 @@ Development note: the IEC 61672-1 table is tabulated at exact base-ten frequenci
 
 The datasheet pair implies -4.0 dB. No measurement effect accounts for the remaining 1.3 dB.
 
+### 2026-10-16: NominalAnalog noise, branch `m4-noise`
+
+| Check | Method | Result |
+| ----- | ------ | ------ |
+| A-weighted S/N | 10 s zero input, 44.1 kHz host and DAC, `measure_profile.py` | 100.006 dB (100 +/- 1, P-90) |
+| Noise while muted | 10 s, full-scale tone with SMUTE high from the start | 100.006 dB, identical to zero input (P-54) |
+| CCIR-ARM S/N | same capture | 97.32 dB (analysed 97.33; 96 dB typical, DISC-08) |
+| Generator statistics and wiring | 8 C++ test cases | pass |
+| Clean profile | golden lock | unchanged |
+| Mutation check | 8 deliberate faults | 7 detected; one equivalent (see the feature record) |
+
 ## M3 gate status
 
 AGENTS.md section 16, M3: "Deliver SRC, all supported rate pairs, event mapping, latency alignment, and public examples. Gate: alias/count/block-invariance tests and real-time allocation checks pass. Publish core versus wrapper response separately."

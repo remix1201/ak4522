@@ -27,6 +27,7 @@ Last substantive update: 2026-10-16. M0 to M3 were merged into `main` and approv
 | Host-rate matrix verification, example, published responses | REQ-RATE-01 to REQ-RATE-04, REQ-RT-01 | implemented | passing (see below) | approved 2026-10-16 (`m3-approved`) | merged into `main` |
 | Specification profile lock      | REQ-SCOPE-03                          | implemented    | passing (see below)      | not yet approved                  | branch `m4-lock`      |
 | Weighted measurement tools      | REQ-NOISE-01, REQ-DIST-01             | implemented    | passing (see below)      | not yet approved                  | branch `m4-measure`   |
+| NominalAnalog noise             | REQ-NOISE-01, REQ-NOISE-02            | implemented    | passing (see below)      | not yet approved                  | branch `m4-noise`     |
 | NominalAnalog profile           | REQ-NOISE-01, REQ-NOISE-02, REQ-DIST-01, REQ-CHANNEL-01 | planned (M4) | none     | none                              | none                  |
 | VST3 plugin adapter             | REQ-VST-01, REQ-VST-02, REQ-LAT-03    | planned (M5)   | none                     | none                              | none                  |
 | Measured profile                | AGENTS.md s.14                        | planned (M6, conditional on hardware) | none | none                         | none                  |
@@ -267,6 +268,17 @@ The DAC core produces audio through the public `DacCore` API at the DAC rate in,
 - **Requirements:** REQ-NOISE-01, REQ-DIST-01; evidence D-A01 to D-A03, D-A11 to D-A13; AGENTS.md section 13.2 gates 4 to 6.
 - **Location:** `tools/ak4522_tools/weighting.py` (A-weighting per IEC 61672-1; ITU-R BS.468-4; CCIR-ARM, the 468 curve renormalized to 0 dB at 2 kHz with an average-responding meter; frequency-domain weighting with a 10 Hz to 20 kHz band) and `tools/ak4522_tools/metrics.py` (A-weighted S/N, CCIR-ARM S/N, dynamic range at -60 dBFS with a least-squares tone notch, SINAD with unweighted residual). Levels are relative to a full-scale sine (RMS 1/sqrt 2).
 - **Validation:** 10 tests in `tools/tests/test_weighting.py`: A-weighting within 0.05 dB of the IEC 61672-1 table at 13 exact band frequencies from 10 Hz to 20 kHz; ITU-R 468 within 0.15 dB of the BS.468-4 table at 20 frequencies; CCIR-ARM 0 dB at 2 kHz and -5.6 dB at 1 kHz; weighting of coherent sines equal to the curve; band limiting; average-responding meter on a sine and on Gaussian noise (sqrt(pi)/2 of RMS); S/N of white noise against the analytic integral; SINAD with known harmonics; dynamic range equal to S/N after the notch.
+- **Updated:** 2026-10-16.
+
+## NominalAnalog noise
+
+- **Purpose:** the DAC's analog noise floor, calibrated to the datasheet's typical S/N. Synthetic.
+- **Requirements:** REQ-NOISE-01, REQ-NOISE-02; evidence D-A02, D-A03, D-A12, D-A13, D-A16, DISC-08; policies P-54, P-74, P-91, P-94, P-95.
+- **Usage:** `DacConfig::profile = ModelProfile::nominalAnalog` with `analog.noise = true`; `analog.noiseSeed` sets the stream. The Specification profile rejects every analog option and stays bit-for-bit as before (golden lock).
+- **Model:** white Gaussian noise at a fixed physical density, added at 8x after the mute and before the reconstruction sections; independent per channel; present while muted; absent in power-down; continued across host resets.
+- **Measured** (CTest label `analog`, 10 s captures through `HostProcessor` at 44.1 kHz with `ak4522_capture` and `tools/measure_profile.py`): A-weighted S/N 100.006 dB (target 100 +/- 1); with a full-scale tone held muted by SMUTE, identical; CCIR-ARM 97.32 dB, the disclosed value for flat noise (96 dB typical, DISC-08).
+- **Validation:** 8 C++ test cases: level against density at three rates; zero mean, variance within 1 %, Gaussian kurtosis; channel correlation below 0.005; seed reproducibility; NominalAnalog without options equal to the clean profile; noise while muted and none in power-down; reset not reseeding; no allocations. Seven deliberate mutations detected; an eighth (both channels drawing alternately from one generator) was dropped as equivalent, since Box-Muller's paired outputs are independent.
+- **Limitations:** distortion, mismatch, crosstalk, and DC offset are next (`m4-imperfections`); the real noise spectrum, idle tones, and correlation are unknown (U-09).
 - **Updated:** 2026-10-16.
 
 ## Documentation process
