@@ -39,9 +39,9 @@ Last substantive update: 2026-10-16. M0 to M5 were merged into `main` and approv
 | CPU benchmark                   | REQ-PERF-01                           | implemented    | budget met on the reference machine (see below) | approved 2026-10-16 (`m5-approved`) | merged into `main`    |
 | Demo plugin (VST3, AU), separate project | REQ-VST-01, REQ-VST-02, REQ-LAT-03 | planned (after M5) | none                     | none                              | none                  |
 | Measured profile                | AGENTS.md s.14                        | planned (M6, conditional on hardware) | none | none                         | none                  |
-| ADC section and loopback        | REQ-SCOPE-04, REQ-ADC-01 to REQ-ADC-07 | planned (M7)  | none                     | none                              | none                  |
+| ADC section and loopback        | REQ-SCOPE-04, REQ-ADC-01 to REQ-ADC-07 | implemented (M7) | passing (see below)      | not yet approved                  | merged into `main`    |
 
-Available on `main`: `DacCore` (DAC-rate PCM in, 8x the DAC rate out), `HostProcessor` (host-rate audio in and out), `DacStream` (a source at its own exact DAC rate, pull or push), the opt-in extended rate range to 50.4 kHz, a C API, CMake packaging with an integration guide and examples, the CPU benchmark, the optional Fig.11 example output circuit, the Specification profile, and the optional NominalAnalog profile. A demo plugin follows in a separate project.
+Available on `main`: `DacCore` (DAC-rate PCM in, 8x the DAC rate out), `HostProcessor` (host-rate audio in and out, through the DAC, the DAC into the ADC, or the ADC), `DacStream` (a source at its own exact DAC rate, pull or push), `AdcCore` (the ADC section) with the SDTO encoder, the opt-in extended rate range to 50.4 kHz, a C API, CMake packaging with an integration guide and examples, the CPU benchmark, the optional Fig.11 example output circuit, the Specification profile, and the optional NominalAnalog profile for both converters. A demo plugin follows in a separate project.
 
 ## Build and test foundation
 
@@ -376,6 +376,44 @@ Available on `main`: `DacCore` (DAC-rate PCM in, 8x the DAC rate out), `HostProc
 - **Behavior** (P-104): 27 uF into 10 kohm and 10 uF into 27 kohm, both 0.589 Hz high-pass corners (I-O03), around a gain of -1.8, 5.1 dB, not the labeled 6 dB (I-O02, DISC-05). DC offsets are removed, which is what the coupling is for (D-A15). Options: `includeGain` (default on; off keeps the DAC's level, avoiding the 5.1 dB rise in a host), `invert` (default on, as drawn), `loadOhms` (an external load across the 27 kohm, default none). The op-amp, bias network, and supply are ideal: no noise, no bandwidth limit, no clipping. No latency is added.
 - **Validation:** 10 test cases (`[circuit]`): corners and gains from the components; magnitude within 0.01 dB and phase within 0.5 degrees of the analog transfer function from 0.2 Hz to 40 kHz at 1, 48, and 192 kHz, with and without a load; -1.8 times the input at 1 kHz; DC removed to exactly zero; channels independent; float and double agree; invalid options rejected; unprepared input unchanged; no allocations; the `HostProcessor` and `DacStream` options equal the circuit applied to their plain output, with unchanged latency; the NominalAnalog +3 mV offset removed. C99 test and C/C++ equivalence. A mutation check detected 8 of 8 faults.
 - **Limitations:** an idealized circuit; a real NJM5532 adds noise and has finite swing. Output level above 1.0 can clip in a host when the gain is kept.
+- **Updated:** 2026-10-16.
+
+## ADC filters (M7)
+
+- **Purpose:** the ADC's decimation filter and DC-blocking high-pass filter, the signal path of the coming `AdcCore` (REQ-ADC-02).
+- **Status:** implemented and merged into `main`; internal components of `AdcCore`.
+- **Decimator** (P-105): 360-tap linear-phase FIR from 8x the ADC rate to the ADC rate, designed by `tools/design_decimator.py` (coefficients and report in `src/dsp/decimator_coefficients.inc`, `decimator_design.json`). Ripple 0.0048 dB to 19.76 kHz; -0.02, -0.06, and -6.0 dB at 20.02, 20.20, and 22.05 kHz; 80.55 dB from 24.34 kHz; 29.3125 frames of delay including a 55-sample pipeline. Fitted, not AKM's coefficients.
+- **High-pass** (P-107): first order, -3 dB at 0.9 Hz at 44.1 kHz, scaling with fs; -0.46 dB at 2.7 Hz against the printed -0.5 (I-AD03).
+- **Validation:** 8 C++ test cases (`[adc]`): impulse response against the coefficients and delay; symmetry and DC gain; level within 0.005 dB and delay within 0.01 frame at 1 to 19 kHz; tones from 24.4 to 176 kHz at least 80 dB down after decimation; block invariance; channel independence; reset; HPF points at 32, 44.1, and 48 kHz; DC removed to exactly zero; no allocations. Python checks that the committed coefficients match their report, checksum, and C++ constants and pass the gates. A mutation check detected 9 of 9 faults after a reset test was added.
+- **Limitations:** content near multiples of 64fs (AD-08) cannot be represented with input at 8x the rate.
+- **Updated:** 2026-10-16.
+
+## AdcCore (M7)
+
+- **Purpose:** the ADC section as a framework-independent core: normalized analog input at 8x the ADC rate in, 20-bit frames out (REQ-ADC-01, REQ-ADC-03, REQ-ADC-05).
+- **Status:** implemented and merged into `main`, with the NominalAnalog profile, the `HostProcessor` paths, and the C API.
+- **Usage:** `AdcConfig` (rate, extended range, CMODE, MCLK), `AdcCore::prepare(config, maxBlockFrames)`, then `process(input, events, output)` with `8 * n` input samples per channel for `n` output frames. `adcInputFromVolts()` converts a voltage across the inputs, or on one input against VCOM, to the normalized input. `latency()` reports the modeled 29.3125 frames, the nominal 29.3, and the 516-frame initialization.
+- **Behavior** (P-108): decimator, HPF, 20-bit quantization with saturation to 7FFFFh and 80000h (counted). PD low gives "0" output and clears the filters; after release, and after `prepare` or `reset`, the output stays "0" for 516 frames while the filters run. DEM and SMUTE events have no effect.
+- **NominalAnalog** (P-110): `profile = nominalAnalog` with `analog` options (noise, distortion, mismatch, crosstalk; not DC offset) and `inputMode` (differential or single-ended). Measured at 44.1 kHz ([analog_profile.md](analog_profile.md#adc-m7)): S/(N+D) 91.97 dB at -0.5 dBFS differential and 79.93 dB single-ended; dynamic range and A-weighted S/N 99.99 dB; CCIR-ARM 97.32 dB (DISC-08); DAC-to-ADC loopback CCIR-ARM 94.24 dB against 94 dB typical. CTest gates `adc.*` (labels `analog`, `adc`); unit tests for mismatch, crosstalk in both directions, distortion calibration per input mode, and seeded noise. A mutation check detected 7 of 7 faults after the calibration test was added.
+- **Validation:** 12 test cases (`[adc]`): configuration checks; 516 zero frames at startup, then the input with 29.3125 frames of delay within 0.01 and unity level at 1 kHz; zero input gives 00000h; over-range saturates at the full-scale codes and is counted; DC removed; PD low and release, with the restarted filters equal to a fresh core's; DAC pins ignored; block invariance with PD events; bad calls rejected; voltage conversion and latency report; `DacCore` output fed directly to `AdcCore` returns the signal after 44.0125 frames; no allocations. A mutation check detected 8 of 8 faults.
+- **Host paths** (P-111): `HostConfig::path = HostPath::loopback` sends host audio through the DAC and its analog output through the ADC; `HostPath::adc` treats host audio as the ADC's analog input. Both report the path's latency exactly (44.0125 and 29.3125 chip frames) and begin with the ADC's 516-frame initialization. 9 test cases (`[host][adc]`): output timing within 0.02 frame of the reported latency at four rate pairs per path, level within 0.1 dB; reported chip delays and latency bookkeeping; startup silence; no underruns and bitwise block invariance with PD events at three rate pairs per path; PD reaching the ADC on both paths; ADC clipping counted (`Diagnostics::adcClippedSamples`); the DAC's DC offset removed in loopback; reset; no allocations. A mutation check detected 8 of 8 faults after two tests were added (PD on the loopback path, reset of the ADC paths).
+- **Limitations:** content near multiples of 64fs is not represented (AD-08); no initialization click (AD-10, no captures); the NominalAnalog profile is synthetic; `DacStream` has no ADC path.
+- **Updated:** 2026-10-16.
+
+## SDTO serial encoder (M7)
+
+- **Purpose:** the ADC's serial output in all four modes, the counterpart of `SerialDecoder`, for conformance tests and device-style use (REQ-ADC-04).
+- **Status:** implemented and merged into `main`.
+- **Usage:** `SerialEncoder::prepare(format)`; `setFrame(frame)` before each left half-frame; `sclkFallingEdge(lrck)` once per SCLK falling edge returns the SDTO level.
+- **Behavior** (P-109): modes 0 to 2 send bits 19 to 0 from the LRCK edge, then "0"; mode 3 one bit clock later; with 16 bit clocks per channel only bits 19 to 4 fit, in modes 0 and 3 (AD-16, DISC-10). The frame is taken at the start of the left half and repeated if not replaced; "0" until the first LRCK edge.
+- **Validation:** 7 test cases (`[sdto]`): every bit slot against Figs.1 to 4 for modes 0 to 2 at 64fs, mode 0 at 32fs, and mode 3 at 64fs and 32fs (bit 4 across the edge); round trips of 200 random frames through `SerialDecoder` in modes 2 and 3 at 20, 24, 32, and 64 bit clocks per channel, and 16 with the low four bits dropped; startup, repetition, and reset; invalid format; no allocations. A mutation check detected 5 of 6 faults; the survivor counts slots before the first edge, which cannot change the output while the word is still zero.
+- **Updated:** 2026-10-16.
+
+## C API additions for M7
+
+- **Status:** implemented and merged into `main`.
+- **Added:** `path` and `adc_input_mode` in `ak4522_host_config`; `adc_clipped_samples` in `ak4522_diagnostics`; `ak4522_adc_*` for `AdcCore` (normalized 8x input, 20-bit codes out, events, latency, diagnostics; calls longer than `max_block_frames` are split internally); `ak4522_serial_encoder_*`; `ak4522_adc_input_from_volts`.
+- **Validation:** C99 tests of every new function; bit-identical equivalence with C++ for `AdcCore` (NominalAnalog, single-ended, PD events, a call split into pieces), the encoder in all four modes, and the host's loopback and adc paths. A mutation check detected 8 of 8 faults.
 - **Updated:** 2026-10-16.
 
 ## Documentation process

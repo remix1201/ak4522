@@ -64,6 +64,41 @@ private:
     bool leftValid_ = false;
 };
 
+// SDTO encoder for the ADC output (REQ-ADC-04; AD-11, AD-15, AD-16). Call
+// once per SCLK falling edge with the LRCK level after that edge; it returns
+// the SDTO level for the following bit clock, which a receiver latches on the
+// next rising edge (AD-11). Real-time safe after prepare.
+//
+//   modes 0, 1, 2: MSB justified; bit 19 in the first bit clock after the
+//                  LRCK edge, then bits 18 to 0, then "0"; LRCK high is left
+//   mode 3 (I2S):  the same, one bit clock later; LRCK low is left
+// With 16 bit clocks per channel (32fs) only bits 19 to 4 fit; in mode 3,
+// bit 4 falls in the first bit clock of the next half-frame (AD-16).
+//
+// setFrame() supplies the frame to send; it is taken at the start of the
+// next left half-frame, and resent if no new frame arrives (P-109). Until the
+// first LRCK edge after reset, SDTO is "0".
+class SerialEncoder {
+public:
+    [[nodiscard]] Status prepare(SerialFormat format);
+    void reset() noexcept;
+    void setFrame(const Pcm20Frame& frame) noexcept;
+    [[nodiscard]] bool sclkFallingEdge(bool lrck) noexcept;
+
+private:
+    [[nodiscard]] bool msbJustifiedBit() const noexcept;
+
+    SerialFormat format_ = SerialFormat::mode2LeftJustified20;
+    bool levelKnown_ = false;    // an LRCK level has been seen since reset
+    bool synchronized_ = false;  // an LRCK edge has been seen since reset
+    bool lrck_ = false;
+    std::uint32_t slot_ = 0;     // bit clocks since the LRCK edge
+    std::uint32_t word_ = 0;     // 20-bit word of the current half
+    bool delayed_ = false;       // mode 3: the bit computed one clock earlier
+    Pcm20Frame pending_{};
+    Pcm20Frame current_{};
+};
+
 enum class Pin : std::uint8_t { mclk, lrck, sclk, sdti, pd };
 
 // A pin level with an absolute timestamp in nanoseconds. An edge whose level

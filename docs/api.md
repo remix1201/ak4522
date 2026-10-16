@@ -33,10 +33,11 @@ REQ-ARCH-01 names ten abstractions. Four are public types: `DacConfig`, `DacCore
 | `pcm.hpp`            | `Pcm20`, `Pcm20Frame`, conversion and quantization functions                                   |
 | `events.hpp`         | `ControlEvent` for PD, DEM, and SMUTE changes                                                  |
 | `buffers.hpp`        | `StereoView<T>`, the non-owning planar buffer view                                             |
+| `adc_core.hpp`       | `AdcCore`, `AdcConfig`, `AdcInputMode`, `AdcLatencyInfo`, `adcInputFromVolts()` (M7)           |
 | `dac_core.hpp`       | `DacCore`, `ProcessResult`                                                                     |
 | `host_processor.hpp` | `HostProcessor`, `HostConfig`, `InputResolution`                                               |
 | `dac_stream.hpp`     | `DacStream`, `DacStreamConfig`, `ExactRate`, `DacSampleFormat`, `DacStreamMode`, `DacPullBlock`, `DacPullCallback`, `PushResult` |
-| `serial.hpp`         | `SerialDecoder`, `TimingValidator`, `PinEdge`                                                  |
+| `serial.hpp`         | `SerialDecoder`, `SerialEncoder` (SDTO, M7), `TimingValidator`, `PinEdge`                                                  |
 | `output_circuit.hpp` | `ExampleOutputCircuit`, `ExampleCircuitOptions` (Fig.11 board circuit, optional)                 |
 | `latency.hpp`        | `LatencyInfo`                                                                                  |
 | `diagnostics.hpp`    | `Diagnostics` counters                                                                         |
@@ -81,6 +82,14 @@ Events on the same frame apply in `ControlType` order: PD, then DEM, then SMUTE 
 
 `HostProcessor` maps each host event to the first DAC frame at or after its input-stream time, including input SRC latency (P-41). The PD pin is emulated only through `ControlType::powerDown`; `reset()` is a host lifecycle operation and does not emulate PD (P-74).
 
+## AdcCore
+
+`AdcCore` is the ADC section (REQ-ADC-01): `prepare(AdcConfig, maxBlockFrames)`, then `process(input, events, output)` with `8 * n` normalized input samples per channel at 8x the ADC rate for `n` 20-bit output frames. 1.0 is the positive full-scale peak, 1.5 V at VREFH = 5 V across the inputs or on one input (`adcInputFromVolts`). The path is decimator, HPF, and quantization with saturation (P-105 to P-108); PD low gives "0", and release, `prepare`, and `reset` are followed by 516 "0" frames (AD-10). `AdcConfig` shares the DAC's rate and clock rules and takes the NominalAnalog profile with `AnalogOptions` (not DC offset) and `AdcInputMode` (P-110). `latency()` reports 29.3125 modeled frames, 29.3 nominal, and the 516-frame initialization. `DacCore`'s output is valid `AdcCore` input, so a loopback needs no conversion. `SerialEncoder` produces SDTO from its frames (P-109).
+
+## ADC paths in HostProcessor
+
+`HostConfig::path` selects what host audio passes through (P-111): `HostPath::dac` (the default), `HostPath::loopback` (DAC, then the DAC's 8x analog output into `AdcCore`, REQ-ADC-06), or `HostPath::adc` (host audio as the ADC's analog input at 8x the rate). The ADC uses the `dac` configuration's rate, clocks, profile, and analog options except DC offset, and `adcInputMode`. `latency().coreDacFrames` reports the path's chip delay (14.7, 44.0125, or 29.3125 frames) and `reportedHostFrames` stays exact. `Diagnostics::adcClippedSamples` counts saturated ADC codes.
+
 ## DacStream
 
 `DacStream` plays a source that runs at its own DAC rate, such as an instrument or an emulated system, at a host rate (REQ-API-01). There is no input converter; the source's samples go straight to `DacCore`, then the output converter and the same latency alignment as `HostProcessor` (P-39).
@@ -104,6 +113,7 @@ Events on the same frame apply in `ControlType` order: PD, then DEM, then SMUTE 
 - **Buffers and events.** Planar channel pointers and a frame count, owned by the caller. Events are `ak4522_event` arrays; each call accepts at most `max_events_per_call` of them (default 256), converted into preallocated storage so the call stays allocation-free.
 - **Pull sources.** `ak4522_pull_fn` receives an `ak4522_pull_block` whose pointers for the configured format are set and the others NULL. Events written beyond `event_capacity`, or with an invalid type or value, cause the block's events to be dropped and counted.
 - **Conformance tools.** `ak4522_serial_decoder_*` and `ak4522_timing_validator_*` wrap `SerialDecoder` and `TimingValidator`, with `AK4522_SERIAL_*`, `AK4522_PIN_*`, and `AK4522_TIMING_*` constants.
+- **ADC.** `ak4522_adc_*` wraps `AdcCore`; `ak4522_serial_encoder_*` wraps `SerialEncoder`; the host config's `path` and `adc_input_mode` select `HostPath` and `AdcInputMode`.
 - **Threads.** As the C++ classes: `ak4522_stream_push_*` may run on a producer thread while `ak4522_stream_render_*` runs on the audio thread; diagnostics and queue queries from any thread.
 
 ## Example output circuit

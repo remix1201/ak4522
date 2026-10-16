@@ -1,8 +1,9 @@
 """Measure the NominalAnalog profile against the datasheet and write
-docs/analog_profile.md (M4 typical-target report).
+docs/analog_profile.md (M4 typical-target report, with the ADC added in M7).
 
-Captures come from ak4522_capture through HostProcessor at 44.1 kHz host
-and DAC rates, the conditions of [DS] p.5; metrics from metrics.py.
+DAC captures come from ak4522_capture through HostProcessor at 44.1 kHz host
+and DAC rates; ADC captures from ak4522_adc_capture through AdcCore at
+44.1 kHz; both the conditions of [DS] p.5. Metrics from metrics.py.
 
     cd tools && uv run python report_profile.py ../build/release
 """
@@ -26,9 +27,9 @@ RATE = 44100.0
 TONE = 997.0
 
 
-def capture(build: Path, work: Path, name: str, *args: str) -> np.ndarray:
+def capture(build: Path, work: Path, name: str, *args: str, tool: str = "ak4522_capture") -> np.ndarray:
     path = work / f"{name}.f64"
-    subprocess.run([str(tool_path.find(build, "ak4522_capture")), str(path), *args], check=True)
+    subprocess.run([str(tool_path.find(build, tool)), str(path), *args], check=True)
     return np.fromfile(path, dtype="<f8")
 
 
@@ -44,6 +45,15 @@ def main() -> int:
                         "--level", "-60", "--seconds", "10")
         sweep = {lvl: capture(build, work, f"s{lvl}", "--nominal", "--tone", str(TONE), "--level", str(lvl),
                               "--seconds", "5") for lvl in (-60, -20, -6, -1, 0)}
+        adc = "ak4522_adc_capture"
+        adc_zero = capture(build, work, "adc_zero", "--nominal", "--seconds", "10", tool=adc)
+        adc_dr = capture(build, work, "adc_dr", "--nominal", "--tone", str(TONE), "--level", "-60",
+                         "--seconds", "10", tool=adc)
+        adc_sinad = capture(build, work, "adc_sinad", "--nominal", "--tone", str(TONE), "--level", "-0.5",
+                            "--seconds", "5", tool=adc)
+        adc_sinad_se = capture(build, work, "adc_sinad_se", "--nominal", "--single-ended", "--tone", str(TONE),
+                               "--level", "-0.5", "--seconds", "5", tool=adc)
+        loop_zero = capture(build, work, "loop_zero", "--nominal", "--loopback", "--seconds", "10", tool=adc)
 
     snr_a = metrics.snr_a(zero, RATE)
     snr_ccir = metrics.snr_ccir_arm(zero, RATE)
@@ -79,6 +89,25 @@ def main() -> int:
               "| Level (dBFS) | S/(N+D) (dB) |", "| -----------: | -----------: |"]
     for lvl, x in sweep.items():
         lines.append(f"| {lvl} | {metrics.sinad(x, RATE, TONE):.2f} |")
+
+    adc_rows = [
+        ("S/(N+D), -0.5 dBFS, differential", "AD-A01", "84", "92", metrics.sinad(adc_sinad, RATE, TONE), "92 +/- 1"),
+        ("S/(N+D), -0.5 dBFS, single-ended", "AD-A10", "-", "80", metrics.sinad(adc_sinad_se, RATE, TONE), "80 +/- 1"),
+        ("Dynamic range, -60 dBFS, A-weighted", "AD-A02", "94", "100", metrics.dynamic_range(adc_dr, RATE, TONE), "100 +/- 1"),
+        ("S/N, A-weighted", "AD-A03", "94", "100", metrics.snr_a(adc_zero, RATE), "100 +/- 1"),
+        ("S/N, CCIR-ARM", "AD-A12", "-", "96", metrics.snr_ccir_arm(adc_zero, RATE), "disclosed deviation (DISC-08)"),
+        ("S/N, CCIR-ARM, DAC to ADC loopback", "AD-A12", "-", "94", metrics.snr_ccir_arm(loop_zero, RATE), "94 +/- 1"),
+    ]
+    lines += ["", "## ADC (M7)", "",
+              "Conditions: `AdcCore` at 44.1 kHz with `AnalogOptions::nominal()` (P-110), differential input "
+              "unless noted, 997 Hz tone at 8x the rate, left channel, after the 516-frame initialization and "
+              "one second of settling. The loopback feeds the tone as 20-bit PCM to a NominalAnalog `DacCore` "
+              "whose 8x output drives the ADC; both converters' noise counts. Isolation and mismatch are "
+              "measured by the C++ tests.", "",
+              "| Quantity | Evidence | Datasheet min (dB) | Datasheet typ (dB) | Measured (dB) | Project target |",
+              "| -------- | -------- | -----------------: | -----------------: | ------------: | -------------- |"]
+    for name, ev, mn, typ, value, target in adc_rows:
+        lines.append(f"| {name} | {ev} | {mn} | {typ} | {value:.2f} | {target} |")
     OUT.write_text("\n".join(lines) + "\n", encoding="utf-8")
     print(OUT.read_text())
     return 0

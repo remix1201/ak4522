@@ -11,10 +11,6 @@ namespace ak4522::detail {
 namespace {
 
 constexpr double pi = 3.14159265358979323846;
-constexpr double targetSinadDb = 90.0;       // D-A01 typical
-constexpr double isolationDb = 110.0;        // D-A04 typical
-constexpr double fixedMismatchDb = 0.2;      // D-A05 typical
-constexpr double maxMismatchDb = 0.5;        // D-A05 maximum
 constexpr double offsetVolts = 0.003;        // D-A15: "a few mV" (P-99)
 constexpr double peakVolts = 1.45;           // I-O01, VREFH = 5 V
 
@@ -33,39 +29,43 @@ double unit(std::uint64_t& state) noexcept
 
 } // namespace
 
-OutputStage::Coefficients OutputStage::distortion(DistortionShape shape) noexcept
+OutputStage::Coefficients OutputStage::distortion(DistortionShape shape, const Targets& targets) noexcept
 {
-    // Distortion power relative to a full-scale tone: the S/(N+D) target
-    // minus the unweighted noise in 10 Hz to 20 kHz (P-94, P-96).
-    const double tonePower = 0.5;
+    // Distortion power relative to the test tone: the S/(N+D) target minus
+    // the unweighted noise in 10 Hz to 20 kHz (P-94, P-96).
+    const double a = targets.toneAmplitude;
+    const double tonePower = a * a / 2.0;
     const double noisePower = AnalogNoise::density() * (20000.0 - 10.0);
-    const double distortionPower = std::pow(10.0, -targetSinadDb / 10.0) - noisePower / tonePower;
-    // For x = sin: 2nd harmonic amplitude |a2| / 2, 3rd harmonic amplitude
-    // |a3| / 4. The cubic term is negative, compressive like soft saturation.
+    const double distortionPower = std::pow(10.0, -targets.sinadDb / 10.0) - noisePower / tonePower;
+    // For x = a sin: 2nd harmonic amplitude |a2| a^2 / 2, 3rd harmonic
+    // amplitude |a3| a^3 / 4, here relative to a. The cubic term is
+    // negative, compressive like soft saturation.
     Coefficients c;
     switch (shape) {
     case DistortionShape::equal2nd3rd: {
         const double each = std::sqrt(distortionPower / 2.0);
-        c.quadratic = 2.0 * each;
-        c.cubic = -4.0 * each;
+        c.quadratic = 2.0 * each / a;
+        c.cubic = -4.0 * each / (a * a);
         break;
     }
     case DistortionShape::mostly3rd:
-        c.cubic = -4.0 * std::sqrt(distortionPower);
+        c.cubic = -4.0 * std::sqrt(distortionPower) / (a * a);
         break;
     case DistortionShape::mostly2nd:
-        c.quadratic = 2.0 * std::sqrt(distortionPower);
+        c.quadratic = 2.0 * std::sqrt(distortionPower) / a;
         break;
     }
     return c;
 }
 
-std::pair<double, double> OutputStage::mismatchDb(MismatchMode mode, std::uint64_t seed) noexcept
+std::pair<double, double> OutputStage::mismatchDb(MismatchMode mode, std::uint64_t seed, const Targets& targets) noexcept
 {
+    const double fixedMismatchDb = targets.fixedMismatchDb;
+    const double maxMismatchDb = targets.maxMismatchDb;
     if (mode == MismatchMode::fixed) {
         return {fixedMismatchDb / 2.0, -fixedMismatchDb / 2.0};
     }
-    // Half-normal total mismatch with a 0.2 dB median, capped at 0.5 dB, and
+    // Half-normal total mismatch with the typical as median, capped at the maximum, and
     // a random sign; from a stream separate from the noise (P-98).
     std::uint64_t s = seed ^ 0x4D49534D41544348ull;
     const double sigma = fixedMismatchDb / 0.6744897501960817;
@@ -75,21 +75,21 @@ std::pair<double, double> OutputStage::mismatchDb(MismatchMode mode, std::uint64
     return {sign * total / 2.0, -sign * total / 2.0};
 }
 
-void OutputStage::prepare(const AnalogOptions& options, double sampleRate) noexcept
+void OutputStage::prepare(const AnalogOptions& options, double sampleRate, const Targets& targets) noexcept
 {
     c_ = Coefficients{};
     if (options.distortion) {
-        const Coefficients d = distortion(options.distortionShape);
+        const Coefficients d = distortion(options.distortionShape, targets);
         c_.quadratic = d.quadratic;
         c_.cubic = d.cubic;
     }
     if (options.channelMismatch) {
-        const auto [l, r] = mismatchDb(options.mismatchMode, options.noiseSeed);
+        const auto [l, r] = mismatchDb(options.mismatchMode, options.noiseSeed, targets);
         c_.gainLeft = std::pow(10.0, l / 20.0);
         c_.gainRight = std::pow(10.0, r / 20.0);
     }
     if (options.crosstalk) {
-        const double level = std::pow(10.0, -isolationDb / 20.0);
+        const double level = std::pow(10.0, -targets.isolationDb / 20.0);
         c_.crosstalkDifferentiates = options.crosstalkShape == CrosstalkShape::capacitive;
         // A first difference has gain 2 sin(pi f / fs); scale it to the level at 1 kHz.
         c_.crosstalk = c_.crosstalkDifferentiates ? level / (2.0 * std::sin(pi * 1000.0 / sampleRate)) : level;

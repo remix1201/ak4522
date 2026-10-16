@@ -405,6 +405,79 @@ The shared dither generator (`src/core/dither.hpp`) leaves `HostProcessor` outpu
 
 Every ADC value in AGENTS.md section 17 was checked against the [DS] text layer, with table columns confirmed from word coordinates (`pdftotext -bbox`) on p.5, p.6, and p.7. All values match their stated columns. Findings: tPDV (516 / fs) is printed in the typ column while p.12 states 516 cycles without qualification (recorded in AD-10); Fig.1 shows SDTO truncated to bits 19 to 4 at 32fs in mode 0 as well as mode 3 (DISC-10); p.1 calls the signal inputs single-ended while p.3 and p.15 describe differential inputs (DISC-09). Inferences: the HPF points fit a first-order section (I-AD03); the passband edge equals fs minus the stopband edge (I-AD02). The documentation checker now validates AD and I-AD IDs (it had not recognized them), with a self-test.
 
+### 2026-10-16: ADC filters, M7 (branch `m7-filters`)
+
+| Check | Method | Result |
+| ----- | ------ | ------ |
+| Decimator design | `tools/design_decimator.py`, shortest even length meeting P-105 | 360 taps; ripple 0.0048 dB; points -0.0200, -0.0600, -6.0000 dB; stopband 80.55 dB; 29.3125 frames |
+| Decimator in C++ | impulse response, sine fits at 1, 5, 15, 19 kHz, aliasing tones from 24.4 to 176 kHz | exact coefficients and delay; level within 0.005 dB; delay within 0.01 frame; aliases at least 80 dB down |
+| HPF | sine fits at the 0.9, 2.7, 6.0 Hz points scaled to 32, 44.1, 48 kHz | within the P-107 tolerances; 2.7 Hz at -0.46 dB as a first-order section gives |
+| Generated files | Python: length, pipeline, checksum against report and C++; gates on the committed coefficients | pass |
+| Mutation check | 9 faults in `decimator.cpp` and `adc_highpass.cpp` | 8 detected at first (an HPF reset that kept its state); 9 of 9 after a reset test |
+
+### 2026-10-16: AdcCore, M7 (branch `m7-core`)
+
+| Check | Method | Result |
+| ----- | ------ | ------ |
+| Startup and timing | 1 kHz sine fit after the 516 zero frames | 29.3125 frames within 0.01; level within 0.01 dB |
+| Codes | zero input; 1.25 x full scale; 0.95 x full scale | 00000h; 7FFFFh and 80000h, clipping counted; no clipping |
+| PD | low at frame 4000, high at 5000 | zero from 4000 to 5515; afterwards identical to a fresh core fed from 5000 |
+| Streaming | random block sizes including 0 and 1, with PD events, against one block | identical |
+| Loopback | `DacCore` 8x output into `AdcCore` at 44.1 kHz, 997 Hz | 44.0125 frames within 0.02; level within 0.05 dB |
+| Mutation check | 8 faults in `src/core/adc_core.cpp` | 8 detected |
+
+### 2026-10-16: SDTO encoder, M7 (branch `m7-serial`)
+
+| Check | Method | Result |
+| ----- | ------ | ------ |
+| Bit slots | every slot of two frames against Figs.1 to 4: modes 0 to 2 at 64fs, mode 0 at 32fs, mode 3 at 64fs and 32fs | match |
+| Round trip | 200 random frames through `SerialDecoder`, modes 2 and 3, 16 to 64 bit clocks per channel | identical; 16 clocks drop the low four bits |
+| Mutation check | 6 faults in `src/serial/serial_encoder.cpp` | 5 detected; the survivor is equivalent (the word is zero before the first edge) |
+
+### 2026-10-16: ADC NominalAnalog profile, M7 (branch `m7-analog`)
+
+| Check | Method | Result |
+| ----- | ------ | ------ |
+| Typical targets | `ak4522_adc_capture` and `measure_profile.py`, 44.1 kHz, 997 Hz | S/(N+D) 91.97 dB (-0.5 dBFS, differential), 79.93 dB (single-ended); DR 99.99 dB; S/N A-weighted 99.99 dB |
+| CCIR-ARM | zero input, ADC alone and through the DAC | 97.32 dB per converter (DISC-08, as for the DAC); loopback 94.24 dB against 94 dB typical (AD-A12) |
+| Distortion calibration | distortion only, harmonics by multi-sine fit at -0.5 dBFS | within 0.1 dB of the target for each input mode |
+| Mismatch, crosstalk | fits at 1 kHz; crosstalk with noise present to dither the quantizer | 0.1 dB fixed, at most 0.3 dB in 20 instances; -110 dB within 0.5 dB both ways |
+| Mutation check | 7 faults in the ADC's analog wiring | 6 detected at first (calibrating distortion at 0 dBFS shifted S/(N+D) inside the gate's tolerance); 7 of 7 after a direct calibration test |
+
+Development notes: the first crosstalk test, without noise, measured a 1.5 LSB leak through undithered 20-bit quantization and read 1.9 dB off; with the converter's own noise present, as in a real measurement, it reads within 0.5 dB. `OutputStage` now takes its calibration targets as parameters; the DAC's defaults are unchanged and its gates and golden lock pass.
+
+### 2026-10-16: HostProcessor ADC paths, M7 (branch `m7-host`)
+
+| Check | Method | Result |
+| ----- | ------ | ------ |
+| Timing | phase delay at six passband frequencies, loopback and adc paths, host/rate pairs 44.1/44.1, 48/44.1, 96/48, 44.1/32 kHz | within 0.02 frame of the reported latency, mean within 0.01; level within 0.1 dB |
+| Streaming | random block sizes with PD events, 44.1/48, 192/16, 88.2/44.1 kHz | bitwise identical; no underruns |
+| Startup and PD | silence until the ADC's 516 frames have passed the buffering, on both paths | as specified |
+| DAC path | existing host tests, golden lock, matrix | unchanged |
+| Mutation check | 8 faults in the new path code | 6 detected at first (PD not reaching the ADC on loopback; `reset` not resetting the ADC); 8 of 8 after two tests |
+
+Development note: the first startup and PD tests expected silence up to the reported latency plus 516 frames. The ADC's "0" frames reach the host after the buffering alone; the reported latency also includes the chip's delay to the signal, which the zeros do not carry. The tests now use the buffering.
+
+## M7 gate status
+
+AGENTS.md section 16, M7: "Deliver the ADC evidence entries, `AdcCore`, SDTO serial encoder, ADC reset and initialization behavior, and the optional DAC-to-ADC loopback chain, exposed through the integration modes and C API. Gate: decimation response, high-pass response, initialization timing, serial output framing, and streaming tests pass under the same rules as the DAC; ADC and DAC results are reported separately."
+
+| Gate item | Evidence | Status |
+| --------- | -------- | ------ |
+| ADC evidence entries | `docs/evidence.md` section 12, verified against the PDF text layer and column coordinates; DISC-09, DISC-10 | pass |
+| Decimation response | P-105, P-106: ripple 0.0048 dB, points within 0.01 dB, -6 dB at 0.5 fs, 80.55 dB stopband, 29.3125 frames | pass |
+| High-pass response | P-107: -3 dB at 0.9 Hz scaled with fs; -0.46 dB at 2.7 Hz (first order); -0.1 dB at 6 Hz | pass |
+| Initialization timing | 516 "0" frames after PD release and at startup, in `AdcCore` and both host paths | pass |
+| Serial output framing | every slot against Figs.1 to 4; round trips through the decoder | pass |
+| Streaming | bitwise block invariance with PD events in `AdcCore` and both host paths; no underruns | pass |
+| Reset | `AdcCore` and host paths return to the state after prepare | pass |
+| Loopback | `DacCore` into `AdcCore` (44.0125 frames); `HostPath::loopback`; CCIR-ARM 94.24 dB against 94 typical | pass |
+| Integration modes and C API | `HostPath::loopback` and `adc`; `ak4522_adc_*`, `ak4522_serial_encoder_*`; bit-identical to C++ | pass |
+| ADC and DAC reported separately | ADC section of [analog_profile.md](analog_profile.md#adc-m7); ADC rows in this record | pass |
+| NominalAnalog (REQ-ADC-07) | S/(N+D) 91.97 / 79.93 dB, DR and S/N 99.99 dB; CCIR-ARM 97.32 dB per converter (DISC-08) | pass, with the disclosed deviation |
+
+Not modeled: content near multiples of 64fs (AD-08), the end-of-initialization click (AD-10), gain drift, input resistance, and supply rejection (AD-A06, AD-A08, AD-A09).
+
 ## M5 gate status
 
 M5 approved by the project owner on 2026-10-16 (tag `m5-approved`).

@@ -3,8 +3,9 @@
  *
  * Usable from C99 and later, C++, and other languages with a C foreign
  * function interface. It wraps HostProcessor (an audio effect at the host
- * rate), DacStream (a source at its own DAC rate), and the SerialDecoder and
- * TimingValidator conformance tools; see docs/api.md for their behavior. Alpha: the API and ABI may change in any release.
+ * rate, with optional loopback and ADC paths), DacStream (a source at its own
+ * DAC rate), AdcCore (the ADC section), and the SerialDecoder, SerialEncoder,
+ * and TimingValidator conformance tools; see docs/api.md for their behavior. Alpha: the API and ABI may change in any release.
  *
  * Conventions:
  * - Handles are opaque. Create and destroy them off the audio thread.
@@ -74,6 +75,10 @@ enum {
 };
 enum { AK4522_MODE_PULL = 0, AK4522_MODE_PUSH = 1 };
 enum { AK4522_EVENT_POWER_DOWN = 0, AK4522_EVENT_DEEMPHASIS = 1, AK4522_EVENT_SOFT_MUTE = 2 };
+/* What host audio passes through (HostPath). */
+enum { AK4522_PATH_DAC = 0, AK4522_PATH_LOOPBACK = 1, AK4522_PATH_ADC = 2 };
+/* How the analog signal reaches the ADC inputs (AdcInputMode). */
+enum { AK4522_INPUT_DIFFERENTIAL = 0, AK4522_INPUT_SINGLE_ENDED = 1 };
 /* Serial formats; the values are the DIF1:DIF0 pin bits. */
 enum {
     AK4522_SERIAL_MODE0_RIGHT_JUSTIFIED_16 = 0,
@@ -165,8 +170,31 @@ typedef struct ak4522_host_config {
     size_t max_events_per_call; /* events accepted by one process call */
     bool example_output_circuit; /* apply the Fig.11 circuit at the host rate */
     ak4522_circuit_options example_circuit;
+    int32_t path;                /* AK4522_PATH_* */
+    int32_t adc_input_mode;      /* AK4522_INPUT_*, for the ADC paths */
     ak4522_dac_config dac;
 } ak4522_host_config;
+
+/* The ADC section (AdcConfig). analog.dc_offset must be false. */
+typedef struct ak4522_adc_config {
+    double adc_rate;
+    bool allow_extended_rate;
+    int32_t cmode;
+    double master_clock_hz; /* 0 = not given */
+    int32_t profile;
+    ak4522_analog_options analog;
+    int32_t input_mode;     /* AK4522_INPUT_* */
+    size_t max_block_frames;
+    size_t max_events_per_call;
+} ak4522_adc_config;
+
+typedef struct ak4522_adc_latency_info {
+    double adc_rate;
+    double core_adc_frames;    /* modeled: 29.3125 */
+    double nominal_adc_frames; /* datasheet: 29.3 */
+    uint32_t initialization_frames;
+    double total_seconds;
+} ak4522_adc_latency_info;
 
 /* One request from render to a pull source: write `frames` DAC frames into
  * the pointers matching the configured format (the others are NULL), and
@@ -230,6 +258,7 @@ typedef struct ak4522_diagnostics {
     uint64_t host_underruns;
     uint64_t source_underrun_frames;
     uint64_t source_overrun_frames;
+    uint64_t adc_clipped_samples;
 } ak4522_diagnostics;
 
 typedef struct ak4522_host ak4522_host;
@@ -237,6 +266,8 @@ typedef struct ak4522_stream ak4522_stream;
 typedef struct ak4522_serial_decoder ak4522_serial_decoder;
 typedef struct ak4522_timing_validator ak4522_timing_validator;
 typedef struct ak4522_circuit ak4522_circuit;
+typedef struct ak4522_adc ak4522_adc;
+typedef struct ak4522_serial_encoder ak4522_serial_encoder;
 
 /* Library */
 const char* ak4522_version(void);
@@ -245,6 +276,11 @@ const char* ak4522_status_string(ak4522_status status);
 /* Defaults: the same as the C++ structs. */
 void ak4522_dac_config_default(ak4522_dac_config* config);
 void ak4522_circuit_options_default(ak4522_circuit_options* options);
+void ak4522_adc_config_default(ak4522_adc_config* config);
+
+/* Normalized ADC input for a voltage across the inputs (or on one input
+ * against VCOM): volts / (0.3 VREFH). */
+double ak4522_adc_input_from_volts(double volts, double vrefh);
 void ak4522_host_config_default(ak4522_host_config* config);
 void ak4522_stream_config_default(ak4522_stream_config* config);
 
@@ -308,6 +344,29 @@ ak4522_status ak4522_timing_validator_observe(ak4522_timing_validator* validator
 ak4522_status ak4522_timing_validator_advance_to(ak4522_timing_validator* validator, double time_ns);
 uint64_t ak4522_timing_validator_violations(const ak4522_timing_validator* validator, int32_t kind);
 uint64_t ak4522_timing_validator_total_violations(const ak4522_timing_validator* validator);
+
+/* ADC section (AdcCore): normalized analog input at 8x the ADC rate in,
+ * 20-bit codes out. in_left and in_right hold 8 * frames samples; out_left
+ * and out_right receive frames codes. Events are in ADC frames; only power
+ * down affects the ADC. */
+ak4522_adc* ak4522_adc_create(void);
+void ak4522_adc_destroy(ak4522_adc* adc);
+ak4522_status ak4522_adc_prepare(ak4522_adc* adc, const ak4522_adc_config* config);
+ak4522_status ak4522_adc_reset(ak4522_adc* adc);
+ak4522_status ak4522_adc_process(ak4522_adc* adc, const double* in_left, const double* in_right,
+                                 int32_t* out_left, int32_t* out_right, size_t frames,
+                                 const ak4522_event* events, size_t event_count);
+ak4522_status ak4522_adc_latency(const ak4522_adc* adc, ak4522_adc_latency_info* latency);
+ak4522_status ak4522_adc_diagnostics(const ak4522_adc* adc, ak4522_diagnostics* diagnostics);
+
+/* SDTO serial encoder (SerialEncoder): set_frame before each left half-frame;
+ * sclk_falling_edge returns the SDTO level for the next bit clock. */
+ak4522_serial_encoder* ak4522_serial_encoder_create(void);
+void ak4522_serial_encoder_destroy(ak4522_serial_encoder* encoder);
+ak4522_status ak4522_serial_encoder_prepare(ak4522_serial_encoder* encoder, int32_t format);
+ak4522_status ak4522_serial_encoder_reset(ak4522_serial_encoder* encoder);
+ak4522_status ak4522_serial_encoder_set_frame(ak4522_serial_encoder* encoder, int32_t left, int32_t right);
+ak4522_status ak4522_serial_encoder_sclk_falling_edge(ak4522_serial_encoder* encoder, bool lrck, bool* sdto);
 
 /* The example output circuit on its own, for example after the bare core
  * (ExampleOutputCircuit). Processes in place. */

@@ -2,6 +2,7 @@
 
 // Umbrella header for the public AK4522 DAC emulator API.
 
+#include "ak4522/adc_core.hpp"
 #include "ak4522/analog.hpp"
 #include "ak4522/buffers.hpp"
 #include "ak4522/config.hpp"

@@ -46,6 +46,7 @@ add_library(ak4522
     src/analog/example_output_circuit.cpp
     src/analog/output_stage.cpp
     src/c_api/ak4522_c.cpp
+    src/core/adc_core.cpp
     src/core/config_validation.cpp
     src/core/control_timeline.cpp
     src/core/dac_core.cpp
@@ -55,11 +56,14 @@ add_library(ak4522
     src/core/soft_mute.cpp
     src/core/status.cpp
     src/core/version.cpp
+    src/dsp/adc_highpass.cpp
+    src/dsp/decimator.cpp
     src/dsp/deemphasis.cpp
     src/dsp/interpolator.cpp
     src/dsp/reconstruction.cpp
     src/dsp/resampler.cpp
     src/serial/serial_decoder.cpp
+    src/serial/serial_encoder.cpp
     src/serial/timing_validator.cpp)
 add_library(ak4522::ak4522 ALIAS ak4522)
 include(GNUInstallDirs)
@@ -212,6 +216,39 @@ if(AK4522_BUILD_TESTS)
         ak4522_profile_gate(sinad_even sinad 90 1 --noise --distortion even --tone 997 --level 0 --seconds 5)
         # Dynamic range: -60 dBFS tone, A-weighted residual, 100 +/- 1 dB (D-A02, P-90).
         ak4522_profile_gate(dynamic_range dynamic_range 100 1 --nominal --tone 997 --level -60 --seconds 10)
+
+        # ADC NominalAnalog gates (REQ-ADC-07, P-110), at the datasheet's 44.1 kHz.
+        add_executable(ak4522_adc_capture tools/cpp/adc_capture.cpp)
+        target_link_libraries(ak4522_adc_capture PRIVATE ak4522 ak4522_options)
+        function(ak4522_adc_gate name metric expect tolerance)
+            set(file ${CMAKE_BINARY_DIR}/dsp/adc_${name}.f64)
+            set(tone 1000)
+            list(FIND ARGN --tone tone_index)
+            if(tone_index GREATER -1)
+                math(EXPR tone_index "${tone_index} + 1")
+                list(GET ARGN ${tone_index} tone)
+            endif()
+            add_test(NAME adc.${name}_capture COMMAND ak4522_adc_capture ${file} ${ARGN})
+            set_tests_properties(adc.${name}_capture PROPERTIES LABELS "analog;adc" FIXTURES_SETUP adc_${name})
+            add_test(NAME adc.${name}
+                COMMAND ${AK4522_UV} run --directory ${PROJECT_SOURCE_DIR}/tools
+                    python measure_profile.py ${file} --rate 44100 --metric ${metric}
+                    --tone ${tone} --expect ${expect} --tolerance ${tolerance})
+            set_tests_properties(adc.${name} PROPERTIES
+                LABELS "analog;adc" FIXTURES_REQUIRED adc_${name} TIMEOUT 600)
+        endfunction()
+        # S/N, A-weighted: 100 +/- 1 dB (AD-A03).
+        ak4522_adc_gate(snr_a snr_a 100 1 --noise --seconds 10)
+        # S/(N+D) at -0.5 dBFS: 92 +/- 1 dB differential (AD-A01), 80 +/- 1 dB single-ended (AD-A10).
+        ak4522_adc_gate(sinad sinad 92 1 --nominal --tone 997 --level -0.5 --seconds 5)
+        ak4522_adc_gate(sinad_single_ended sinad 80 1 --nominal --single-ended --tone 997 --level -0.5 --seconds 5)
+        # Dynamic range: -60 dBFS, A-weighted, 100 +/- 1 dB (AD-A02).
+        ak4522_adc_gate(dynamic_range dynamic_range 100 1 --nominal --tone 997 --level -60 --seconds 10)
+        # CCIR-ARM: flat noise gives 97.3 dB against 96 dB typical, as for the
+        # DAC (DISC-08); locked to the disclosed value.
+        ak4522_adc_gate(snr_ccir_arm snr_ccir_arm 97.33 0.3 --noise --seconds 10)
+        # Loopback CCIR-ARM, DAC then ADC: 94 dB typical (AD-A12).
+        ak4522_adc_gate(loopback_ccir_arm snr_ccir_arm 94 1 --noise --loopback --seconds 10)
 
         # Golden Specification-profile outputs for tests/data (regenerate only
         # on a deliberate change to the clean signal path).

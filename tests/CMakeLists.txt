@@ -12,6 +12,8 @@ list(APPEND CMAKE_MODULE_PATH ${catch2_SOURCE_DIR}/extras)
 include(Catch)
 
 add_executable(ak4522_tests
+    adc_core_test.cpp
+    adc_filter_test.cpp
     allocation_counter_test.cpp
     analog_noise_test.cpp
     api_contract_test.cpp
@@ -23,6 +25,7 @@ add_executable(ak4522_tests
     deemphasis_test.cpp
     extended_rate_test.cpp
     golden_test.cpp
+    host_adc_test.cpp
     host_processor_test.cpp
     interpolator_test.cpp
     output_circuit_test.cpp
@@ -31,6 +34,7 @@ add_executable(ak4522_tests
     reconstruction_test.cpp
     resampler_test.cpp
     serial_decoder_test.cpp
+    serial_encoder_test.cpp
     smoke_test.cpp
     soft_mute_test.cpp
     status_test.cpp

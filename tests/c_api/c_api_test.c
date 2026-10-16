@@ -311,6 +311,86 @@ static void test_circuit(void)
     ak4522_circuit_destroy(c);
 }
 
+static void test_adc(void)
+{
+    enum { frames = 3000 };
+    static double in[8 * frames];
+    static int32_t out_l[frames], out_r[frames];
+    ak4522_adc_config config;
+    ak4522_adc_latency_info latency;
+    ak4522_event late = {frames, AK4522_EVENT_POWER_DOWN, 0};
+    ak4522_adc* adc = ak4522_adc_create();
+    size_t n;
+    ak4522_adc_config_default(&config);
+    CHECK(config.adc_rate == 44100.0 && config.input_mode == AK4522_INPUT_DIFFERENTIAL);
+    CHECK(ak4522_adc_process(adc, in, in, out_l, out_r, frames, NULL, 0) == AK4522_NOT_PREPARED);
+    config.analog.dc_offset = true;
+    CHECK(ak4522_adc_prepare(adc, &config) == AK4522_INVALID_CONFIGURATION);
+    config.analog.dc_offset = false;
+    CHECK(ak4522_adc_prepare(adc, &config) == AK4522_OK);
+    for (n = 0; n < 8 * frames; ++n) {
+        in[n] = 0.5 * sin(2.0 * pi * 1000.0 * (double)n / (8.0 * 44100.0));
+    }
+    CHECK(ak4522_adc_process(adc, in, in, out_l, out_r, frames, NULL, 0) == AK4522_OK);
+    CHECK(out_l[0] == 0 && out_l[515] == 0); /* initialization */
+    CHECK(out_l[1000] != 0);
+    CHECK(ak4522_adc_process(adc, in, in, out_l, out_r, frames, &late, 1) == AK4522_EVENT_OUT_OF_RANGE);
+    CHECK(ak4522_adc_latency(adc, &latency) == AK4522_OK);
+    CHECK(latency.core_adc_frames == 29.3125 && latency.initialization_frames == 516);
+    CHECK(ak4522_adc_input_from_volts(1.5, 5.0) == 1.0);
+    CHECK(ak4522_adc_reset(adc) == AK4522_OK);
+    ak4522_adc_destroy(adc);
+}
+
+static void test_encoder(void)
+{
+    ak4522_serial_encoder* e = ak4522_serial_encoder_create();
+    bool bit = true;
+    int slot;
+    CHECK(ak4522_serial_encoder_prepare(e, AK4522_SERIAL_MODE2_LEFT_JUSTIFIED_20) == AK4522_OK);
+    CHECK(ak4522_serial_encoder_set_frame(e, 600000, 0) == AK4522_INVALID_ARGUMENT); /* beyond 20 bits */
+    CHECK(ak4522_serial_encoder_set_frame(e, -524288, 0) == AK4522_OK);              /* 80000h: MSB set */
+    CHECK(ak4522_serial_encoder_sclk_falling_edge(e, false, &bit) == AK4522_OK);    /* learns the level */
+    CHECK(!bit);
+    CHECK(ak4522_serial_encoder_sclk_falling_edge(e, true, &bit) == AK4522_OK);     /* left half */
+    CHECK(bit);
+    for (slot = 1; slot < 20; ++slot) {
+        CHECK(ak4522_serial_encoder_sclk_falling_edge(e, true, &bit) == AK4522_OK);
+        CHECK(!bit);
+    }
+    CHECK(ak4522_serial_encoder_sclk_falling_edge(e, true, NULL) == AK4522_INVALID_ARGUMENT);
+    ak4522_serial_encoder_destroy(e);
+}
+
+static void test_host_paths(void)
+{
+    static float in[4096], out_l[4096], out_r[4096];
+    ak4522_host_config config;
+    ak4522_latency latency;
+    ak4522_host* host = ak4522_host_create();
+    size_t n;
+    ak4522_host_config_default(&config);
+    CHECK(config.path == AK4522_PATH_DAC);
+    config.path = AK4522_PATH_LOOPBACK;
+    CHECK(ak4522_host_prepare(host, &config) == AK4522_OK);
+    CHECK(ak4522_host_latency(host, &latency) == AK4522_OK);
+    CHECK(latency.core_dac_frames == 14.7 + 29.3125);
+    config.path = AK4522_PATH_ADC;
+    CHECK(ak4522_host_prepare(host, &config) == AK4522_OK);
+    for (n = 0; n < 4096; ++n) {
+        in[n] = 1.3f * (float)sin(2.0 * pi * 500.0 * (double)n / 48000.0);
+    }
+    CHECK(ak4522_host_process_f32(host, in, in, out_l, out_r, 4096, NULL, 0) == AK4522_OK);
+    {
+        ak4522_diagnostics d;
+        CHECK(ak4522_host_diagnostics(host, &d) == AK4522_OK);
+        CHECK(d.adc_clipped_samples > 0);
+    }
+    config.path = 7;
+    CHECK(ak4522_host_prepare(host, &config) == AK4522_INVALID_CONFIGURATION);
+    ak4522_host_destroy(host);
+}
+
 int main(void)
 {
     test_library();
@@ -322,6 +402,9 @@ int main(void)
     test_serial();
     test_timing();
     test_circuit();
+    test_adc();
+    test_encoder();
+    test_host_paths();
     if (failures != 0) {
         fprintf(stderr, "%d C API check(s) failed\n", failures);
         return 1;

@@ -26,3 +26,16 @@ The datasheet gives S/(N+D) at one level without a qualifier for the DAC row; 0 
 | -6 | 91.12 |
 | -1 | 90.85 |
 | 0 | 89.87 |
+
+## ADC (M7)
+
+Conditions: `AdcCore` at 44.1 kHz with `AnalogOptions::nominal()` (P-110), differential input unless noted, 997 Hz tone at 8x the rate, left channel, after the 516-frame initialization and one second of settling. The loopback feeds the tone as 20-bit PCM to a NominalAnalog `DacCore` whose 8x output drives the ADC; both converters' noise counts. Isolation and mismatch are measured by the C++ tests.
+
+| Quantity | Evidence | Datasheet min (dB) | Datasheet typ (dB) | Measured (dB) | Project target |
+| -------- | -------- | -----------------: | -----------------: | ------------: | -------------- |
+| S/(N+D), -0.5 dBFS, differential | AD-A01 | 84 | 92 | 91.97 | 92 +/- 1 |
+| S/(N+D), -0.5 dBFS, single-ended | AD-A10 | - | 80 | 79.93 | 80 +/- 1 |
+| Dynamic range, -60 dBFS, A-weighted | AD-A02 | 94 | 100 | 99.99 | 100 +/- 1 |
+| S/N, A-weighted | AD-A03 | 94 | 100 | 99.99 | 100 +/- 1 |
+| S/N, CCIR-ARM | AD-A12 | - | 96 | 97.32 | disclosed deviation (DISC-08) |
+| S/N, CCIR-ARM, DAC to ADC loopback | AD-A12 | - | 94 | 94.24 | 94 +/- 1 |

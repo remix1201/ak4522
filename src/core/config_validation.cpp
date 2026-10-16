@@ -78,7 +78,9 @@ Status validate(const HostConfig& config) noexcept
         return Status::invalidBlockSize;
     }
     if (config.maxPendingEvents == 0
-        || !enumAtMost(config.inputResolution, InputResolution::bits16)) {
+        || !enumAtMost(config.inputResolution, InputResolution::bits16)
+        || !enumAtMost(config.path, HostPath::adc)
+        || !enumAtMost(config.adcInputMode, AdcInputMode::singleEnded)) {
         return Status::invalidConfiguration;
     }
     return validate(config.dac);
@@ -108,6 +110,34 @@ Status validate(const DacStreamConfig& config) noexcept
     DacConfig dac = config.dac;
     dac.dacRate = rate.hz();
     return validate(dac);
+}
+
+Status validate(const AdcConfig& config) noexcept
+{
+    DacConfig clocks; // the rate and clock rules are shared with the DAC
+    clocks.dacRate = config.adcRate;
+    clocks.allowExtendedRate = config.allowExtendedRate;
+    clocks.cmode = config.cmode;
+    clocks.masterClockHz = config.masterClockHz;
+    if (const Status s = validate(clocks); s != Status::ok) {
+        return s;
+    }
+    if (static_cast<std::uint8_t>(config.inputMode) > static_cast<std::uint8_t>(AdcInputMode::singleEnded)) {
+        return Status::invalidConfiguration;
+    }
+    // The analog enums are checked through the DAC rules.
+    DacConfig analog;
+    analog.profile = config.profile;
+    analog.analog = config.analog;
+    if (const Status s = validate(analog); s != Status::ok) {
+        return s; // includes the measured profile, which does not exist yet
+    }
+    const AnalogOptions& o = config.analog;
+    const bool any = o.noise || o.distortion || o.channelMismatch || o.crosstalk || o.dcOffset;
+    if (o.dcOffset || (config.profile == ModelProfile::specification && any)) {
+        return Status::invalidConfiguration; // P-110; Specification has no imperfections (REQ-SCOPE-03)
+    }
+    return Status::ok;
 }
 
 } // namespace ak4522::detail

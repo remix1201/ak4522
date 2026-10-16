@@ -3,6 +3,7 @@
 // Configuration checks shared by DacCore::prepare and HostProcessor::prepare.
 // Internal: not part of the public API.
 
+#include "ak4522/adc_core.hpp"
 #include "ak4522/config.hpp"
 #include "ak4522/dac_stream.hpp"
 #include "ak4522/host_processor.hpp"
@@ -35,5 +36,9 @@ inline constexpr std::uint64_t maxRateDenominator = std::uint64_t{1} << 20;
 // Checks the host rate (P-32), the exact DAC rate (P-100), mode, format,
 // capacities, the pull callback, and the DAC config at the exact rate.
 [[nodiscard]] Status validate(const DacStreamConfig& config) noexcept;
+
+// Checks the ADC rate and clocks with the DAC's rules (they share them,
+// AD-01, D-04), the profile, and the analog options (P-110).
+[[nodiscard]] Status validate(const AdcConfig& config) noexcept;
 
 } // namespace ak4522::detail
