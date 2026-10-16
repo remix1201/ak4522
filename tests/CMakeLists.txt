@@ -20,6 +20,7 @@ add_executable(ak4522_tests
     dac_core_test.cpp
     dac_stream_test.cpp
     deemphasis_test.cpp
+    extended_rate_test.cpp
     golden_test.cpp
     host_processor_test.cpp
     interpolator_test.cpp

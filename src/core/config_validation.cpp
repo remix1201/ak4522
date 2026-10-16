@@ -38,17 +38,20 @@ double derivedMasterClockHz(CmodePin cmode, double dacRate) noexcept
 
 Status validate(const DacConfig& config) noexcept
 {
-    // Written so that NaN fails the range test.
-    if (!(config.dacRate >= minDacRate && config.dacRate <= maxDacRate)) {
+    // Written so that NaN fails the range test. The extension is upper side
+    // only (P-103).
+    const double upper = config.allowExtendedRate ? extendedMaxDacRate : maxDacRate;
+    if (!(config.dacRate >= minDacRate && config.dacRate <= upper)) {
         return Status::invalidDacRate;
     }
     if (!enumsValid(config)) {
         return Status::invalidConfiguration;
     }
     if (config.masterClockHz) {
-        // MCLK must equal ratio x fs (D-C05, P-35). With fs already inside
-        // 16 to 48 kHz, that also keeps MCLK inside the datasheet range for
-        // each ratio (D-C02 to D-C04, I-C02), so no separate range check exists.
+        // MCLK must equal ratio x fs (D-C05, P-35). With fs inside 16 to
+        // 48 kHz, that also keeps MCLK inside the datasheet range for each
+        // ratio (D-C02 to D-C04, I-C02), so no separate range check exists.
+        // In the extended range MCLK exceeds it in proportion (P-103).
         const double mclk = *config.masterClockHz;
         const double expected = derivedMasterClockHz(config.cmode, config.dacRate);
         if (!std::isfinite(mclk) || std::abs(mclk - expected) > masterClockTolerance * expected) {

@@ -7,7 +7,7 @@ std::string_view toString(Status status) noexcept
     switch (status) {
     case Status::ok: return "ok";
     case Status::notPrepared: return "not prepared";
-    case Status::invalidDacRate: return "DAC rate outside 16000 to 48000 Hz";
+    case Status::invalidDacRate: return "DAC rate outside 16000 to 48000 Hz, or 50400 Hz when extended";
     case Status::invalidMasterClock: return "master clock outside the range for the CMODE ratio";
     case Status::unsupportedHostRate: return "unsupported host sample rate";
     case Status::unsupportedRatePair: return "unsupported host and DAC rate combination";

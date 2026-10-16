@@ -95,10 +95,24 @@ struct AnalogOptions {
     }
 };
 
+// DAC rate limits in Hz. The datasheet range is 16 to 48 kHz (D-04); the
+// opt-in extended range reaches 48 kHz plus 5% (REQ-CLOCK-02, P-103).
+inline constexpr double documentedMinDacRate = 16000.0;
+inline constexpr double documentedMaxDacRate = 48000.0;
+inline constexpr double extendedMaxDacRate = 50400.0;
+
+[[nodiscard]] constexpr bool withinDocumentedDacRange(double hz) noexcept
+{
+    return hz >= documentedMinDacRate && hz <= documentedMaxDacRate;
+}
+
 // Chip-level configuration, applied by prepare(). Defaults follow P-01; they
 // are project defaults, not power-on pin states.
 struct DacConfig {
     double dacRate = 44100.0;                 // Hz, [16000, 48000] (D-04)
+    // Accept rates above 48 kHz up to 50400 Hz (REQ-CLOCK-02, P-103). Off by
+    // default. Not documented chip behavior; LatencyInfo reports its use.
+    bool allowExtendedRate = false;
     CmodePin cmode = CmodePin::low;           // MCLK ratio selection
     std::optional<double> masterClockHz;      // validated against CMODE when set
     ModelProfile profile = ModelProfile::specification;

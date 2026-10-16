@@ -361,6 +361,7 @@ LatencyInfo HostProcessor::latency() const noexcept
     const double hostPerDac = static_cast<double>(h.hostPerDacNum) / static_cast<double>(h.hostPerDacDen);
     info.dacRate = h.config.dac.dacRate;
     info.hostRate = h.config.hostRate;
+    info.outsideDocumentedRate = !withinDocumentedDacRange(info.dacRate);
     // Both converters are symmetric about the times their outputs represent,
     // so they add no group delay; their look-ahead is in the buffering.
     info.inputSrcHostFrames = 0.0;

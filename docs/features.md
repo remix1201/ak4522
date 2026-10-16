@@ -32,14 +32,14 @@ Last substantive update: 2026-10-16. M0 to M4 were merged into `main` and approv
 | NominalAnalog profile report    | REQ-NOISE-01, REQ-DIST-01             | implemented    | passing (see below)      | approved 2026-10-16 (`m4-approved`)                  | merged into `main`    |
 | NominalAnalog output stage      | REQ-DIST-01, REQ-CHANNEL-01, REQ-ANALOG-01, REQ-ANALOG-02 | implemented | passing (see below) | approved 2026-10-16 (`m4-approved`)          | merged into `main`    |
 | DacStream (pull and push, fractional DAC rates) | REQ-API-01, REQ-RATE-02 | implemented | passing (see below) | not yet approved              | branch `m5-stream`    |
-| Extended DAC-rate range (opt-in, up to 50.4 kHz) | REQ-CLOCK-02          | planned (M5)   | none                     | none                              | none                  |
+| Extended DAC-rate range (opt-in, up to 50.4 kHz) | REQ-CLOCK-02          | implemented    | passing (see below)      | not yet approved                  | branch `m5-extended-rate` |
 | C API                           | REQ-API-02                            | planned (M5)   | none                     | none                              | none                  |
 | Packaging, integration guide, examples | REQ-API-03                     | planned (M5)   | none                     | none                              | none                  |
 | Demo plugin (VST3, AU), separate project | REQ-VST-01, REQ-VST-02, REQ-LAT-03 | planned (after M5) | none                     | none                              | none                  |
 | Measured profile                | AGENTS.md s.14                        | planned (M6, conditional on hardware) | none | none                         | none                  |
 | ADC section and loopback        | REQ-SCOPE-04, REQ-ADC-01 to REQ-ADC-07 | planned (M7)  | none                     | none                              | none                  |
 
-Available on `main`: `DacCore` (DAC-rate PCM in, 8x the DAC rate out), `HostProcessor` (host-rate audio in and out), the Specification profile, and the optional NominalAnalog profile. On branch `m5-stream`: `DacStream` for sources at their own DAC rate. Planned for M5: the opt-in extended rate range, a C API, and packaging. A demo plugin follows in a separate project.
+Available on `main`: `DacCore` (DAC-rate PCM in, 8x the DAC rate out), `HostProcessor` (host-rate audio in and out), the Specification profile, and the optional NominalAnalog profile. On branch `m5-extended-rate` (stacked on `m5-stream`): `DacStream` for sources at their own DAC rate and the opt-in extended rate range. Planned for M5: a C API, and packaging. A demo plugin follows in a separate project.
 
 ## Build and test foundation
 
@@ -89,7 +89,7 @@ Available on `main`: `DacCore` (DAC-rate PCM in, 8x the DAC rate out), `HostProc
 - **Requirements:** REQ-CLOCK-01, REQ-RATE-03; evidence D-04, D-05, D-C01 to D-C05, I-C01, I-C02; policies P-32, P-35; decision O-03.
 - **Implementation:** internal `detail::validate` in `src/core/config_validation.hpp`, for `DacConfig` and `HostConfig`. `DacCore::prepare` and `HostProcessor::prepare` will call it when they are implemented (M2, M3); it is not callable through the public API yet.
 - **Rules:**
-  - DAC rate in [16000, 48000] Hz, inclusive; NaN and infinity rejected (`invalidDacRate`).
+  - DAC rate in [16000, 48000] Hz, inclusive; NaN and infinity rejected (`invalidDacRate`). With `allowExtendedRate`, up to 50 400 Hz (P-103).
   - When `masterClockHz` is set, it must be finite and equal the CMODE ratio (256, 384, or 512) times the DAC rate within 1e-9 relative (`invalidMasterClock`). This implies the datasheet MCLK range, so there is no separate range check.
   - `ModelProfile::measured` and out-of-range enum values are rejected (`invalidConfiguration`).
   - Host rate must be exactly 44.1, 48, 88.2, 96, 176.4, or 192 kHz (`unsupportedHostRate`); `maxBlockFrames` and `maxPendingEvents` must be non-zero.
@@ -317,10 +317,19 @@ Available on `main`: `DacCore` (DAC-rate PCM in, 8x the DAC rate out), `HostProc
 - **Purpose:** play a source that runs at its own DAC rate, such as an instrument or an emulated system, at a host rate: DAC frames in, the chip model, output SRC, host frames out (REQ-API-01).
 - **Status:** implemented on branch `m5-stream`; not yet approved.
 - **Usage:** [docs/api.md](api.md#dacstream). Configure `DacStreamConfig` with the host rate, an `ExactRate` DAC rate such as `{112000000, 2304}`, a sample format, and a mode. In pull mode, `render()` calls your `DacPullCallback` for the DAC frames it needs; in push mode, a producer thread calls `push()` and the audio thread calls `render()`.
-- **Supported:** host rates of P-32; DAC rates as exact fractions inside 16 to 48 kHz, denominator up to 2^20 (P-100); 16-, 20-, and 24-bit integer and 32- and 64-bit float input; float and double output; every profile and analog option of `DacConfig`; DEM, SMUTE, and PD events in DAC frames.
+- **Supported:** host rates of P-32; DAC rates as exact fractions inside 16 to 48 kHz, or to 50.4 kHz with the extended range, denominator up to 2^20 (P-100); 16-, 20-, and 24-bit integer and 32- and 64-bit float input; float and double output; every profile and analog option of `DacConfig`; DEM, SMUTE, and PD events in DAC frames.
 - **Behavior:** after T host frames exactly ceil(T fs / H) DAC frames are consumed (P-101); latency alignment as `HostProcessor` without the input converter (P-39); push underruns play zeros and overruns drop frames, both counted (P-102). 24-bit input keeps its top 20 bits (I-P03).
 - **Validation:** 13 test cases (`[stream]`): exact consumption at a 44 100 000 / 1001 Hz rate against four host rates over 400 random blocks; block-size invariance with events (gate 8); phase-delay timing within 0.01 frame of the reported latency and level within the response tolerance, at fractional and whole rates (gate 3); format equivalences (16-bit times 16, 24-bit floor over 16, exact float); saturation counts; invalid callback events; push and pull identical, also with the producer on another thread; underrun and overrun accounting; mismatched calls; reset; no allocations. Passes under the address and undefined-behavior sanitizers, and the push tests under ThreadSanitizer. A mutation check detected 14 of 14 deliberate faults.
-- **Limitations:** no input dither for float sources (`HostProcessor` offers it); rates above 48 kHz wait for the extended range (REQ-CLOCK-02).
+- **Limitations:** no input dither for float sources (`HostProcessor` offers it).
+- **Updated:** 2026-10-16.
+
+## Extended DAC-rate range
+
+- **Purpose:** run sources slightly above the datasheet's 48 kHz, such as an emulated system at 112 MHz / 2304 = 48 611.1 Hz (REQ-CLOCK-02).
+- **Status:** implemented on branch `m5-extended-rate`; not yet approved.
+- **Usage:** set `DacConfig::allowExtendedRate = true` (in `HostConfig::dac` or `DacStreamConfig::dac`). Rates up to 50 400 Hz are then accepted; without it they are rejected with `invalidDacRate`. `latency().outsideDocumentedRate` is true for any rate above 48 kHz.
+- **Behavior:** not documented chip behavior (P-103). The model is unchanged: filters keep their normalized frequencies, so the response scales with the rate; de-emphasis keeps the selected set; soft mute still takes 1024 frames (20.3 ms at 50.4 kHz). The lower limit stays 16 kHz. `TimingValidator` still reports LRCK above 48 kHz.
+- **Validation:** 6 test cases (`[extended]`): opt-in required; rejection above 50.4 kHz and below 16 kHz; latency flag in `DacCore` and `HostProcessor`; identical core output at 50.4 and 44.1 kHz; `HostProcessor` at 48 and 96 kHz hosts with a 50.4 kHz DAC, level within the response tolerance and timing within 0.01 frame; `DacStream` at 112 MHz / 2304 with exact frame consumption, level, and timing. A mutation check detected 4 of 4 faults. Documented-range gates are not claimed above 48 kHz.
 - **Updated:** 2026-10-16.
 
 ## Documentation process

@@ -227,6 +227,7 @@ LatencyInfo DacCore::latency() const noexcept
         return info;
     }
     info.dacRate = impl_->config.dacRate;
+    info.outsideDocumentedRate = !withinDocumentedDacRange(info.dacRate);
     info.coreDacFrames = coreDelayFrames;
     info.totalSeconds = coreDelayFrames / impl_->config.dacRate;
     return info;

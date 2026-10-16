@@ -10,9 +10,9 @@
 
 namespace ak4522::detail {
 
-// DAC sample-rate limits in Hz (D-04).
-inline constexpr double minDacRate = 16000.0;
-inline constexpr double maxDacRate = 48000.0;
+// DAC sample-rate limits in Hz (D-04), and the opt-in extension (P-103).
+inline constexpr double minDacRate = documentedMinDacRate;
+inline constexpr double maxDacRate = documentedMaxDacRate;
 
 // Relative tolerance when checking that MCLK equals ratio x fs (P-35).
 inline constexpr double masterClockTolerance = 1e-9;
@@ -24,7 +24,7 @@ inline constexpr std::uint64_t maxRateDenominator = std::uint64_t{1} << 20;
 // MCLK in Hz implied by CMODE and the DAC rate (I-C01).
 [[nodiscard]] double derivedMasterClockHz(CmodePin cmode, double dacRate) noexcept;
 
-// Checks the DAC rate (D-04), optional MCLK synchronization with LRCK (D-C05,
+// Checks the DAC rate (D-04, or P-103 when extended), optional MCLK synchronization with LRCK (D-C05,
 // P-35), which implies the MCLK range (I-C02), enum ranges, and profile
 // availability (O-03).
 [[nodiscard]] Status validate(const DacConfig& config) noexcept;

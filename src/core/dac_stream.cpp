@@ -500,6 +500,7 @@ LatencyInfo DacStream::latency() const noexcept
     const double hostPerDac = static_cast<double>(s.dacPerHostDen) / static_cast<double>(s.dacPerHostNum);
     info.dacRate = s.config.dac.dacRate;
     info.hostRate = s.config.hostRate;
+    info.outsideDocumentedRate = !withinDocumentedDacRange(info.dacRate);
     info.inputSrcHostFrames = 0.0; // no input converter
     info.outputSrcHostFrames = 0.0;
     info.coreDacFrames = detail::coreDelayFrames;

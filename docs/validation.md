@@ -326,6 +326,18 @@ Found during the runs and fixed: GCC `-Wpedantic` rejected `__int128` in a test;
 
 Development note: the first threaded test pushed more frames than the renders would consume, so the producer waited forever on a full queue; the test now pushes exactly `dacFramesFor` of the rendered length.
 
+### 2026-10-16: extended DAC-rate range (branch `m5-extended-rate`)
+
+| Check | Method | Result |
+| ----- | ------ | ------ |
+| Opt-in and bounds | validation at 48 000.001, 48 611.111, 50 400 Hz with and without the option; 50 400.001, 52 800, 96 000, 15 999.999 Hz, 0, NaN, infinity with it | accepted only with the option and only up to 50 400 Hz |
+| Normalized response | `DacCore` output for the same input at 50.4 and 44.1 kHz | identical sample sequences |
+| Host path | 50.4 kHz DAC at 48 and 96 kHz hosts, six passband frequencies | level within the response tolerance; timing within 0.01 frame of the reported latency |
+| Stream | 112 MHz / 2304 source at 48 kHz | exact frame consumption; level and timing as above |
+| Mutation check | 4 deliberate faults in the validation | 4 detected |
+
+Above 48 kHz these are consistency checks of the unchanged model; the datasheet's gates are claimed only from 16 to 48 kHz (P-103).
+
 ## M4 gate status
 
 AGENTS.md section 16, M4: "Deliver calibrated noise, optional distortion/mismatch/crosstalk/voltage diagnostics, and profile metadata. Gate: weighted measurement methods are validated; synthetic assumptions are explicit; typical-target reports pass within project tolerances. Hardware fidelity claims remain limited."

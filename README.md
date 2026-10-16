@@ -6,7 +6,7 @@ The goal is to reproduce documented signal processing and control behavior, then
 
 ## Status
 
-**Alpha, milestones M0 to M4 complete.** The DAC core produces audio through the public `DacCore` API: 20-bit PCM frames and DEM, SMUTE, and PD events in, the reconstructed signal out at 8x the DAC rate, with the datasheet's filter response and 14.7-frame delay. `HostProcessor` wraps it for plugin use: host audio at 44.1 to 192 kHz in and out, with exactly reported latency. On branch `m5-stream`, `DacStream` plays sources that run at their own DAC rate (M5, in progress). An optional NominalAnalog profile adds synthetic noise, distortion, channel mismatch, crosstalk, and DC offset calibrated to the datasheet's typical values ([docs/analog_profile.md](docs/analog_profile.md)); the clean Specification profile remains the default. The plugin and hardware validation do not exist yet.
+**Alpha, milestones M0 to M4 complete.** The DAC core produces audio through the public `DacCore` API: 20-bit PCM frames and DEM, SMUTE, and PD events in, the reconstructed signal out at 8x the DAC rate, with the datasheet's filter response and 14.7-frame delay. `HostProcessor` wraps it for plugin use: host audio at 44.1 to 192 kHz in and out, with exactly reported latency. On branch `m5-extended-rate`, `DacStream` plays sources that run at their own DAC rate, and an opt-in range reaches 50.4 kHz (M5, in progress). An optional NominalAnalog profile adds synthetic noise, distortion, channel mismatch, crosstalk, and DC offset calibrated to the datasheet's typical values ([docs/analog_profile.md](docs/analog_profile.md)); the clean Specification profile remains the default. The plugin and hardware validation do not exist yet.
 
 See [docs/features.md](docs/features.md) for the current status of each feature.
 
@@ -97,7 +97,7 @@ The AK4522 is a stereo ADC/DAC device. This project focuses on its **20-bit DAC 
 - Explicit conversion between the host sample rate and the emulated DAC rate.
 - Optional noise, distortion, channel mismatch, and voltage-output diagnostics.
 
-The emulated DAC operates from 16 to 48 kHz. Planned host-rate support includes 44.1, 48, 88.2, 96, 176.4, and 192 kHz through sample-rate conversion. A higher host rate does not change the hardware's documented operating range.
+The emulated DAC operates from 16 to 48 kHz, the datasheet range. An opt-in extended range (`DacConfig::allowExtendedRate`) accepts up to 50.4 kHz for sources such as emulated systems that run slightly above 48 kHz; it is not documented chip behavior, and reports flag it. Planned host-rate support includes 44.1, 48, 88.2, 96, 176.4, and 192 kHz through sample-rate conversion. A higher host rate does not change the hardware's documented operating range.
 
 The ADC section is planned as a separate core in milestone M7, including its decimation filter, high-pass filter, initialization delay, serial output, and an optional DAC-to-ADC loopback. ADC behavior never enters the DAC model. External output amplifiers and coupling circuits are separate optional models.
 
