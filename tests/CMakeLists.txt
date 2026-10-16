@@ -17,6 +17,7 @@ add_executable(ak4522_tests
     config_validation_test.cpp
     control_timeline_test.cpp
     pcm_test.cpp
+    serial_decoder_test.cpp
     smoke_test.cpp
     soft_mute_test.cpp
     status_test.cpp

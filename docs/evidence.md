@@ -109,17 +109,17 @@ D-A16 is a figure annotation, not a table value. It agrees with D-A12 and suppor
 
 | ID    | Fact                                                                    | Class | Source                 | Conf.  | Requirement     | Test       | Status  |
 | ----- | ----------------------------------------------------------------------- | ----- | ---------------------- | ------ | --------------- | ---------- | ------- |
-| D-S01 | Mode 0 (DIF1=0, DIF0=0): 16-bit LSB justified, LRCK H = left, SCLK >= 32fs | D  | p.9 Table 2, Fig.1     | high   | REQ-SERIAL-01   | `[serial]` | planned |
-| D-S02 | Mode 1 (0,1): 20-bit LSB justified, LRCK H = left, SCLK >= 40fs          | D     | p.9 Table 2; p.10 Fig.2 | high  | REQ-SERIAL-01   | `[serial]` | planned |
-| D-S03 | Mode 2 (1,0): 20-bit MSB justified, LRCK H = left, SCLK >= 40fs          | D     | p.9 Table 2; p.10 Fig.3 | high  | REQ-SERIAL-01   | `[serial]` | planned |
-| D-S04 | Mode 3 (1,1): I2S, LRCK L = left, SCLK >= 32fs or 40fs                   | D     | p.9 Table 2; p.10 Fig.4 | high  | REQ-SERIAL-01   | `[serial]` | planned |
-| D-S05 | SDTI latched on SCLK rising edge                                         | D     | p.9                    | high   | REQ-SERIAL-01   | `[serial]` | planned |
-| D-S06 | Mode 3 at 32fs truncates the low bits                                    | D     | p.9                    | high   | REQ-SERIAL-01   | `[serial]` | planned |
-| D-S07 | Mode 3 at 32fs carries bits 19 to 4; bit 4 occupies the first SCLK slot after the LRCK edge | D | p.10 Fig.4 | medium | REQ-SERIAL-01 | `[serial]` | planned |
-| D-S08 | Mode 3 at 64fs: bit 19 in the slot after the LRCK edge (slot 1), bit 0 in slot 20, then don't care | D | p.10 Fig.4 | medium | REQ-SERIAL-01   | `[serial]` | planned |
-| D-S09 | Mode 0 at 32fs: bits 15 to 0 fill the channel; at 64fs, don't care then bits 15 to 0 | D | p.9 Fig.1   | medium | REQ-SERIAL-01   | `[serial]` | planned |
-| D-S10 | Mode 1 at 64fs: don't care, then bits 19 to 0 ending at the channel boundary | D  | p.10 Fig.2             | medium | REQ-SERIAL-01   | `[serial]` | planned |
-| D-S11 | Mode 2 at 64fs: bits 19 to 0 from the channel boundary, then don't care  | D     | p.10 Fig.3             | medium | REQ-SERIAL-01   | `[serial]` | planned |
+| D-S01 | Mode 0 (DIF1=0, DIF0=0): 16-bit LSB justified, LRCK H = left, SCLK >= 32fs | D  | p.9 Table 2, Fig.1     | high   | REQ-SERIAL-01   | `[serial]` | passing |
+| D-S02 | Mode 1 (0,1): 20-bit LSB justified, LRCK H = left, SCLK >= 40fs          | D     | p.9 Table 2; p.10 Fig.2 | high  | REQ-SERIAL-01   | `[serial]` | passing |
+| D-S03 | Mode 2 (1,0): 20-bit MSB justified, LRCK H = left, SCLK >= 40fs          | D     | p.9 Table 2; p.10 Fig.3 | high  | REQ-SERIAL-01   | `[serial]` | passing |
+| D-S04 | Mode 3 (1,1): I2S, LRCK L = left, SCLK >= 32fs or 40fs                   | D     | p.9 Table 2; p.10 Fig.4 | high  | REQ-SERIAL-01   | `[serial]` | passing |
+| D-S05 | SDTI latched on SCLK rising edge                                         | D     | p.9                    | high   | REQ-SERIAL-01   | `[serial]` | passing |
+| D-S06 | Mode 3 at 32fs truncates the low bits                                    | D     | p.9                    | high   | REQ-SERIAL-01   | `[serial]` | passing |
+| D-S07 | Mode 3 at 32fs carries bits 19 to 4; bit 4 occupies the first SCLK slot after the LRCK edge | D | p.10 Fig.4 | medium | REQ-SERIAL-01 | `[serial]` | passing |
+| D-S08 | Mode 3 at 64fs: bit 19 in the slot after the LRCK edge (slot 1), bit 0 in slot 20, then don't care | D | p.10 Fig.4 | medium | REQ-SERIAL-01   | `[serial]` | passing |
+| D-S09 | Mode 0 at 32fs: bits 15 to 0 fill the channel; at 64fs, don't care then bits 15 to 0 | D | p.9 Fig.1   | medium | REQ-SERIAL-01   | `[serial]` | passing |
+| D-S10 | Mode 1 at 64fs: don't care, then bits 19 to 0 ending at the channel boundary | D  | p.10 Fig.2             | medium | REQ-SERIAL-01   | `[serial]` | passing |
+| D-S11 | Mode 2 at 64fs: bits 19 to 0 from the channel boundary, then don't care  | D     | p.10 Fig.3             | medium | REQ-SERIAL-01   | `[serial]` | passing |
 | D-S12 | SDTO (ADC output) changes on SCLK falling edge; outside the DAC contract | D     | p.9                    | high   | REQ-SCOPE-01    | n/a        | planned |
 
 ### Serial timing (slave mode)
