@@ -1,5 +1,5 @@
 // PCM mapping and quantization (REQ-PCM-01 to REQ-PCM-03; D-P01, D-P02,
-// I-P03, I-P02; P-10). Expected values come from integer arithmetic or from
+// I-P01, I-P02; P-10). Expected values come from integer arithmetic or from
 // the C library's own rounding, never from the code under test.
 
 #include "ak4522/pcm.hpp"
