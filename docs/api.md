@@ -82,6 +82,10 @@ Events on the same frame apply in `ControlType` order: PD, then DEM, then SMUTE 
 
 `HostProcessor` maps each host event to the first DAC frame at or after its input-stream time, including input SRC latency (P-41). The PD pin is emulated only through `ControlType::powerDown`; `reset()` is a host lifecycle operation and does not emulate PD (P-74).
 
+## ADC paths in HostProcessor
+
+`HostConfig::path` selects what host audio passes through (P-111): `HostPath::dac` (the default), `HostPath::loopback` (DAC, then the DAC's 8x analog output into `AdcCore`, REQ-ADC-06), or `HostPath::adc` (host audio as the ADC's analog input at 8x the rate). The ADC uses the `dac` configuration's rate, clocks, profile, and analog options except DC offset, and `adcInputMode`. `latency().coreDacFrames` reports the path's chip delay (14.7, 44.0125, or 29.3125 frames) and `reportedHostFrames` stays exact. `Diagnostics::adcClippedSamples` counts saturated ADC codes.
+
 ## DacStream
 
 `DacStream` plays a source that runs at its own DAC rate, such as an instrument or an emulated system, at a host rate (REQ-API-01). There is no input converter; the source's samples go straight to `DacCore`, then the output converter and the same latency alignment as `HostProcessor` (P-39).

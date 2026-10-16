@@ -25,6 +25,7 @@ add_executable(ak4522_tests
     deemphasis_test.cpp
     extended_rate_test.cpp
     golden_test.cpp
+    host_adc_test.cpp
     host_processor_test.cpp
     interpolator_test.cpp
     output_circuit_test.cpp

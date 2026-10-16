@@ -16,6 +16,7 @@ struct Diagnostics {
     std::uint64_t hostUnderruns = 0;         // host output frames not yet available; always 0 by design
     std::uint64_t sourceUnderrunFrames = 0;  // DacStream push mode: DAC frames played as zeros (P-102)
     std::uint64_t sourceOverrunFrames = 0;   // DacStream push mode: DAC frames dropped, queue full (P-102)
+    std::uint64_t adcClippedSamples = 0;     // ADC output codes saturated (AD-09, P-108)
 };
 
 } // namespace ak4522

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "ak4522/adc_core.hpp"
 #include "ak4522/buffers.hpp"
 #include "ak4522/config.hpp"
 #include "ak4522/diagnostics.hpp"
@@ -20,6 +21,13 @@ enum class InputResolution : std::uint8_t {
     bits16, // quantize to 16 bits, then scale to 20-bit weight (REQ-PCM-02)
 };
 
+// What the host audio passes through (P-111).
+enum class HostPath : std::uint8_t {
+    dac,      // host audio as PCM into the DAC; its analog output to the host (default)
+    loopback, // the DAC's analog output into the ADC; the ADC's codes to the host (REQ-ADC-06)
+    adc,      // host audio as the ADC's analog input; the ADC's codes to the host
+};
+
 struct HostConfig {
     double hostRate = 48000.0;   // Hz; 44.1, 48, 88.2, 96, 176.4, or 192 kHz (P-32)
     std::size_t maxBlockFrames = 512;
@@ -27,6 +35,10 @@ struct HostConfig {
     bool inputDither = false;    // TPDF before quantization; host feature (P-12)
     std::size_t maxPendingEvents = 256; // events deferred past the block by SRC latency
     std::uint64_t ditherSeed = 0x4449544845520001ull; // TPDF dither stream (P-12, P-91)
+    HostPath path = HostPath::dac;
+    // ADC paths: input mode. The ADC uses dac's rate, clocks, profile, and
+    // analog options (the chip shares them), except DC offset (P-110, P-111).
+    AdcInputMode adcInputMode = AdcInputMode::differential;
     // Board behavior after the DAC, off by default: the datasheet's example
     // output circuit (Fig.11), applied at the host rate (P-104).
     bool exampleOutputCircuit = false;
@@ -36,7 +48,9 @@ struct HostConfig {
 };
 
 // Host-rate wrapper for plugins: input SRC, quantization, DacCore, output SRC,
-// and latency alignment (REQ-RATE-01). Produces exactly as many output frames
+// and latency alignment (REQ-RATE-01). With HostPath::loopback the DAC's 8x
+// output feeds AdcCore; with HostPath::adc the input SRC converts host audio
+// to 8x the rate for AdcCore (P-111). Produces exactly as many output frames
 // as it consumes; its fixed latency is reported by latency().
 //
 // Threading rules match DacCore.

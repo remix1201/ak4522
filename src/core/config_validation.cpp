@@ -78,7 +78,9 @@ Status validate(const HostConfig& config) noexcept
         return Status::invalidBlockSize;
     }
     if (config.maxPendingEvents == 0
-        || !enumAtMost(config.inputResolution, InputResolution::bits16)) {
+        || !enumAtMost(config.inputResolution, InputResolution::bits16)
+        || !enumAtMost(config.path, HostPath::adc)
+        || !enumAtMost(config.adcInputMode, AdcInputMode::singleEnded)) {
         return Status::invalidConfiguration;
     }
     return validate(config.dac);

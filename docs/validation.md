@@ -446,6 +446,18 @@ Every ADC value in AGENTS.md section 17 was checked against the [DS] text layer,
 
 Development notes: the first crosstalk test, without noise, measured a 1.5 LSB leak through undithered 20-bit quantization and read 1.9 dB off; with the converter's own noise present, as in a real measurement, it reads within 0.5 dB. `OutputStage` now takes its calibration targets as parameters; the DAC's defaults are unchanged and its gates and golden lock pass.
 
+### 2026-10-16: HostProcessor ADC paths, M7 (branch `m7-host`)
+
+| Check | Method | Result |
+| ----- | ------ | ------ |
+| Timing | phase delay at six passband frequencies, loopback and adc paths, host/rate pairs 44.1/44.1, 48/44.1, 96/48, 44.1/32 kHz | within 0.02 frame of the reported latency, mean within 0.01; level within 0.1 dB |
+| Streaming | random block sizes with PD events, 44.1/48, 192/16, 88.2/44.1 kHz | bitwise identical; no underruns |
+| Startup and PD | silence until the ADC's 516 frames have passed the buffering, on both paths | as specified |
+| DAC path | existing host tests, golden lock, matrix | unchanged |
+| Mutation check | 8 faults in the new path code | 6 detected at first (PD not reaching the ADC on loopback; `reset` not resetting the ADC); 8 of 8 after two tests |
+
+Development note: the first startup and PD tests expected silence up to the reported latency plus 516 frames. The ADC's "0" frames reach the host after the buffering alone; the reported latency also includes the chip's delay to the signal, which the zeros do not carry. The tests now use the buffering.
+
 ## M5 gate status
 
 M5 approved by the project owner on 2026-10-16 (tag `m5-approved`).

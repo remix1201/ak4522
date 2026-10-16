@@ -12,13 +12,13 @@
 #include <algorithm>
 #include <atomic>
 #include <cmath>
+#include <numeric>
 #include <vector>
 
 namespace ak4522 {
 
 namespace {
 
-using detail::coreDelayFrames;
 constexpr std::size_t os = DacCore::oversampling;
 
 struct Pending {
@@ -34,6 +34,10 @@ struct HostProcessor::Impl {
     bool prepared = false;
 
     DacCore core;
+    AdcCore adc;
+    bool adcIn = false;  // path adc: host audio is the ADC's analog input
+    bool adcOut = false; // paths adc and loopback: the ADC's codes go to the host
+    std::size_t outOs = os; // output converter input samples per frame
     detail::Resampler inputSrc;
     detail::Resampler outputSrc;
     bool inputBypass = false;
@@ -42,7 +46,8 @@ struct HostProcessor::Impl {
 
     std::size_t prefill = 0;        // D: zeros queued at reset
     std::int64_t latencyWhole = 0;  // K: whole host frames of signal delay
-    double outputOffset = 0.0;      // phi, in 8x samples
+    double outputOffset = 0.0;      // phi, in output-converter input samples
+    double coreFrames = 14.7;       // chip delay of the path in frames (P-111)
 
     // Scratch, sized at prepare.
     std::vector<double> inL, inR;
@@ -50,6 +55,10 @@ struct HostProcessor::Impl {
     std::vector<Pcm20Frame> pcm;
     std::vector<double> hiL, hiR;
     std::vector<double> outL, outR;
+    std::vector<Pcm20Frame> adcFrames;
+    std::vector<double> adcL, adcR;     // the ADC's codes, normalized
+    std::vector<double> stageL, stageR; // path adc: 8x samples awaiting a whole frame
+    std::size_t staged = 0;
     std::vector<ControlEvent> chunkEvents;
     detail::StereoFifo fifo;
     ExampleOutputCircuit circuit;
@@ -78,6 +87,8 @@ struct HostProcessor::Impl {
     void resetStreams() noexcept
     {
         core.reset();
+        adc.reset();
+        staged = 0;
         inputSrc.reset();
         outputSrc.reset();
         fifo.clear();
@@ -132,19 +143,28 @@ struct HostProcessor::Impl {
             inR[i] = static_cast<double>(right[i]);
         }
 
+        // k frames at the DAC (and ADC) rate this chunk.
         std::size_t k = n;
-        double* dl = inL.data();
-        double* dr = inR.data();
-        if (!inputBypass) {
-            k = inputSrc.process(std::span(inL).first(n), std::span(inR).first(n), dacL, dacR);
-            dl = dacL.data();
-            dr = dacR.data();
-        }
-        for (std::size_t j = 0; j < k; ++j) {
-            pcm[j] = {quantizeSample(dl[j], dither.left), quantizeSample(dr[j], dither.right)};
+        if (adcIn) {
+            // Path adc: host audio to 8x the rate, whole frames only.
+            const std::size_t s = inputSrc.process(std::span(inL).first(n), std::span(inR).first(n),
+                                                   std::span(stageL).subspan(staged), std::span(stageR).subspan(staged));
+            staged += s;
+            k = staged / os;
+        } else {
+            double* dl = inL.data();
+            double* dr = inR.data();
+            if (!inputBypass) {
+                k = inputSrc.process(std::span(inL).first(n), std::span(inR).first(n), dacL, dacR);
+                dl = dacL.data();
+                dr = dacR.data();
+            }
+            for (std::size_t j = 0; j < k; ++j) {
+                pcm[j] = {quantizeSample(dl[j], dither.left), quantizeSample(dr[j], dither.right)};
+            }
         }
 
-        // Events whose DAC frame falls in this chunk.
+        // Events whose frame falls in this chunk; the converters share the timeline.
         std::size_t events = 0;
         while (pendingCount > 0) {
             const Pending& p = pending[pendingRead];
@@ -155,11 +175,39 @@ struct HostProcessor::Impl {
             pendingRead = (pendingRead + 1) % pending.size();
             --pendingCount;
         }
-        static_cast<void>(core.process(std::span(pcm).first(k), std::span(chunkEvents).first(events),
-                                       {std::span(hiL).first(k * os), std::span(hiR).first(k * os)}));
-
-        const std::size_t m = outputSrc.process(std::span(hiL).first(k * os), std::span(hiR).first(k * os),
-                                                outL, outR);
+        const auto ev = std::span<const ControlEvent>(chunkEvents).first(events);
+        std::span<const double> toOutL;
+        std::span<const double> toOutR;
+        if (adcIn) {
+            static_cast<void>(adc.process({std::span(stageL).first(k * os), std::span(stageR).first(k * os)}, ev,
+                                          std::span(adcFrames).first(k)));
+            // Keep the incomplete frame's samples for the next chunk.
+            std::copy(stageL.begin() + static_cast<std::ptrdiff_t>(k * os),
+                      stageL.begin() + static_cast<std::ptrdiff_t>(staged), stageL.begin());
+            std::copy(stageR.begin() + static_cast<std::ptrdiff_t>(k * os),
+                      stageR.begin() + static_cast<std::ptrdiff_t>(staged), stageR.begin());
+            staged -= k * os;
+        } else {
+            static_cast<void>(core.process(std::span(pcm).first(k), ev,
+                                           {std::span(hiL).first(k * os), std::span(hiR).first(k * os)}));
+            if (adcOut) {
+                // Path loopback: the DAC's analog output is the ADC's input (REQ-ADC-06).
+                static_cast<void>(adc.process({std::span(hiL).first(k * os), std::span(hiR).first(k * os)}, ev,
+                                              std::span(adcFrames).first(k)));
+            }
+        }
+        if (adcOut) {
+            for (std::size_t j = 0; j < k; ++j) {
+                adcL[j] = toNormalized(adcFrames[j].left);
+                adcR[j] = toNormalized(adcFrames[j].right);
+            }
+            toOutL = std::span(adcL).first(k);
+            toOutR = std::span(adcR).first(k);
+        } else {
+            toOutL = std::span(hiL).first(k * os);
+            toOutR = std::span(hiR).first(k * os);
+        }
+        const std::size_t m = outputSrc.process(toOutL, toOutR, outL, outR);
         for (std::size_t i = 0; i < m; ++i) {
             fifo.push(outL[i], outR[i]);
         }
@@ -247,23 +295,54 @@ Status HostProcessor::prepare(const HostConfig& config)
     const double host = config.hostRate;
     const double dac = config.dac.dacRate;
 
-    // Input side: bypassed when the rates are equal (REQ-RATE-01).
-    h.inputBypass = host == dac;
+    h.adcIn = config.path == HostPath::adc;
+    h.adcOut = config.path != HostPath::dac;
+    h.outOs = h.adcOut ? 1 : os;
+
+    // Input side: bypassed when the rates are equal (REQ-RATE-01). Path adc
+    // converts to 8x the rate: the host audio is the analog input (P-111).
+    h.inputBypass = !h.adcIn && host == dac;
     std::size_t dacCapacity = config.maxBlockFrames;
+    std::size_t stageCapacity = 0;
     if (h.inputBypass) {
         h.hostPerDacNum = 1;
         h.hostPerDacDen = 1;
     } else {
-        if (const Status s = h.inputSrc.prepare({host, dac}); s != Status::ok) {
+        const double target = h.adcIn ? dac * static_cast<double>(os) : dac;
+        if (const Status s = h.inputSrc.prepare({host, target}); s != Status::ok) {
             return s;
         }
-        h.hostPerDacNum = h.inputSrc.ratioNumerator();
-        h.hostPerDacDen = h.inputSrc.ratioDenominator();
-        dacCapacity = h.inputSrc.maxOutputsFor(config.maxBlockFrames);
+        // Host frames per input-converter output: P / Q; per frame, os P / Q on path adc.
+        const std::int64_t num = h.inputSrc.ratioNumerator() * (h.adcIn ? static_cast<std::int64_t>(os) : 1);
+        const std::int64_t den = h.inputSrc.ratioDenominator();
+        const std::int64_t g = std::gcd(num, den);
+        h.hostPerDacNum = num / g;
+        h.hostPerDacDen = den / g;
+        const std::size_t outputs = h.inputSrc.maxOutputsFor(config.maxBlockFrames);
+        if (h.adcIn) {
+            stageCapacity = outputs + os;
+            dacCapacity = stageCapacity / os + 1;
+        } else {
+            dacCapacity = outputs;
+        }
     }
 
     if (const Status s = h.core.prepare(config.dac, dacCapacity); s != Status::ok) {
         return s;
+    }
+    if (h.adcOut) {
+        AdcConfig ac;
+        ac.adcRate = config.dac.dacRate;
+        ac.allowExtendedRate = config.dac.allowExtendedRate;
+        ac.cmode = config.dac.cmode;
+        ac.masterClockHz = config.dac.masterClockHz;
+        ac.profile = config.dac.profile;
+        ac.analog = config.dac.analog;
+        ac.analog.dcOffset = false; // the DAC's offset may be on; the ADC takes none (P-110)
+        ac.inputMode = config.adcInputMode;
+        if (const Status s = h.adc.prepare(ac, dacCapacity); s != Status::ok) {
+            return s;
+        }
     }
     if (const Status s = h.circuit.prepare(host, config.exampleCircuit); s != Status::ok) {
         return s;
@@ -272,15 +351,24 @@ Status HostProcessor::prepare(const HostConfig& config)
     // Latency alignment (P-39): the core delays by 14.7 DAC frames, which is
     // 14.7 * P1 / Q1 host frames. K is its whole part; the output converter
     // starts phi 8x samples late so the remaining fraction cancels exactly.
+    // Core delay: DAC 14.7 frames, ADC 29.3125 = 469/16, both 3521/80 (P-111).
+    const std::uint64_t delayNum = config.path == HostPath::dac ? detail::coreDelayNum
+        : config.path == HostPath::adc                         ? 469
+                                                                : 3521;
+    const std::uint64_t delayDen = config.path == HostPath::dac ? detail::coreDelayDen
+        : config.path == HostPath::adc                         ? 16
+                                                                : 80;
+    h.coreFrames = static_cast<double>(delayNum) / static_cast<double>(delayDen);
     const detail::OutputAlignment align = detail::alignOutput(
-        static_cast<std::uint64_t>(h.hostPerDacNum), static_cast<std::uint64_t>(h.hostPerDacDen), os);
+        static_cast<std::uint64_t>(h.hostPerDacNum), static_cast<std::uint64_t>(h.hostPerDacDen), h.outOs,
+        delayNum, delayDen);
     h.latencyWhole = align.latencyWhole;
     h.outputOffset = align.outputOffset;
     const double hostPerDac = static_cast<double>(h.hostPerDacNum) / static_cast<double>(h.hostPerDacDen);
 
-    // Output side: 8x DAC rate to host rate, never bypassed so the alignment
-    // offset always applies. Passband up to 20/44.1 of the host rate.
-    detail::ResamplerSpec out{dac * static_cast<double>(os), host};
+    // Output side: 8x DAC rate (or the ADC's 1x codes) to host rate, never
+    // bypassed so the alignment offset always applies.
+    detail::ResamplerSpec out{dac * static_cast<double>(h.outOs), host};
     out.startOffset = h.outputOffset;
     if (const Status s = h.outputSrc.prepare(out); s != Status::ok) {
         return s;
@@ -288,7 +376,7 @@ Status HostProcessor::prepare(const HostConfig& config)
 
     const double w1 = h.inputBypass ? 0.0 : static_cast<double>(h.inputSrc.halfWidth());
     const double w2 = static_cast<double>(h.outputSrc.halfWidth());
-    h.prefill = detail::outputPrefill(w1, w2, h.outputOffset, hostPerDac, os);
+    h.prefill = detail::outputPrefill(w1, w2, h.outputOffset, hostPerDac, h.outOs);
 
     const std::size_t maxBlock = config.maxBlockFrames;
     h.inL.assign(maxBlock, 0.0);
@@ -298,7 +386,12 @@ Status HostProcessor::prepare(const HostConfig& config)
     h.pcm.assign(dacCapacity, Pcm20Frame{});
     h.hiL.assign(dacCapacity * os, 0.0);
     h.hiR.assign(dacCapacity * os, 0.0);
-    const std::size_t outCapacity = h.outputSrc.maxOutputsFor(dacCapacity * os);
+    h.adcFrames.assign(h.adcOut ? dacCapacity : 0, Pcm20Frame{});
+    h.adcL.assign(h.adcOut ? dacCapacity : 0, 0.0);
+    h.adcR.assign(h.adcOut ? dacCapacity : 0, 0.0);
+    h.stageL.assign(stageCapacity, 0.0);
+    h.stageR.assign(stageCapacity, 0.0);
+    const std::size_t outCapacity = h.outputSrc.maxOutputsFor(dacCapacity * h.outOs);
     h.outL.assign(outCapacity, 0.0);
     h.outR.assign(outCapacity, 0.0);
     h.fifo.allocate(h.prefill + maxBlock + 2 * outCapacity + 16);
@@ -357,8 +450,8 @@ LatencyInfo HostProcessor::latency() const noexcept
     // so they add no group delay; their look-ahead is in the buffering.
     info.inputSrcHostFrames = 0.0;
     info.outputSrcHostFrames = 0.0;
-    info.coreDacFrames = coreDelayFrames;
-    info.alignmentHostFrames = -h.outputOffset * hostPerDac / static_cast<double>(os);
+    info.coreDacFrames = h.coreFrames; // DAC 14.7; loopback 44.0125; ADC 29.3125 (P-111)
+    info.alignmentHostFrames = -h.outputOffset * hostPerDac / static_cast<double>(h.outOs);
     info.bufferingHostFrames = static_cast<std::uint32_t>(h.prefill);
     info.reportedHostFrames = static_cast<std::uint32_t>(h.prefill) + static_cast<std::uint32_t>(h.latencyWhole);
     info.totalSeconds = static_cast<double>(info.reportedHostFrames) / h.config.hostRate;
@@ -380,6 +473,11 @@ Diagnostics HostProcessor::diagnostics() const noexcept
     d.ignoredEvents = core.ignoredEvents;
     d.droppedEvents = h.dropped.load(std::memory_order_relaxed);
     d.hostUnderruns = h.underruns.load(std::memory_order_relaxed);
+    if (h.adcOut) {
+        const Diagnostics a = h.adc.diagnostics();
+        d.adcClippedSamples = a.clippedInputSamples;
+        d.rejectedBlocks += a.rejectedBlocks;
+    }
     return d;
 }
 

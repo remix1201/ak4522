@@ -25,14 +25,19 @@ struct OutputAlignment {
     double outputOffset = 0.0;     // phi, in 8x samples
 };
 
+// The core delay is delayNum / delayDen frames: 14.7 for the DAC path by
+// default; the ADC paths pass their own (P-111). oversampling is the output
+// converter's input samples per frame: 8 after DacCore, 1 after AdcCore.
 [[nodiscard]] inline OutputAlignment alignOutput(std::uint64_t hostPerDacNum, std::uint64_t hostPerDacDen,
-                                                 std::size_t oversampling) noexcept
+                                                 std::size_t oversampling, std::uint64_t delayNum = coreDelayNum,
+                                                 std::uint64_t delayDen = coreDelayDen) noexcept
 {
     OutputAlignment a;
-    a.latencyWhole = static_cast<std::int64_t>(mulDivFloor(coreDelayNum, hostPerDacNum, coreDelayDen * hostPerDacDen));
+    a.latencyWhole = static_cast<std::int64_t>(mulDivFloor(delayNum, hostPerDacNum, delayDen * hostPerDacDen));
     const double hostPerDac = static_cast<double>(hostPerDacNum) / static_cast<double>(hostPerDacDen);
+    const double delay = static_cast<double>(delayNum) / static_cast<double>(delayDen);
     a.outputOffset = static_cast<double>(oversampling)
-        * (coreDelayFrames - static_cast<double>(a.latencyWhole) / hostPerDac);
+        * (delay - static_cast<double>(a.latencyWhole) / hostPerDac);
     if (a.outputOffset < 0.0) {
         a.outputOffset = 0.0; // rounding guard; at most a few ulp
     }
