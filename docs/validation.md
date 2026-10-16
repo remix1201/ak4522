@@ -135,6 +135,16 @@ A twelfth control mutation survived: removing the PD check before updating the m
 
 Development notes: the first version reported MCLK as unsynchronized when no MCLK edges were supplied at all (zero cycles per LRCK period). The check now counts only LRCK periods that begin with MCLK running.
 
+### 2026-10-16: response analysis tools, branch `m2-analysis`
+
+| Check | Method | Result |
+| ----- | ------ | ------ |
+| DTFT | against `numpy.fft.rfft` at bin frequencies; against the analytic response of a first-order IIR | pass |
+| Band extrema | against a 4-million-point FFT for an equiripple lowpass, including from a deliberately coarse 64-point grid | agree within 1e-6 dB |
+| Delay | pure delays exact; symmetric FIR delay (N-1)/2; 2nd-order Butterworth low-frequency delay against sqrt(2)/wc | pass |
+| Gates | band edges at 44.1 and 48 kHz; ripple, stopband, delay, and combined checks on filters inside, between, and outside the limits | pass |
+| Mutation check | 13 deliberate faults in `response.py` and `dac_gates.py` | 11 detected at first. Loosening the ripple limit to 0.6 dB or the stopband limit to 0 dB went unnoticed because no test filter fell between the real and loosened limits. Tests with an echo (ripple of about 0.3 dB) and a 15-tap lowpass (partial attenuation) were added, cross-checked with a dense FFT. Final: 13 of 13. |
+
 ## M1 gate status
 
 AGENTS.md section 16, M1: "boundary/serial/control tests pass, including I2S short-word framing and partial mute reversal. No plugin GUI yet."

@@ -18,6 +18,7 @@ Last substantive update: 2026-10-16. M0 and M1 were merged into `main` and appro
 | Reset and control timeline      | REQ-RESET-01, REQ-RESET-02, REQ-CTRL-01 | implemented  | passing (see below)     | approved 2026-10-16 (`m1-approved`) | merged into `main`    |
 | Soft mute                       | REQ-MUTE-01, REQ-MUTE-02              | implemented    | passing (see below)      | approved 2026-10-16 (`m1-approved`) | merged into `main`    |
 | De-emphasis                     | REQ-DEEM-01 to REQ-DEEM-03            | planned (M2)   | none                     | none                              | none                  |
+| Response analysis tools         | REQ-FILTER-01, REQ-LAT-02, REQ-DEEM-02 | implemented   | passing (see below)      | not yet approved                  | branch `m2-analysis`  |
 | Interpolation and reconstruction | REQ-FILTER-01, REQ-FILTER-02, REQ-LAT-02 | planned (M2) | none                   | none                              | none                  |
 | Host-rate adaptation            | REQ-RATE-01 to REQ-RATE-04, REQ-CTRL-01 | planned (M3) | none                     | none                              | none                  |
 | NominalAnalog profile           | REQ-NOISE-01, REQ-NOISE-02, REQ-DIST-01, REQ-CHANNEL-01 | planned (M4) | none     | none                              | none                  |
@@ -141,6 +142,15 @@ None of the emulator's signal processing is usable yet. PCM conversion exists as
 - **Behavior:** a level equal to the pin's current level is not a transition; edges earlier than the previous one are ignored; a check runs only when both of its edges were observed since reset; MCLK synchronization is counted only over LRCK periods that begin with MCLK running. Frequency limits have a 1e-9 relative tolerance (P-36).
 - **Validation:** 22 test cases in `tests/timing_validator_test.cpp`: generated ideal clocks for every CMODE, 16/32/44.1/48 kHz, and 32/64/128fs with no violations; SCLK at 256fs and 48 kHz flagged; each limit at its value (passes) and just beyond (fails); coincidence in both orders; synchronization with and without MCLK; ignored edges; reset; no allocations. Passes in `dev` and `asan`.
 - **Limitations:** clock loss while PD is high (D-C07) needs a time-out policy and is not reported. Metastability and recovery are not modeled (P-24).
+- **Updated:** 2026-10-16.
+
+## Response analysis tools
+
+- **Purpose:** measure filter and DAC impulse responses against the M2 gates, independently of the C++ implementation.
+- **Requirements:** REQ-FILTER-01, REQ-LAT-02, REQ-DEEM-02; AGENTS.md section 13.2 gates 1 to 3; evidence D-F01 to D-F09, I-F01 to I-F04; policies P-80 to P-83.
+- **Location and usage:** `tools/ak4522_tools/` and `tools/analyze_response.py`; see [tools/README.md](../tools/README.md).
+- **Validation:** 16 tests in `tools/tests/test_response.py` against analytic responses, exact delays, and a 4-million-point FFT, including filters whose ripple and stopband attenuation fall just outside the limits. See [validation.md](validation.md) for the mutation check.
+- **Limitations:** analyzes impulse responses; the C++ side that exports `DacCore` impulse responses arrives with the core in M2. Weighted noise, SINAD, and alias analysis belong to M3 and M4.
 - **Updated:** 2026-10-16.
 
 ## Documentation process
