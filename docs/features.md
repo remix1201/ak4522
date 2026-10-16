@@ -15,7 +15,7 @@ Last substantive update: 2026-10-16. M0 was merged into `main` and approved by t
 | Serial decoder and timing validator | REQ-SERIAL-01 to REQ-SERIAL-03    | planned (M1)   | none                     | none                              | none                  |
 | Configuration validation        | REQ-CLOCK-01, REQ-RATE-03             | implemented    | passing (see below)      | not yet approved                  | merged into `main`    |
 | Reset and control timeline      | REQ-RESET-01, REQ-RESET-02, REQ-CTRL-01 | planned (M1) | none                    | none                              | none                  |
-| Soft mute                       | REQ-MUTE-01, REQ-MUTE-02              | planned (M1)   | none                     | none                              | none                  |
+| Soft mute                       | REQ-MUTE-01, REQ-MUTE-02              | implemented    | passing (see below)      | not yet approved                  | merged into `main`    |
 | De-emphasis                     | REQ-DEEM-01 to REQ-DEEM-03            | planned (M2)   | none                     | none                              | none                  |
 | Interpolation and reconstruction | REQ-FILTER-01, REQ-FILTER-02, REQ-LAT-02 | planned (M2) | none                   | none                              | none                  |
 | Host-rate adaptation            | REQ-RATE-01 to REQ-RATE-04, REQ-CTRL-01 | planned (M3) | none                     | none                              | none                  |
@@ -31,7 +31,8 @@ None of the emulator's signal processing is usable yet. PCM conversion exists as
 - **Purpose:** reproducible C++20 build, test runner, and offline Python tooling.
 - **Contents:** CMake library target `ak4522::ak4522`; Catch2 v3.16.0 pinned by commit; CTest labels from test tags (`unit`, `dsp`, `soak`); JUnit XML output in `build/<preset>/test-results/`; presets `dev` (warnings as errors), `asan` (address and undefined-behavior sanitizers), `release`; uv-locked Python 3.12 environment in `tools/` with numpy, scipy, matplotlib.
 - **Validation:** `dev` and `asan` presets build without warnings and pass all tests. See [validation.md](validation.md).
-- **Limitations:** tested only on macOS with Apple clang. No CI yet. Allocation instrumentation and the benchmark harness arrive with the first real-time code.
+- **Real-time checks:** `tests/support/allocation_counter.hpp` replaces global `operator new` and `delete` in the test executable and counts allocations per thread while armed (REQ-RT-01). Its own tests confirm it detects plain, array-backed, and over-aligned allocations.
+- **Limitations:** tested only on macOS with Apple clang. No CI yet. The CPU benchmark harness (REQ-PERF-01) is not written yet.
 - **Usage:**
 
   ```sh
@@ -79,6 +80,23 @@ None of the emulator's signal processing is usable yet. PCM conversion exists as
   - Host rate must be exactly 44.1, 48, 88.2, 96, 176.4, or 192 kHz (`unsupportedHostRate`); `maxBlockFrames` and `maxPendingEvents` must be non-zero.
 - **Validation:** 14 test cases in `tests/config_validation_test.cpp`, including the nine p.9 Table 1 clock values, MCLK endpoints at both rate limits, the synchronization tolerance on both sides, and NaN inputs. Deliberate mutations were all caught after one redundant check was removed (see [validation.md](validation.md)).
 - **Limitations:** the host/DAC rate-pair matrix (`unsupportedRatePair`) is defined in M3 with the SRC. Clock loss while running (D-C07) is a runtime fault for the serial adapter, not a configuration check.
+- **Updated:** 2026-10-16.
+
+## Soft mute
+
+- **Purpose:** the SMUTE pin's digital attenuation ramp.
+- **Requirements:** REQ-MUTE-01, REQ-MUTE-02; evidence D-M02 to D-M04, I-M01; policies P-50 to P-53, P-72.
+- **Implementation:** internal `detail::SoftMute` in `src/core/soft_mute.hpp`. It is not connected to `DacCore` yet; the control timeline (M1) and `DacCore::process` (M2) will drive it.
+- **Behavior:**
+  - Integer position 0 to 1024; gain is position / 1024, so 0.0 and 1.0 are exact.
+  - Each DAC frame moves one step toward the target. A full mute or release takes exactly 1024 frames: 32 ms at 32 kHz, 23.21995 ms at 44.1 kHz, 21.33333 ms at 48 kHz.
+  - A level change applies before the next frame's step; from unity, the 1024th frame after SMUTE goes high has gain 0.
+  - Reversing mid-ramp retraces from the current position at the same slope.
+  - Repeating the current level is ignored (`setPin` returns false).
+  - `reset(pinHigh)` latches the level with no ramp: gain 0 if high, 1 if low.
+  - One ramp is shared by both channels.
+- **Validation:** 11 test cases in `tests/soft_mute_test.cpp` against an integer reference model, including full transitions, reversals after 1, 511, and 1023 frames with no gain step larger than 1/1024, reversal during release, repeated events, reset, and identical output across single-frame, mixed, and random block partitions. No allocations during processing. Seven deliberate mutations detected. Passes in `dev` and `asan`.
+- **Limitations:** propagation through downstream filters, group delay, and residual analog noise while muted (D-M05, D-M06, P-54) are verified in M2 and M4, when those stages exist.
 - **Updated:** 2026-10-16.
 
 ## Documentation process

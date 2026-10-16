@@ -165,12 +165,12 @@ D-A16 is a figure annotation, not a table value. It agrees with D-A12 and suppor
 | ID    | Fact                                                                    | Class | Source            | Conf.  | Requirement   | Test     | Status  |
 | ----- | ----------------------------------------------------------------------- | ----- | ----------------- | ------ | ------------- | -------- | ------- |
 | D-M01 | Soft mute operates in the digital domain                                | D     | p.11              | high   | REQ-MUTE-01   | `[mute]` | planned |
-| D-M02 | SMUTE H attenuates to -infinity over 1024 LRCK cycles                   | D     | p.11; Fig.5 note 1 | high  | REQ-MUTE-01   | `[mute]` | planned |
-| D-M03 | SMUTE L returns to 0 dB over 1024 LRCK cycles                           | D     | p.11; Fig.5       | high   | REQ-MUTE-01   | `[mute]` | planned |
-| D-M04 | Cancelling within 1024 cycles discontinues attenuation and returns to 0 dB | D  | p.11; Fig.5 note 3 | high  | REQ-MUTE-02   | `[mute]` | planned |
+| D-M02 | SMUTE H attenuates to -infinity over 1024 LRCK cycles                   | D     | p.11; Fig.5 note 1 | high  | REQ-MUTE-01   | `[mute]` | passing |
+| D-M03 | SMUTE L returns to 0 dB over 1024 LRCK cycles                           | D     | p.11; Fig.5       | high   | REQ-MUTE-01   | `[mute]` | passing |
+| D-M04 | Cancelling within 1024 cycles discontinues attenuation and returns to 0 dB | D  | p.11; Fig.5 note 3 | high  | REQ-MUTE-02   | `[mute]` | passing |
 | D-M05 | Analog output follows the digital attenuation after the group delay     | D     | p.11 Fig.5 note 2 | high   | REQ-MUTE-02   | `[mute]` | planned |
 | D-M06 | Signal transmission continues during mute                               | D     | p.11              | high   | REQ-MUTE-02   | `[mute]` | planned |
-| I-M01 | Full transition durations: 32 ms at 32 kHz, 23.21995 ms at 44.1 kHz, 21.33333 ms at 48 kHz | I | 1024 / fs | high | REQ-MUTE-01 | `[mute]` | planned |
+| I-M01 | Full transition durations: 32 ms at 32 kHz, 23.21995 ms at 44.1 kHz, 21.33333 ms at 48 kHz | I | 1024 / fs | high | REQ-MUTE-01 | `[mute]` | passing |
 | I-M02 | Ramp law and partial-reversal slope are not numerically specified; Fig.5 (3) draws the reversal with a slope similar to the full ramp | I | p.11 Fig.5 | low | REQ-MUTE-02 | `[mute]` | planned |
 
 ## 9. Reset and startup
