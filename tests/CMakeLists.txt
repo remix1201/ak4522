@@ -114,4 +114,16 @@ if(AK4522_INSTALL)
                 -P ${CMAKE_CURRENT_SOURCE_DIR}/package/run_consumer.cmake)
         set_tests_properties(package.${mode} PROPERTIES LABELS "package" TIMEOUT 900)
     endforeach()
+    # The pkg-config file, where pkg-config exists (not with MSVC).
+    find_program(AK4522_PKG_CONFIG NAMES pkg-config pkgconf)
+    if(AK4522_PKG_CONFIG AND NOT MSVC AND NOT AK4522_SANITIZE)
+        enable_language(C)
+        add_test(NAME package.pkgconfig
+            COMMAND ${CMAKE_COMMAND} -DMODE=pkgconfig -DSOURCE_DIR=${PROJECT_SOURCE_DIR}
+                -DBUILD_DIR=${PROJECT_BINARY_DIR} -DWORK_DIR=${CMAKE_CURRENT_BINARY_DIR}/package-pkgconfig
+                -DCONFIG=$<CONFIG> -DGENERATOR=${CMAKE_GENERATOR} -DPKG_CONFIG=${AK4522_PKG_CONFIG}
+                -DC_COMPILER=${CMAKE_C_COMPILER}
+                -P ${CMAKE_CURRENT_SOURCE_DIR}/package/run_consumer.cmake)
+        set_tests_properties(package.pkgconfig PROPERTIES LABELS "package" TIMEOUT 900)
+    endif()
 endif()

@@ -1,0 +1,13 @@
+# AK4522 DAC emulation library. Relocatable: paths are relative to this file.
+prefix=${pcfiledir}/@AK4522_PC_PREFIX_FROM_PCDIR@
+libdir=${prefix}/@CMAKE_INSTALL_LIBDIR@
+includedir=${prefix}/@CMAKE_INSTALL_INCLUDEDIR@
+
+Name: ak4522
+Description: AKM AK4522VF DAC emulation library (C++20, with a C API)
+Version: @PROJECT_VERSION@
+Cflags: -I${includedir}
+Libs: -L${libdir} -lak4522
+# The library is C++: a C program linking it statically also needs the C++
+# standard library.
+Libs.private: @AK4522_PC_CXX_LIBS@
