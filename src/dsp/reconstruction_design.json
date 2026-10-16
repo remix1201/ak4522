@@ -1,0 +1,42 @@
+{
+  "generator": "tools/design_reconstruction.py",
+  "model": "pipeline delay then 4th-order Butterworth lowpass as two biquads at 8x, bilinear transform prewarped at the cutoff, normalized to fs",
+  "pipeline_samples_8x": 21,
+  "pipeline_dac_frames": 2.625,
+  "cutoff_fs": 1.764485016628318,
+  "cutoff_hz_at_44100": 77813.78923330882,
+  "target_delay_frames": 14.7,
+  "measured_delay_frames": 14.700000000000005,
+  "dispersion_frames": 0.013325376169396847,
+  "pole_radius_max": 0.6732936416761752,
+  "section_response_db": {
+    "20000_hz_at_44100": -0.0,
+    "44100_hz_at_44100": -0.0166,
+    "100000_hz_at_44100": -13.996,
+    "150000_hz_at_44100": -56.1172
+  },
+  "core_checks": [
+    {
+      "name": "combined_response_db",
+      "value": 0.0580282786542341,
+      "limit": "<= 0.2 dB from 0 to 20/44.1 fs, relative to 1/44.1 fs",
+      "source": "D-F07, I-F07, P-81, P-82",
+      "passed": true
+    },
+    {
+      "name": "delay_dac_frames",
+      "value": 14.700000000000005,
+      "limit": "14.7 +/- 0.1 DAC frames, passband phase fit",
+      "source": "D-F06, D-F10, P-83",
+      "passed": true
+    }
+  ],
+  "precision": "IEEE 754 double",
+  "sha256_le_f8": "6c51c26afd87122b42fb99851452ad386acac6846b5e12e7d897bbfc16a01b18",
+  "versions": {
+    "python": "3.12.15",
+    "numpy": "2.5.4",
+    "scipy": "1.18.1",
+    "platform": "macOS-26.5.2-arm64-arm-64bit"
+  }
+}

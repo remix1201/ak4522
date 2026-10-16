@@ -20,7 +20,7 @@ Last substantive update: 2026-10-16. M0 and M1 were merged into `main` and appro
 | De-emphasis                     | REQ-DEEM-01 to REQ-DEEM-03            | planned (M2)   | none                     | none                              | none                  |
 | Response analysis tools         | REQ-FILTER-01, REQ-LAT-02, REQ-DEEM-02 | implemented   | passing (see below)      | not yet approved                  | merged into `main`    |
 | 8x interpolator                 | REQ-FILTER-01                         | implemented    | passing (see below)      | not yet approved                  | merged into `main`    |
-| Analog reconstruction and pipeline delay | REQ-FILTER-02, REQ-LAT-02    | planned (M2)   | none                     | none                              | none                  |
+| Analog reconstruction and pipeline delay | REQ-FILTER-02, REQ-LAT-02    | implemented    | passing (see below)      | not yet approved                  | branch `m2-reconstruction` |
 | Host-rate adaptation            | REQ-RATE-01 to REQ-RATE-04, REQ-CTRL-01 | planned (M3) | none                     | none                              | none                  |
 | NominalAnalog profile           | REQ-NOISE-01, REQ-NOISE-02, REQ-DIST-01, REQ-CHANNEL-01 | planned (M4) | none     | none                              | none                  |
 | VST3 plugin adapter             | REQ-VST-01, REQ-VST-02, REQ-LAT-03    | planned (M5)   | none                     | none                              | none                  |
@@ -162,6 +162,16 @@ None of the emulator's signal processing is usable yet. PCM conversion exists as
 - **Implementation:** internal `detail::Interpolator8x` in `src/dsp/interpolator.hpp`: 8-phase polyphase FIR with a mirrored history buffer, double precision, stereo.
 - **Validation:** the C++ impulse response is dumped by `ak4522_impulse_dump` and measured by `analyze_response.py` at 32, 44.1, and 48 kHz (CTest `dsp` label). `tools/tests/test_generated_files.py` checks that the coefficient file, design report, checksum, and the C++ length agree. 9 C++ test cases cover exact impulse response, symmetry, DC with bounded image ripple, channel independence, block partitioning, reset, full-scale bound, and no allocations. Seven deliberate mutations detected. Passes in `dev` and `asan`.
 - **Limitations:** the 14.7-frame delay gate applies to the whole core and is checked in M2 once the pipeline delay and reconstruction exist.
+- **Updated:** 2026-10-16.
+
+## Analog reconstruction and pipeline delay
+
+- **Purpose:** complete the linear chip model from input register to analog output: undocumented pipeline stages and the switched-capacitor plus continuous-time filters (D-03).
+- **Requirements:** REQ-FILTER-02, REQ-LAT-02; evidence D-03, D-F06, D-F07, D-F10; policies P-81, P-85, P-87, P-89.
+- **Design:** `tools/design_reconstruction.py` writes `src/dsp/reconstruction_coefficients.inc` and `src/dsp/reconstruction_design.json`. A 21-sample pipeline delay at 8x (2.625 frames) is followed by a 4th-order Butterworth lowpass as two biquads at 8x, normalized to fs, with its cutoff (1.764485 fs; 77.8 kHz at 44.1 kHz) solved so the chain delay is exactly 14.7 frames. These are fitted, not AKM's circuit.
+- **Implementation:** internal `detail::PipelineDelay` and `detail::Reconstruction` in `src/dsp/reconstruction.hpp`; transposed direct form II, double precision, states below 1e-15 flushed to zero.
+- **Measured (whole linear chain, C++ output, 32 / 44.1 / 48 kHz):** delay 14.700 DAC frames; combined response within 0.058 dB of the reference from 0 to 20/44.1 fs (limit 0.2 dB); dispersion 0.013 frames.
+- **Validation:** 8 C++ test cases: exact 21-sample delay, stability and unity DC gain, agreement with an independent direct-form-I reference, signals at 1/16 LSB unaffected by the flush, exact decay to zero, block partitioning, channels and reset, no allocations. `tools/tests/test_generated_files.py` checks the coefficient files, checksum, C++ constants, stability, and core gates. Ten deliberate mutations detected. Passes in `dev` and `asan`.
 - **Updated:** 2026-10-16.
 
 ## Documentation process

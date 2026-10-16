@@ -106,6 +106,23 @@ def combined_response_check(h: np.ndarray, fs_high: float, dac_rate: float) -> C
                   "<= 0.2 dB from 0 to 20/44.1 fs, relative to 1/44.1 fs", "D-F07, I-F07, P-81, P-82")
 
 
+def core_checks(h: np.ndarray, fs_high: float, dac_rate: float,
+                nominal_delay_frames: float = 14.7,
+                delay_tolerance_frames: float = 0.1) -> list[Check]:
+    """Gates for the whole linear chip model, input register to analog
+    output: combined response (gate 2) and delay (gate 3, D-F06, D-F10)."""
+    edges = band_edges(dac_rate)
+    fit = response.passband_delay(h, fs_high, reference_hz(dac_rate), edges.passband_hz)
+    frames = fit.delay_samples / (fs_high / dac_rate)
+    return [
+        combined_response_check(h, fs_high, dac_rate),
+        _check("delay_dac_frames", frames,
+               abs(frames - nominal_delay_frames) <= delay_tolerance_frames,
+               f"{nominal_delay_frames} +/- {delay_tolerance_frames} DAC frames, passband phase fit",
+               "D-F06, D-F10, P-83"),
+    ]
+
+
 def report(checks: list[Check], **context) -> dict:
     """JSON-ready report with the context needed to interpret the results."""
     return {

@@ -44,6 +44,7 @@ add_library(ak4522
     src/core/status.cpp
     src/core/version.cpp
     src/dsp/interpolator.cpp
+    src/dsp/reconstruction.cpp
     src/serial/serial_decoder.cpp
     src/serial/timing_validator.cpp)
 add_library(ak4522::ak4522 ALIAS ak4522)
@@ -99,6 +100,21 @@ if(AK4522_BUILD_TESTS)
                     --fs-high ${high} --dac-rate ${rate} --no-delay)
             set_tests_properties(dsp.interpolator_response_${rate} PROPERTIES
                 LABELS "dsp" FIXTURES_REQUIRED interpolator_ir TIMEOUT 300)
+        endforeach()
+
+        set(core_linear_ir ${CMAKE_BINARY_DIR}/dsp/core_linear_impulse.txt)
+        add_test(NAME dsp.core_linear_dump
+            COMMAND ak4522_impulse_dump core-linear ${core_linear_ir} 1000)
+        set_tests_properties(dsp.core_linear_dump PROPERTIES
+            LABELS "dsp" FIXTURES_SETUP core_linear_ir)
+        foreach(rate 32000 44100 48000)
+            math(EXPR high "8 * ${rate}")
+            add_test(NAME dsp.core_linear_response_${rate}
+                COMMAND ${AK4522_UV} run --directory ${PROJECT_SOURCE_DIR}/tools
+                    python analyze_response.py ${core_linear_ir}
+                    --fs-high ${high} --dac-rate ${rate} --core)
+            set_tests_properties(dsp.core_linear_response_${rate} PROPERTIES
+                LABELS "dsp" FIXTURES_REQUIRED core_linear_ir TIMEOUT 300)
         endforeach()
     else()
         message(WARNING "uv not found; analysis tool tests are disabled")

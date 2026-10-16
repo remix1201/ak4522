@@ -33,7 +33,7 @@ Test column names the planned Catch2 tag from AGENTS.md section 13.1. Status val
 | ---- | --------------------------------------------------------------------------------- | ----- | ----------------------- | ------ | --------------- | ----------- | ------- |
 | D-01 | Stereo 20-bit delta-sigma DAC, 128x oversampling                                  | D     | p.1 Features            | high   | REQ-SCOPE-01    | n/a         | planned |
 | D-02 | 8x interpolator precedes each DAC delta-sigma modulator                           | D     | p.1 block diagram       | high   | REQ-FILTER-01   | `[filter]`  | passing |
-| D-03 | DAC analog filtering is 2nd-order SCF plus 2nd-order CTF                          | D     | p.1 Features; p.16 s.4  | high   | REQ-FILTER-02   | `[filter]`  | planned |
+| D-03 | DAC analog filtering is 2nd-order SCF plus 2nd-order CTF                          | D     | p.1 Features; p.16 s.4  | high   | REQ-FILTER-02   | `[filter]`  | passing |
 | D-04 | DAC sample rate 16 to 48 kHz; LRCK typical 44.1 kHz                               | D     | p.1; p.7 LRCK fsn       | high   | REQ-CLOCK-01    | `[clock]`   | passing |
 | D-05 | MCLK ratio 256fs, 384fs, or 512fs                                                 | D     | p.1; p.3 pin 21; p.9    | high   | REQ-CLOCK-01    | `[clock]`   | passing |
 | D-06 | VA 4.5 to 5.5 V; VD 2.7 V min, 5.0 V typ, VA max                                  | D     | p.4 recommended         | high   | REQ-ANALOG-01   | n/a         | planned |
@@ -53,11 +53,11 @@ Conditions: Ta = 25 degrees C, VA 4.5 to 5.5 V, VD 2.7 to 5.5 V, fs = 44.1 kHz, 
 | D-F03 | Stopband begins (min)                                        | 24.1 kHz           | D     | p.6 table           | high   | REQ-FILTER-01  | `[filter]`           | passing |
 | D-F04 | Passband ripple (max)                                        | +/-0.06 dB         | D     | p.6 table           | high   | REQ-FILTER-01  | `[filter]`           | passing |
 | D-F05 | Stopband attenuation (min)                                   | 43 dB              | D     | p.6 table           | high   | REQ-FILTER-01  | `[filter]`           | passing |
-| D-F06 | Group delay (typ)                                            | 14.7 / fs          | D     | p.6 table, note 11  | high   | REQ-LAT-02     | `[filter][latency]`  | planned |
-| D-F07 | Digital filter plus analog filter, 0 to 20.0 kHz (typ)       | +/-0.2 dB          | D     | p.6 table           | high   | REQ-FILTER-02  | `[filter]`           | planned |
+| D-F06 | Group delay (typ)                                            | 14.7 / fs          | D     | p.6 table, note 11  | high   | REQ-LAT-02     | `[filter][latency]`  | passing |
+| D-F07 | Digital filter plus analog filter, 0 to 20.0 kHz (typ)       | +/-0.2 dB          | D     | p.6 table           | high   | REQ-FILTER-02  | `[filter]`           | passing |
 | D-F08 | Passband and stopband frequencies scale with fs              | n/a                | D     | p.6 note 10         | high   | REQ-FILTER-01  | `[filter]`           | passing |
 | D-F09 | Response reference frequency                                 | 1 kHz              | D     | p.6 note 10         | high   | REQ-FILTER-01  | `[filter]`           | passing |
-| D-F10 | DAC delay runs from loading both channels' 20-bit input register to analog output | n/a | D | p.6 note 11 | medium | REQ-LAT-02 | `[latency]` | planned |
+| D-F10 | DAC delay runs from loading both channels' 20-bit input register to analog output | n/a | D | p.6 note 11 | medium | REQ-LAT-02 | `[latency]` | passing |
 
 ### Inferred filter values
 
