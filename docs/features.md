@@ -222,7 +222,7 @@ The DAC core produces audio through the public `DacCore` API at the DAC rate in,
 ## Host-rate adaptation
 
 - **Purpose:** the plugin-facing path: host audio at any supported host rate in, the emulated DAC output at the host rate out, with a fixed, exactly reported latency.
-- **Requirements:** REQ-RATE-01, REQ-RATE-03, REQ-CTRL-01, REQ-LAT-01, REQ-LAT-03, REQ-VST-01; policies P-10, P-12, P-39, P-41, P-74, P-84; API decision O-09 (proposed).
+- **Requirements:** REQ-RATE-01, REQ-RATE-03, REQ-CTRL-01, REQ-LAT-01, REQ-LAT-03, REQ-VST-01; policies P-10, P-12, P-39, P-41, P-74, P-84; API decision O-09 (approved).
 - **Usage** (`include/ak4522/host_processor.hpp`):
 
   ```cpp
