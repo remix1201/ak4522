@@ -18,6 +18,7 @@ Last substantive update: 2026-10-16. M0 and M1 were merged into `main` and appro
 | Reset and control timeline      | REQ-RESET-01, REQ-RESET-02, REQ-CTRL-01 | implemented  | passing (see below)     | approved 2026-10-16 (`m1-approved`) | merged into `main`    |
 | Soft mute                       | REQ-MUTE-01, REQ-MUTE-02              | implemented    | passing (see below)      | approved 2026-10-16 (`m1-approved`) | merged into `main`    |
 | De-emphasis                     | REQ-DEEM-01 to REQ-DEEM-03            | implemented    | passing (see below)      | not yet approved                  | merged into `main`    |
+| DAC core (linear Specification profile) | REQ-ARCH-02, REQ-ARCH-03, REQ-LAT-01, REQ-RT-01, REQ-RT-02 | implemented | passing (see below) | not yet approved           | branch `m2-core`      |
 | Response analysis tools         | REQ-FILTER-01, REQ-LAT-02, REQ-DEEM-02 | implemented   | passing (see below)      | not yet approved                  | merged into `main`    |
 | 8x interpolator                 | REQ-FILTER-01                         | implemented    | passing (see below)      | not yet approved                  | merged into `main`    |
 | Analog reconstruction and pipeline delay | REQ-FILTER-02, REQ-LAT-02    | implemented    | passing (see below)      | not yet approved                  | merged into `main`    |
@@ -27,7 +28,7 @@ Last substantive update: 2026-10-16. M0 and M1 were merged into `main` and appro
 | Measured profile                | AGENTS.md s.14                        | planned (M6, conditional on hardware) | none | none                         | none                  |
 | ADC section and loopback        | REQ-SCOPE-04, REQ-ADC-01 to REQ-ADC-07 | planned (M7)  | none                     | none                              | none                  |
 
-None of the emulator's signal processing is usable yet. PCM conversion exists as a library function but is not yet connected to any processing path.
+The DAC core produces audio through the public `DacCore` API at the DAC rate in, 8x the DAC rate out, with the Specification profile. Host-rate processing (`HostProcessor`), analog imperfections, and the plugin do not exist yet.
 
 ## Build and test foundation
 
@@ -186,6 +187,26 @@ None of the emulator's signal processing is usable yet. PCM conversion exists as
   - A change of set resets the new section's state; re-selecting the current set changes nothing. There is no crossfade in the core: any smoothing would be host behavior in the plugin adapter.
 - **Validation:** 11 C++ test cases: OFF bypass, closed-form impulse responses, unity DC and Nyquist gain, each selection within 0.1 dB of the analog curve at its own rate, a selection kept at another DAC rate, switching reset, re-selection keeps state, reset of both channels, block partitioning across selection changes, and no allocations. `tools/tests/test_generated_files.py` evaluates the committed sets against the analog reference independently. Six deliberate mutations detected. Passes in `dev` and `asan`.
 - **Limitations:** de-emphasis is not yet connected to `DacCore`; that happens in `m2-core`. The chip's switching transient and coefficients are unknown (U-07).
+- **Updated:** 2026-10-16.
+
+## DAC core (linear Specification profile)
+
+- **Purpose:** the public chip model: 20-bit PCM frames and pin events in, the reconstructed analog-equivalent signal out at 8x the DAC rate.
+- **Requirements:** REQ-ARCH-02, REQ-ARCH-03, REQ-LAT-01, REQ-RT-01, REQ-RT-02; AGENTS.md section 13.2 gates 1 to 3; evidence D-M05, D-M06, I-R01; policies P-40, P-71, P-72, P-87, P-89; API decisions O-01 to O-03.
+- **Usage** (`include/ak4522/dac_core.hpp`):
+
+  ```cpp
+  ak4522::DacCore core;
+  core.prepare(ak4522::DacConfig{}, 512);            // off the audio thread
+  // per block: frames.size() DAC frames in, 8 x frames.size() samples out
+  auto result = core.process(frames, events, {left, right});
+  ```
+
+- **Signal path:** PCM to normalized double, de-emphasis, mute gain, 8x interpolator, 21-sample pipeline delay, reconstruction sections. Pin events are applied at their DAC frame through the control timeline; PD low outputs exact zeros and clears all filter state on both edges.
+- **Measured through the public API** (CTest `dsp.dac_core_response_*`, 32 / 44.1 / 48 kHz): passband ripple 0.058 dB, -0.058 dB at 20/44.1 fs, -6.000 dB at 0.5 fs, stopband and images 43.47 dB to the 8x Nyquist frequency, delay 14.700 DAC frames, combined response 0.058 dB.
+- **Behavior:** `prepare` validates the configuration and allocates; `process`, `reset`, `latency`, and `diagnostics` never allocate or throw. Blocks larger than the prepared maximum are processed in chunks. Rejected calls change no state. `latency()` reports 14.7 DAC frames. The NominalAnalog and Measured profiles and every analog imperfection flag are rejected with `invalidConfiguration` until they exist.
+- **Validation:** 17 C++ test cases: configuration and call validation, output equal to the component chain for three DEM selections, de-emphasis before the mute ramp, mute to exact silence after ramp and filter delay, PD zeros and clean restart, SMUTE latched through PD, DEM change at its frame, identical output for single-frame, mixed, and random partitions and for chunk sizes from 7 to 4000 frames, chunk and ignored-event counters, reset, latency, move, full-scale bound, and no allocations. Twelve deliberate mutations detected. Passes in `dev` and `asan`, including the response gates.
+- **Limitations:** no host-rate conversion yet (M3); no noise, distortion, or channel imperfections (M4).
 - **Updated:** 2026-10-16.
 
 ## Documentation process

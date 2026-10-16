@@ -1,0 +1,14 @@
+[
+ ("mute before de-emphasis", "        deemphasis.process(l, r);                // P-40: de-emphasis, then mute\n        for (std::size_t i = 0; i < n; ++i) {\n            const double gain = timeline.mute().nextGain();\n            l[i] *= gain;\n            r[i] *= gain;\n        }", "        for (std::size_t i = 0; i < n; ++i) {\n            const double gain = timeline.mute().nextGain();\n            l[i] *= gain;\n            r[i] *= gain;\n        }\n        deemphasis.process(l, r);"),
+ ("state not cleared on PD edge", "            if (segment.clearState) {\n                core.clearSignalState(); // PD edge or startup (P-71)\n            }", ""),
+ ("DEM change ignored", "            if (segment.deemphasisChanged) {\n                core.deemphasis.select(segment.deemphasis); // resets on change (P-64)\n            }", ""),
+ ("PD runs the chain", "            if (segment.powerDown) {", "            if (false) {"),
+ ("mute gain not applied", "            l[i] *= gain;\n            r[i] *= gain;", "            static_cast<void>(gain);"),
+ ("capacity check off by one", "    if (output.frames() < outFrames) {", "    if (output.frames() + 1 < outFrames) {"),
+ ("analog options accepted", "    if (config.profile != ModelProfile::specification || analogOptionsRequested(config.analog)) {", "    if (config.profile != ModelProfile::specification) {"),
+ ("ignored events not counted", "    core.ignoredEvents.fetch_add(core.timeline.ignoredEvents() - ignoredBefore,\n                                 std::memory_order_relaxed);", ""),
+ ("chunk not counted", "        core.chunkedBlocks.fetch_add(1, std::memory_order_relaxed);\n    }", "    }"),
+ ("latency constant wrong", "constexpr double coreDelayFrames = 14.7;", "constexpr double coreDelayFrames = 14.6;"),
+ ("reset ignores initial pins", "        timeline.reset(config.initialDeemphasis, config.initialSoftMute);", "        timeline.reset(DeemphasisSelect::off, false);"),
+ ("rejected blocks not counted", "        core.rejectedBlocks.fetch_add(1, std::memory_order_relaxed);\n        return ProcessResult{status, 0};", "        return ProcessResult{status, 0};"),
+]

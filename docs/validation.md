@@ -183,6 +183,36 @@ Findings during design:
 
 Development notes: a guessed bound on the Nyquist gain (0.25 to 0.36) failed for the 32 kHz set (0.365), whose fit band ends at 14.4 kHz; the test now checks the implementation against its closed-form Nyquist gain instead. A first draft of the per-rate test probed 21.6 kHz at 48 kHz, beyond the 20 kHz fit band.
 
+### 2026-10-16: DAC core, branch `m2-core`
+
+| Check | Method | Result |
+| ----- | ------ | ------ |
+| Response gates through the public API | `ak4522_impulse_dump dac-core`, then `analyze_response.py --combined` at 32 / 44.1 / 48 kHz | ripple 0.05803 dB, edge -0.05802 dB, half rate -6.00005 dB, stopband 43.468 dB, delay 14.700 frames, combined 0.05803 dB: all pass |
+| Wiring | output equal to the internal components chained independently, three DEM selections | bitwise equal |
+| Controls | mute, PD, SMUTE through PD, DEM change, processing order | pass |
+| Streaming | single-frame, mixed, random partitions; chunk sizes 7 to 4000 | bitwise equal |
+| Real-time | no allocations in `process`, `reset`, `latency`, `diagnostics` | pass |
+| Latency constant | `coreDelayFrames` in C++ against the reconstruction design report | equal |
+| Mutation check | 12 deliberate faults | 11 detected at first. Swapping mute and de-emphasis (P-40) went unnoticed: no test combined de-emphasis with a moving mute ramp, the only case where the order matters. Test added. Final: 12 of 12. |
+| Sanitizers | `asan` preset, unit and dsp labels | pass |
+
+## M2 gate status
+
+AGENTS.md section 16, M2: "Deliver reproducible coefficient generation, interpolation/reconstruction, three de-emphasis modes, and core delay accounting. Gate: frequency, stopband-image, delay, stability, and streaming tests pass. If filter fit and delay cannot simultaneously meet targets, document the conflict and revise before claiming completion."
+
+| Gate item | Evidence | Status |
+| --------- | -------- | ------ |
+| Reproducible coefficient generation | `tools/design_interpolator.py`, `design_reconstruction.py`, `design_deemphasis.py`; committed hex coefficients with checksums; `test_generated_files.py` | met |
+| Frequency response | `dsp.dac_core_response_*`: ripple, edge, half rate, combined | pass |
+| Stopband images | stopband check from 24.1/44.1 fs to the 8x Nyquist frequency, on DacCore output | pass (43.47 dB) |
+| Delay | passband phase fit on DacCore output; `latency()` | 14.700 frames; pass |
+| Stability | pole radii (0.673 reconstruction, de-emphasis below 0.66); decay to exact zero; full-scale bound | pass |
+| Streaming | block-partition and chunk-size invariance in every component and in DacCore | pass |
+| Three de-emphasis modes | 0.093 / 0.073 / 0.048 dB from the reference | pass |
+| Fit and delay conflict | Met together. The datasheet filter numbers take 11.875 frames; the remaining 2.825 frames are an explicit pipeline delay and the reconstruction delay (P-87, P-89) | resolved by owner decision |
+
+Awaiting project-owner review.
+
 ## M1 gate status
 
 AGENTS.md section 16, M1: "boundary/serial/control tests pass, including I2S short-word framing and partial mute reversal. No plugin GUI yet."
