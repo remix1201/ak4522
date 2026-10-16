@@ -12,7 +12,8 @@ Last substantive update: 2026-10-16. M0 was merged into `main` and approved by t
 | Evidence and assumptions ledgers | AGENTS.md s.2, M0                    | implemented    | reviewed against [DS]    | approved 2026-10-16 (`m0-approved`) | merged into `main` |
 | Public API proposal             | REQ-ARCH-01, REQ-ARCH-02, REQ-RT-02   | in progress (declared, not implemented) | compile-time contract checks pass | approved 2026-10-16 (`m0-approved`) | merged into `main` |
 | PCM mapping and quantization    | REQ-PCM-01 to REQ-PCM-03              | implemented    | passing (see below)      | not yet approved                  | merged into `main`    |
-| Serial decoder and timing validator | REQ-SERIAL-01 to REQ-SERIAL-03    | planned (M1)   | none                     | none                              | none                  |
+| Serial decoder                  | REQ-SERIAL-01, REQ-SERIAL-03          | implemented    | passing (see below)      | not yet approved                  | merged into `main`    |
+| Serial timing validator         | REQ-SERIAL-02                         | planned (M1)   | none                     | none                              | none                  |
 | Configuration validation        | REQ-CLOCK-01, REQ-RATE-03             | implemented    | passing (see below)      | not yet approved                  | merged into `main`    |
 | Reset and control timeline      | REQ-RESET-01, REQ-RESET-02, REQ-CTRL-01 | implemented  | passing (see below)     | not yet approved                  | merged into `main`    |
 | Soft mute                       | REQ-MUTE-01, REQ-MUTE-02              | implemented    | passing (see below)      | not yet approved                  | merged into `main`    |
@@ -113,6 +114,22 @@ None of the emulator's signal processing is usable yet. PCM conversion exists as
   - Repeated levels on any pin are ignored and counted.
   - `reset(dem, smute)` is the software startup: release with the configured pin levels.
 - **Validation:** 12 test cases in `tests/control_timeline_test.cpp`, including all six array orders of a same-frame PD, DEM, SMUTE group, PD edges, latching during reset, no 516-frame delay, repeated levels, rejection without side effects, identical per-frame state across random block partitions, and no allocations. Eleven deliberate mutations detected. Passes in `dev` and `asan`.
+- **Updated:** 2026-10-16.
+
+## Serial decoder
+
+- **Purpose:** decode the SDTI serial input into 20-bit stereo frames for conformance tests and device-style use. The plugin path does not use it.
+- **Requirements:** REQ-SERIAL-01, REQ-SERIAL-03, REQ-SCOPE-02; evidence D-S01 to D-S11, I-T01; policies P-20, P-21, P-23.
+- **Usage:** `SerialDecoder::prepare(format)`, then `sclkRisingEdge(lrck, sdti)` once per SCLK rising edge. A result with `SerialEvent::frameComplete` carries the decoded `Pcm20Frame`.
+- **Behavior:**
+  - Modes: 0 (16-bit right justified, scaled by 16), 1 (20-bit right justified), 2 (20-bit left justified), 3 (I2S). Left is LRCK high in modes 0 to 2 and LRCK low in mode 3.
+  - Any number of bit clocks per channel at or above the minimum (16 for modes 0 and 3, 20 for modes 1 and 2) is accepted; padding is ignored; left and right halves may differ in length.
+  - I2S: data starts one bit clock after the LRCK edge, and a word's last bit may fall on the first bit clock after the next edge. With fewer than 20 bit clocks per channel (32fs), the untransmitted low bits are zero.
+  - The half-frame in progress at reset or startup is discarded silently.
+  - Too few bit clocks in a half: `sclkRatioTooLow`, word discarded. A right word with no valid left word before it: `incompleteFrame`, nothing output.
+  - The format is fixed until the next `prepare`.
+- **Validation:** 12 test cases in `tests/serial_decoder_test.cpp` against an encoder that places each bit by slot number from Figures 1 to 4, itself checked against those figures. All four modes at 16, 18, 20, 21, 24, 32, and 64 bit clocks per channel where valid (32fs to 128fs), 208 words each including both full-scale codes; unequal half lengths; the I2S boundary bit; startup alignment; short words; reset, including reset followed by a right-channel start; no allocations. Eleven deliberate mutations detected (`tools/mutations/serial_decoder.txt`). Passes in `dev` and `asan`.
+- **Limitations:** nanosecond timing is checked separately by the timing validator (planned). SDTO output belongs to the ADC (M7).
 - **Updated:** 2026-10-16.
 
 ## Documentation process

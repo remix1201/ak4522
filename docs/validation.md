@@ -110,6 +110,17 @@ All mutation checks were rerun with `tools/mutation_check.py`, which moves each 
 
 A twelfth control mutation survived: removing the PD check before updating the mute ramp's pin during reset. It has no observable effect, because the ramp does not advance during reset and release re-latches it. The check was removed from the code instead of being kept untestable.
 
+### 2026-10-16: serial decoder (branch `m1-serial`, merged into `main`)
+
+| Check | Method | Result |
+| ----- | ------ | ------ |
+| Test encoder | slot positions checked against Figures 1 to 4, including the I2S 32fs boundary bit and 64fs slots 1 to 20 | pass |
+| All modes and ratios | 18 mode and bit-clock combinations (16 to 64 per channel, 32fs to 128fs), 208 words each, both full-scale codes, random padding | pass |
+| Unequal halves, I2S boundary bit, startup alignment, short words, reset | targeted cases | pass |
+| Real-time | no allocations while decoding | pass |
+| Mutation check | 12 deliberate faults | 10 detected at first. One survivor exposed a missing test (reset followed by a right-channel start could pair a stale left word); the test was added and the fault is now detected. The other survivor removed a redundant line with no observable effect; the line was deleted. Final: 11 of 11 detected. |
+| Sanitizers | `asan` preset, all 69 tests | pass |
+
 No signal-processing measurements exist yet. DSP gates from AGENTS.md section 13.2 begin in M1 and M2.
 
 ## Known deviations
