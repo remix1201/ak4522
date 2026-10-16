@@ -39,6 +39,7 @@ endif()
 add_library(ak4522
     src/core/config_validation.cpp
     src/core/pcm.cpp
+    src/core/soft_mute.cpp
     src/core/status.cpp
     src/core/version.cpp)
 add_library(ak4522::ak4522 ALIAS ak4522)

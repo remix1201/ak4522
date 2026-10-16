@@ -12,13 +12,17 @@ list(APPEND CMAKE_MODULE_PATH ${catch2_SOURCE_DIR}/extras)
 include(Catch)
 
 add_executable(ak4522_tests
+    allocation_counter_test.cpp
     api_contract_test.cpp
     config_validation_test.cpp
     pcm_test.cpp
     smoke_test.cpp
-    status_test.cpp)
+    soft_mute_test.cpp
+    status_test.cpp
+    support/allocation_counter.cpp)
 # Tests may include internal headers under src/.
-target_include_directories(ak4522_tests PRIVATE ${PROJECT_SOURCE_DIR}/src)
+target_include_directories(ak4522_tests PRIVATE
+    ${PROJECT_SOURCE_DIR}/src ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(ak4522_tests PRIVATE
     ak4522::ak4522 ak4522_options Catch2::Catch2WithMain)
 

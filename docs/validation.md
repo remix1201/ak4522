@@ -69,6 +69,20 @@ First run found and fixed: evidence row I-T01 had its cells shifted into the wro
 
 The surviving mutation showed that the explicit MCLK range check could never change a result: with the DAC rate in range and MCLK equal to ratio times rate, MCLK is always in range (I-C02). The check was removed and replaced by an explicit finite test, which the range check had been providing for NaN. Both replacement mutations were then detected.
 
+### 2026-10-16: soft mute and allocation counter, branch `m1-mute`
+
+| Check | Method | Result |
+| ----- | ------ | ------ |
+| Allocation counter self-test | vector, `make_unique`, and 64-byte aligned allocation inside an armed counter | 3 allocations and 3 deallocations counted |
+| Full mute and release | gain per frame against integer reference; exact 0.0 and 1.0 endpoints | pass |
+| Duration | 1024 frames; 32, 23.21995, 21.33333 ms at 32, 44.1, 48 kHz | pass |
+| Reversal | after 1, 511, 1023 frames, and during release; maximum gain step 1/1024 | pass |
+| Repeated same-level events, reset latching | direct checks | pass |
+| Block invariance | one block vs 1-frame, mixed (including 0-frame), and random partitions; bitwise equality | pass |
+| Real-time | no allocations in `reset`, `setPin`, `process`, `nextGain` | pass |
+| Mutation check | seven deliberate faults | all detected |
+| Sanitizers | `asan` preset, all 45 tests | pass |
+
 No signal-processing measurements exist yet. DSP gates from AGENTS.md section 13.2 begin in M1 and M2.
 
 ## Known deviations
