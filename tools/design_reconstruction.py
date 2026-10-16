@@ -70,7 +70,7 @@ def chain_response(interpolator: np.ndarray, cutoff_hz: float) -> np.ndarray:
 
 def chain_delay_frames(interpolator: np.ndarray, cutoff_hz: float) -> float:
     h = chain_response(interpolator, cutoff_hz)
-    fit = response.passband_delay(h, FS_HIGH, dac_gates.reference_hz(REFERENCE_RATE),
+    fit = response.passband_delay(h, FS_HIGH, dac_gates.REFERENCE_HZ,
                                   dac_gates.band_edges(REFERENCE_RATE).passband_hz)
     return fit.delay_samples / OVERSAMPLING
 
@@ -87,7 +87,7 @@ def main() -> int:
 
     h = chain_response(interpolator, cutoff)
     core = dac_gates.core_checks(h, FS_HIGH, REFERENCE_RATE)
-    fit = response.passband_delay(h, FS_HIGH, dac_gates.reference_hz(REFERENCE_RATE),
+    fit = response.passband_delay(h, FS_HIGH, dac_gates.REFERENCE_HZ,
                                   dac_gates.band_edges(REFERENCE_RATE).passband_hz)
     probe_hz = [20000.0, 44100.0, 100000.0, 150000.0]
     section_db = 20 * np.log10(np.abs(signal.sosfreqz(sos, worN=probe_hz, fs=FS_HIGH)[1]))

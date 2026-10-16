@@ -34,7 +34,7 @@ def plot(h: np.ndarray, fs_high: float, dac_rate: float, path: Path) -> None:
 
     edges = dac_gates.band_edges(dac_rate)
     f = np.linspace(1.0, fs_high / 2.0, 8192)
-    ref = dac_gates.reference_hz(dac_rate)
+    ref = dac_gates.REFERENCE_HZ
     db = response.relative_db(h, fs_high, f, ref)
     fig, (full, passband) = plt.subplots(2, 1, figsize=(8, 7))
     full.plot(f / 1e3, db)
@@ -42,14 +42,14 @@ def plot(h: np.ndarray, fs_high: float, dac_rate: float, path: Path) -> None:
     full.axvline(edges.stopband_hz / 1e3, linestyle=":", linewidth=0.8)
     full.set_ylim(-140, 5)
     full.set_xlabel("kHz")
-    full.set_ylabel("dB re 1/44.1 fs")
+    full.set_ylabel("dB re 1 kHz")
     full.set_title("Full high-rate band")
     fp = np.linspace(1.0, edges.passband_hz, 4096)
     passband.plot(fp / 1e3, response.relative_db(h, fs_high, fp, ref))
     for level in (-0.06, 0.06):
         passband.axhline(level, linestyle="--", linewidth=0.8)
     passband.set_xlabel("kHz")
-    passband.set_ylabel("dB re 1/44.1 fs")
+    passband.set_ylabel("dB re 1 kHz")
     passband.set_title("Passband")
     fig.tight_layout()
     fig.savefig(path, dpi=120)
@@ -79,6 +79,10 @@ def main(argv=None) -> int:
     result = dac_gates.report(checks, source=str(args.impulse_response), taps=int(h.size),
                               fs_high=args.fs_high, dac_rate=args.dac_rate)
     print(json.dumps(result, indent=2))
+    if args.dac_rate != dac_gates.DATASHEET_RATE:
+        print("note: the datasheet gives these values at 44.1 kHz only; results are informational",
+              file=sys.stderr)
+        return 0
     if args.plot:
         plot(h, args.fs_high, args.dac_rate, args.plot)
     return 0 if result["passed"] else 1

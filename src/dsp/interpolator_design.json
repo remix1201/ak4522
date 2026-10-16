@@ -71,7 +71,7 @@
       "name": "passband_ripple_db",
       "value": 0.058018412320809176,
       "limit": "<= 0.06 dB from 0 to 20/44.1 fs, relative to 1 kHz",
-      "source": "D-F04",
+      "source": "D-F04, D-F09",
       "passed": true
     },
     {

@@ -42,12 +42,10 @@ class InterpolatorFilesTest(unittest.TestCase):
         self.assertIn(digest, inc)
 
     def test_committed_coefficients_meet_the_gates(self):
-        for dac_rate in (32000.0, 44100.0, 48000.0):
-            checks = dac_gates.digital_filter_checks(self.taps, 8 * dac_rate, dac_rate,
-                                                     check_delay=False)
-            for check in checks:
-                with self.subTest(rate=dac_rate, check=check.name):
-                    self.assertTrue(check.passed, check)
+        rate = dac_gates.DATASHEET_RATE  # the table's conditions [DS p.6]
+        for check in dac_gates.digital_filter_checks(self.taps, 8 * rate, rate, check_delay=False):
+            with self.subTest(check=check.name):
+                self.assertTrue(check.passed, check)
 
 
 class ReconstructionFilesTest(unittest.TestCase):
@@ -82,10 +80,10 @@ class ReconstructionFilesTest(unittest.TestCase):
         sos = np.array([[s[0], s[1], s[2], 1.0, s[3], s[4]] for s in self.values.reshape(-1, 5)])
         x = np.concatenate([np.zeros(self.report["pipeline_samples_8x"]), interpolator, np.zeros(6000)])
         h = signal.sosfilt(sos, x)
-        for dac_rate in (32000.0, 44100.0, 48000.0):
-            for check in dac_gates.core_checks(h, 8 * dac_rate, dac_rate):
-                with self.subTest(rate=dac_rate, check=check.name):
-                    self.assertTrue(check.passed, check)
+        rate = dac_gates.DATASHEET_RATE
+        for check in dac_gates.core_checks(h, 8 * rate, rate):
+            with self.subTest(check=check.name):
+                self.assertTrue(check.passed, check)
 
 
 class DeemphasisFilesTest(unittest.TestCase):

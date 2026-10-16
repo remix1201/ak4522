@@ -1,7 +1,10 @@
 """DAC response gates from AGENTS.md section 13.2 and the evidence ledger.
 
 Every limit carries its source: D (datasheet), I (inferred), or P (project
-tolerance). Band edges scale with the DAC rate (D-F08, I-F01 to I-F03).
+tolerance). Band edges scale with the DAC rate (D-F08, I-F01 to I-F03); the
+response reference is 1 kHz (D-F09). The datasheet gives these values only
+at fs = 44.1 kHz [DS p.6], so they are gates at that rate; results at other
+rates are informational.
 """
 
 from __future__ import annotations
@@ -12,15 +15,8 @@ import numpy as np
 
 from . import response
 
-REFERENCE_HZ = 1000.0  # D-F09, at 44.1 kHz
-
-
-def reference_hz(dac_rate: float) -> float:
-    """Response reference frequency. [DS] states 1 kHz at 44.1 kHz; the
-    digital filter has one coefficient set, so its response is fixed in
-    normalized frequency and the reference scales with fs like the band
-    edges (I-F07)."""
-    return REFERENCE_HZ * dac_rate / 44100.0
+REFERENCE_HZ = 1000.0  # D-F09
+DATASHEET_RATE = 44100.0  # filter table conditions [DS p.6]
 
 
 @dataclass(frozen=True)
@@ -62,13 +58,13 @@ def digital_filter_checks(h: np.ndarray, fs_high: float, dac_rate: float,
     frequency, which is the full implemented interval.
     """
     edges = band_edges(dac_rate)
-    ref = reference_hz(dac_rate)
+    ref = REFERENCE_HZ
     checks = []
 
     low, high = response.band_extrema(h, fs_high, 0.0, edges.passband_hz, ref)
     ripple = max(abs(low.value_db), abs(high.value_db))
     checks.append(_check("passband_ripple_db", ripple, ripple <= 0.06,
-                         "<= 0.06 dB from 0 to 20/44.1 fs, relative to 1/44.1 fs", "D-F04, I-F07"))
+                         "<= 0.06 dB from 0 to 20/44.1 fs, relative to 1 kHz", "D-F04, D-F09"))
 
     edge_db = response.relative_db(h, fs_high, edges.passband_hz, ref)[0]
     checks.append(_check("passband_edge_db", edge_db, abs(edge_db + 0.06) <= 0.01,
@@ -100,10 +96,10 @@ def combined_response_check(h: np.ndarray, fs_high: float, dac_rate: float) -> C
     """Gate 2: digital plus analog response within +/-0.2 dB over 0 to 20 kHz
     at 44.1 kHz (D-F07). At other rates the band scales with fs (P-81)."""
     edges = band_edges(dac_rate)
-    low, high = response.band_extrema(h, fs_high, 0.0, edges.passband_hz, reference_hz(dac_rate))
+    low, high = response.band_extrema(h, fs_high, 0.0, edges.passband_hz, REFERENCE_HZ)
     deviation = max(abs(low.value_db), abs(high.value_db))
     return _check("combined_response_db", deviation, deviation <= 0.2,
-                  "<= 0.2 dB from 0 to 20/44.1 fs, relative to 1/44.1 fs", "D-F07, I-F07, P-81, P-82")
+                  "<= 0.2 dB from 0 to 20/44.1 fs, relative to 1 kHz", "D-F07, D-F09, P-81, P-82")
 
 
 def core_checks(h: np.ndarray, fs_high: float, dac_rate: float,
@@ -112,7 +108,7 @@ def core_checks(h: np.ndarray, fs_high: float, dac_rate: float,
     """Gates for the whole linear chip model, input register to analog
     output: combined response (gate 2) and delay (gate 3, D-F06, D-F10)."""
     edges = band_edges(dac_rate)
-    fit = response.passband_delay(h, fs_high, reference_hz(dac_rate), edges.passband_hz)
+    fit = response.passband_delay(h, fs_high, REFERENCE_HZ, edges.passband_hz)
     frames = fit.delay_samples / (fs_high / dac_rate)
     return [
         combined_response_check(h, fs_high, dac_rate),
@@ -125,6 +121,9 @@ def core_checks(h: np.ndarray, fs_high: float, dac_rate: float,
 
 def report(checks: list[Check], **context) -> dict:
     """JSON-ready report with the context needed to interpret the results."""
+    rate = context.get("dac_rate")
+    if rate is not None:
+        context["datasheet_conditions"] = rate == DATASHEET_RATE
     return {
         "context": context,
         "checks": [asdict(c) for c in checks],

@@ -199,13 +199,16 @@ TEST_CASE("A passband tone keeps its level; DAC images reach high host rates", "
     const Rates r = GENERATE(Rates{44100, 44100}, Rates{48000, 44100}, Rates{96000, 32000});
     CAPTURE(r.host, r.dac);
     HostProcessor p = prepared(config(r.host, r.dac));
-    // At the response reference frequency, 1/44.1 of the DAC rate (I-F07).
-    const double freq = r.dac / 44.1;
+    // At the 1 kHz response reference (D-F09). The design has unity gain
+    // there at a 44.1 kHz DAC; at other DAC rates 1 kHz falls elsewhere in
+    // the passband ripple.
+    const double freq = 1000.0;
     const auto in = sine(static_cast<std::size_t>(r.host * 0.25), freq, r.host);
     const auto out = run(p, in, {512});
     const std::size_t skip = p.latency().reportedHostFrames + 2000;
     const auto fit = test::fitSine(std::span(out.left).subspan(skip), freq, r.host);
-    CHECK(std::abs(20.0 * std::log10(fit.amplitude / 0.5)) < 0.01);
+    const double tolerance = r.dac == 44100.0 ? 0.01 : 0.06;
+    CHECK(std::abs(20.0 * std::log10(fit.amplitude / 0.5)) < tolerance);
     if (r.host / 2.0 < 24.1 / 44.1 * r.dac) {
         // No DAC image reaches the host band: only 20-bit quantization remains.
         CHECK(20.0 * std::log10(fit.residualRms) < -100.0);

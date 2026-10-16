@@ -56,7 +56,7 @@ Conditions: Ta = 25 degrees C, VA 4.5 to 5.5 V, VD 2.7 to 5.5 V, fs = 44.1 kHz, 
 | D-F06 | Group delay (typ)                                            | 14.7 / fs          | D     | p.6 table, note 11  | high   | REQ-LAT-02     | `[filter][latency]`  | passing |
 | D-F07 | Digital filter plus analog filter, 0 to 20.0 kHz (typ)       | +/-0.2 dB          | D     | p.6 table           | high   | REQ-FILTER-02  | `[filter]`           | passing |
 | D-F08 | Passband and stopband frequencies scale with fs              | n/a                | D     | p.6 note 10         | high   | REQ-FILTER-01  | `[filter]`           | passing |
-| D-F09 | Response reference frequency                                 | 1 kHz              | D     | p.6 note 10         | high   | REQ-FILTER-01  | `[filter]`           | passing |
+| D-F09 | Response reference frequency, under the table's fs = 44.1 kHz conditions | 1 kHz | D | p.6 note 10 | high | REQ-FILTER-01 | `[filter]` | passing |
 | D-F10 | DAC delay runs from loading both channels' 20-bit input register to analog output | n/a | D | p.6 note 11 | medium | REQ-LAT-02 | `[latency]` | passing |
 
 ### Inferred filter values
@@ -69,7 +69,7 @@ Conditions: Ta = 25 degrees C, VA 4.5 to 5.5 V, VD 2.7 to 5.5 V, fs = 44.1 kHz, 
 | I-F04 | Stopband edge lies above base-rate Nyquist; verify at 8x rate  | 24.1/44.1 = 0.5465 > 0.5                           | I     |
 | I-F05 | Group delay 333.333 us at 44.1 kHz; 306.25 us at 48 kHz        | 14.7 / fs                                          | I     |
 | I-F06 | Combined response at rates other than 44.1 kHz is unspecified  | p.6 conditions fix fs = 44.1 kHz                   | I     |
-| I-F07 | Response reference scales with fs: 1 kHz at 44.1 kHz, 1000 x fs / 44100 in general | One coefficient set gives a response fixed in normalized frequency; with an absolute 1 kHz reference the same filter would measure 0.088 dB ripple at 32 kHz. [DS] p.6 note 10 scales band edges with fs and names 1 kHz without stating a rate; medium confidence | I |
+| I-F07 | *withdrawn* Response reference scaling with fs (1000 x fs / 44100) | Withdrawn by the project owner on 2026-10-16. [DS] p.6 note 10 states the reference is 1 kHz, and the filter table's conditions fix fs = 44.1 kHz. The datasheet values are therefore checked at 44.1 kHz against 1 kHz (D-F09); at other rates the datasheet makes no ripple or edge claim, and measurements there are informational | I |
 
 ## 3. DAC analog characteristics
 

@@ -222,6 +222,10 @@ Development notes: the first stopband test generated tones below the stopband ed
 
 Development note: the first level test expected only the tone in the output at every rate pair; at 96 kHz host with a 32 kHz DAC the DAC's images are inside the host band (O-01) and are now checked against the stopband level instead.
 
+### 2026-10-16: response reference fixed at 1 kHz, branch `ref-1khz`
+
+The project owner decided the response reference is 1 kHz as stated in [DS] p.6 note 10, not scaled with fs (I-F07 withdrawn). Because the filter table's conditions fix fs = 44.1 kHz, the datasheet gates are now evaluated at 44.1 kHz against 1 kHz only. The 32 and 48 kHz response measurements recorded above were made against a scaled reference and are superseded; at those rates the datasheet makes no ripple or edge claim. Regenerating the interpolator and reconstruction designs reproduced bit-identical coefficients; only report labels changed. `analyze_response.py` now marks results at other rates as informational.
+
 ## M2 gate status
 
 AGENTS.md section 16, M2: "Deliver reproducible coefficient generation, interpolation/reconstruction, three de-emphasis modes, and core delay accounting. Gate: frequency, stopband-image, delay, stability, and streaming tests pass. If filter fit and delay cannot simultaneously meet targets, document the conflict and revise before claiming completion."

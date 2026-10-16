@@ -19,8 +19,8 @@
     {
       "name": "combined_response_db",
       "value": 0.0580282786542341,
-      "limit": "<= 0.2 dB from 0 to 20/44.1 fs, relative to 1/44.1 fs",
-      "source": "D-F07, I-F07, P-81, P-82",
+      "limit": "<= 0.2 dB from 0 to 20/44.1 fs, relative to 1 kHz",
+      "source": "D-F07, D-F09, P-81, P-82",
       "passed": true
     },
     {

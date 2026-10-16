@@ -96,7 +96,7 @@ if(AK4522_BUILD_TESTS)
             COMMAND ak4522_impulse_dump interpolator ${interpolator_ir} 64)
         set_tests_properties(dsp.interpolator_dump PROPERTIES
             LABELS "dsp" FIXTURES_SETUP interpolator_ir)
-        foreach(rate 32000 44100 48000)
+        foreach(rate 44100) # the datasheet's filter-table rate (D-F09)
             math(EXPR high "8 * ${rate}")
             add_test(NAME dsp.interpolator_response_${rate}
                 COMMAND ${AK4522_UV} run --directory ${PROJECT_SOURCE_DIR}/tools
@@ -111,7 +111,7 @@ if(AK4522_BUILD_TESTS)
             COMMAND ak4522_impulse_dump core-linear ${core_linear_ir} 1000)
         set_tests_properties(dsp.core_linear_dump PROPERTIES
             LABELS "dsp" FIXTURES_SETUP core_linear_ir)
-        foreach(rate 32000 44100 48000)
+        foreach(rate 44100) # the datasheet's filter-table rate (D-F09)
             math(EXPR high "8 * ${rate}")
             add_test(NAME dsp.core_linear_response_${rate}
                 COMMAND ${AK4522_UV} run --directory ${PROJECT_SOURCE_DIR}/tools
@@ -128,7 +128,7 @@ if(AK4522_BUILD_TESTS)
             COMMAND ak4522_impulse_dump dac-core ${dac_core_ir} 1000)
         set_tests_properties(dsp.dac_core_dump PROPERTIES
             LABELS "dsp" FIXTURES_SETUP dac_core_ir)
-        foreach(rate 32000 44100 48000)
+        foreach(rate 44100) # the datasheet's filter-table rate (D-F09)
             math(EXPR high "8 * ${rate}")
             add_test(NAME dsp.dac_core_response_${rate}
                 COMMAND ${AK4522_UV} run --directory ${PROJECT_SOURCE_DIR}/tools
