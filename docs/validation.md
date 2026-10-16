@@ -196,6 +196,19 @@ Development notes: a guessed bound on the Nyquist gain (0.25 to 0.36) failed for
 | Mutation check | 12 deliberate faults | 11 detected at first. Swapping mute and de-emphasis (P-40) went unnoticed: no test combined de-emphasis with a moving mute ramp, the only case where the order matters. Test added. Final: 12 of 12. |
 | Sanitizers | `asan` preset, unit and dsp labels | pass |
 
+### 2026-10-16: sample-rate converter (branch `m3-resampler`, merged into `main`)
+
+| Check | Method | Result |
+| ----- | ------ | ------ |
+| Passband and residual, 14 pairs | sine fits at 12 frequencies from 50 Hz to the passband edge | error <= 0.005 dB, residual <= -110 dBFS: pass |
+| Stopband | tones from the stopband edge to the input Nyquist frequency, where that range exists | <= -120 dB: pass |
+| Fold-over | downsampling tones between the output Nyquist frequency and the stopband edge | alias lands above the passband edge, nothing else above -110 dBFS: pass |
+| Timing | impulse at 8:1 peaks at output 100 symmetrically; 1 kHz sine at 147/160 matches its expected times within 1e-5 | pass |
+| Counts, partitions, reset, channels, allocations | targeted tests | pass |
+| Mutation check | 12 deliberate faults | 10 detected at first. Shifting the kernel by one input sample went unnoticed because the quality tests fit sines with free phase, and the converter's timing feeds the reported latency; a timing test was added. One mutation string did not match the source indentation and was corrected. Final: 12 of 12. |
+
+Development notes: the first stopband test generated tones below the stopband edge for 44.1 / 48 kHz pairs, whose stopband lies above the input Nyquist frequency; it now tests only where a stopband exists, and a fold-over test covers the transition band. One mutation (lost remainder carry) made the long-run test effectively endless; C++ tests now have a 120-second CTest timeout.
+
 ## M2 gate status
 
 AGENTS.md section 16, M2: "Deliver reproducible coefficient generation, interpolation/reconstruction, three de-emphasis modes, and core delay accounting. Gate: frequency, stopband-image, delay, stability, and streaming tests pass. If filter fit and delay cannot simultaneously meet targets, document the conflict and revise before claiming completion."

@@ -47,6 +47,7 @@ add_library(ak4522
     src/dsp/deemphasis.cpp
     src/dsp/interpolator.cpp
     src/dsp/reconstruction.cpp
+    src/dsp/resampler.cpp
     src/serial/serial_decoder.cpp
     src/serial/timing_validator.cpp)
 add_library(ak4522::ak4522 ALIAS ak4522)
