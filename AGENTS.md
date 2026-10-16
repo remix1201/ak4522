@@ -207,9 +207,9 @@ The DAC uses an IIR de-emphasis filter with 50/15 microsecond time constants [DS
 
 **REQ-DEEM-02:** Generate three documented digital IIR coefficient sets with unity DC gain and stable poles. Choose a fitting method against the reference response; record its magnitude and phase error across the operating band. A plain bilinear transform is an approximation and must not be called exact. Project fitting target: <=0.1 dB magnitude error from 20 Hz to the lesser of 20 kHz and 0.45 times the selected nominal rate. If unmet, improve the fit or report the deviation; do not conceal it.
 
-**REQ-DEEM-03:** In pin-faithful mode, selecting 44.1 kHz while running at another DAC rate retains the 44.1 kHz coefficient set evaluated at the actual DAC rate. This models fixed coefficients as P because detailed mismatch behavior is not supplied. An optional “follow DAC rate” convenience control selects the matching table entry only at 32/44.1/48 kHz; at other rates leave OFF unless explicitly selected. Do not silently design a new hardware mode.
+**REQ-DEEM-03:** The DEM pins alone select the coefficient set, as on the chip [DS p.11]. Selecting 44.1 kHz while running at another DAC rate retains the 44.1 kHz coefficient set evaluated at the actual DAC rate. This models fixed coefficients as P because detailed mismatch behavior is not supplied. The core has no automatic selection by DAC rate. The plugin adapter MAY offer one as host behavior that sets the DEM pin parameter when the rate changes, the way a system controller would. Do not silently design a new hardware mode.
 
-De-emphasis switching transient behavior and state retention are undocumented. Baseline policy resets the newly selected section at the event boundary; a separate plugin smoothing option may crossfade prepared sections over 5 ms. Label that option as host behavior. Test both paths and keep latency consistent.
+De-emphasis switching transient behavior and state retention are undocumented. Baseline policy resets the newly selected section at the event boundary. The core implements only this chip behavior; any smoothing of DEM changes is host behavior and belongs to the plugin adapter, outside the core.
 
 ## 9. Soft mute and control timing
 

@@ -17,7 +17,7 @@ Last substantive update: 2026-10-16. M0 and M1 were merged into `main` and appro
 | Configuration validation        | REQ-CLOCK-01, REQ-RATE-03             | implemented    | passing (see below)      | approved 2026-10-16 (`m1-approved`) | merged into `main`    |
 | Reset and control timeline      | REQ-RESET-01, REQ-RESET-02, REQ-CTRL-01 | implemented  | passing (see below)     | approved 2026-10-16 (`m1-approved`) | merged into `main`    |
 | Soft mute                       | REQ-MUTE-01, REQ-MUTE-02              | implemented    | passing (see below)      | approved 2026-10-16 (`m1-approved`) | merged into `main`    |
-| De-emphasis                     | REQ-DEEM-01 to REQ-DEEM-03            | planned (M2)   | none                     | none                              | none                  |
+| De-emphasis                     | REQ-DEEM-01 to REQ-DEEM-03            | implemented    | passing (see below)      | not yet approved                  | merged into `main`    |
 | Response analysis tools         | REQ-FILTER-01, REQ-LAT-02, REQ-DEEM-02 | implemented   | passing (see below)      | not yet approved                  | merged into `main`    |
 | 8x interpolator                 | REQ-FILTER-01                         | implemented    | passing (see below)      | not yet approved                  | merged into `main`    |
 | Analog reconstruction and pipeline delay | REQ-FILTER-02, REQ-LAT-02    | implemented    | passing (see below)      | not yet approved                  | merged into `main`    |
@@ -172,6 +172,20 @@ None of the emulator's signal processing is usable yet. PCM conversion exists as
 - **Implementation:** internal `detail::PipelineDelay` and `detail::Reconstruction` in `src/dsp/reconstruction.hpp`; transposed direct form II, double precision, states below 1e-15 flushed to zero.
 - **Measured (whole linear chain, C++ output, 32 / 44.1 / 48 kHz):** delay 14.700 DAC frames; combined response within 0.058 dB of the reference from 0 to 20/44.1 fs (limit 0.2 dB); dispersion 0.013 frames.
 - **Validation:** 8 C++ test cases: exact 21-sample delay, stability and unity DC gain, agreement with an independent direct-form-I reference, signals at 1/16 LSB unaffected by the flush, exact decay to zero, block partitioning, channels and reset, no allocations. `tools/tests/test_generated_files.py` checks the coefficient files, checksum, C++ constants, stability, and core gates. Ten deliberate mutations detected. Passes in `dev` and `asan`.
+- **Updated:** 2026-10-16.
+
+## De-emphasis
+
+- **Purpose:** the DEM-selected 50/15 us de-emphasis at the DAC rate.
+- **Requirements:** REQ-DEEM-01 to REQ-DEEM-03; evidence D-E01 to D-E03, I-E01; policies P-60 to P-62, P-64; API decisions O-07, O-08.
+- **Design:** `tools/design_deemphasis.py` writes `src/dsp/deemphasis_coefficients.inc` and `src/dsp/deemphasis_design.json`. One first-order section per selection, exact unity DC gain, fitted to the analog reference from 20 Hz to the lesser of 20 kHz and 0.45 fs. Magnitude error 0.093 / 0.073 / 0.048 dB at 32 / 44.1 / 48 kHz (limit 0.1); phase error up to 19.0 / 15.0 / 12.6 degrees. Fitted, not AKM's coefficients.
+- **Implementation:** internal `detail::Deemphasis` in `src/dsp/deemphasis.hpp`.
+- **Behavior:**
+  - DEM1, DEM0 = 00: 44.1 kHz set; 01: OFF, an exact bypass; 10: 48 kHz set; 11: 32 kHz set.
+  - The DEM pins alone choose the set, which runs unchanged at any DAC rate, as on the chip. There is no automatic selection by DAC rate in the core; the plugin adapter may offer one by setting the DEM parameter.
+  - A change of set resets the new section's state; re-selecting the current set changes nothing. There is no crossfade in the core: any smoothing would be host behavior in the plugin adapter.
+- **Validation:** 11 C++ test cases: OFF bypass, closed-form impulse responses, unity DC and Nyquist gain, each selection within 0.1 dB of the analog curve at its own rate, a selection kept at another DAC rate, switching reset, re-selection keeps state, reset of both channels, block partitioning across selection changes, and no allocations. `tools/tests/test_generated_files.py` evaluates the committed sets against the analog reference independently. Six deliberate mutations detected. Passes in `dev` and `asan`.
+- **Limitations:** de-emphasis is not yet connected to `DacCore`; that happens in `m2-core`. The chip's switching transient and coefficients are unknown (U-07).
 - **Updated:** 2026-10-16.
 
 ## Documentation process

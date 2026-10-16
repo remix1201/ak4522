@@ -1,0 +1,6 @@
+[('32 and 48 kHz sets swapped', '    case DeemphasisSelect::fs32000: return designedSet(0);', '    case DeemphasisSelect::fs32000: return designedSet(2);'),
+ ('flush threshold too high', 'constexpr double flushThreshold = 1e-15;', 'constexpr double flushThreshold = 1e-6;'),
+ ('new section keeps old state', '    c_ = coefficients(pins);\n    reset();', '    c_ = coefficients(pins);'),
+ ('same set resets state', '    if (pins == set_) {\n        return;\n    }', '    if (pins == set_) {\n        reset();\n        return;\n    }'),
+ ('reset keeps right state', '    stateLeft_ = 0.0;\n    stateRight_ = 0.0;', '    stateLeft_ = 0.0;'),
+ ('right channel uses left state', '        right[i] = tick(c_, right[i], stateRight_);', '        right[i] = tick(c_, right[i], stateLeft_);')]

@@ -172,6 +172,17 @@ Findings during design:
 | Generated files and time domain | file checks; 8 C++ test cases | pass |
 | Mutation check | 10 deliberate faults | 9 detected at first. Raising the state flush threshold to 1e-6 went unnoticed because every test signal was near full scale; a test with a tone at 1/16 LSB was added. Final: 10 of 10. |
 
+### 2026-10-16: de-emphasis (branch `m2-deemphasis`, merged into `main`)
+
+| Check | Method | Result |
+| ----- | ------ | ------ |
+| Fit | minimax first-order sections; independent evaluation with `scipy.signal.freqz` | 0.093 / 0.073 / 0.048 dB at 32 / 44.1 / 48 kHz (limit 0.1); bilinear would be 1.59 / 0.97 / 0.85 dB |
+| Phase | reported against the analog reference | up to 19.0 / 15.0 / 12.6 degrees; a second-order fit reduced magnitude error but not phase error |
+| C++ behavior | 14 test cases; 11 after follow mode (O-07) and the host crossfade (O-08) were removed | pass |
+| Mutation check | 11 deliberate faults | 10 detected at first. Swapping the 32 and 48 kHz coefficient sets went unnoticed because the tests took expected values from the same table. A test now checks each selection against the analog curve at its own rate. Final: 11 of 11. After O-07 and O-08 the list was rebuilt for the simpler component: 6 faults, 5 detected at first; the reset test checked only the left channel and now checks both. Final: 6 of 6. A seventh candidate (removing the OFF early return) was dropped as equivalent, since OFF's identity coefficients give bit-identical output. |
+
+Development notes: a guessed bound on the Nyquist gain (0.25 to 0.36) failed for the 32 kHz set (0.365), whose fit band ends at 14.4 kHz; the test now checks the implementation against its closed-form Nyquist gain instead. A first draft of the per-rate test probed 21.6 kHz at 48 kHz, beyond the 20 kHz fit band.
+
 ## M1 gate status
 
 AGENTS.md section 16, M1: "boundary/serial/control tests pass, including I2S short-word framing and partial mute reversal. No plugin GUI yet."

@@ -155,10 +155,10 @@ D-A16 is a figure annotation, not a table value. It agrees with D-A12 and suppor
 
 | ID    | Fact                                                                    | Class | Source         | Conf. | Requirement    | Test       | Status  |
 | ----- | ----------------------------------------------------------------------- | ----- | -------------- | ----- | -------------- | ---------- | ------- |
-| D-E01 | Digital IIR de-emphasis, time constants 50/15 us                        | D     | p.11           | high  | REQ-DEEM-01    | `[deemph]` | planned |
-| D-E02 | DEM1,DEM0: 00 = 44.1 kHz, 01 = OFF, 10 = 48 kHz, 11 = 32 kHz            | D     | p.11 Table 3   | high  | REQ-DEEM-01    | `[deemph]` | planned |
-| D-E03 | Filter applies to input audio data                                      | D     | p.11           | high  | REQ-ARCH-03    | `[deemph]` | planned |
-| I-E01 | Reference `H(s) = (1 + s*15e-6) / (1 + s*50e-6)`; unity DC, HF asymptote 0.3 (-10.4576 dB) | I | Standard 50/15 us shelf from D-E01 | high | REQ-DEEM-01 | `[deemph]` | planned |
+| D-E01 | Digital IIR de-emphasis, time constants 50/15 us                        | D     | p.11           | high  | REQ-DEEM-01    | `[deemph]` | passing |
+| D-E02 | DEM1,DEM0: 00 = 44.1 kHz, 01 = OFF, 10 = 48 kHz, 11 = 32 kHz            | D     | p.11 Table 3   | high  | REQ-DEEM-01    | `[deemph]` | passing |
+| D-E03 | Filter applies to input audio data                                      | D     | p.11           | high  | REQ-ARCH-03    | `[deemph]` | passing |
+| I-E01 | Reference `H(s) = (1 + s*15e-6) / (1 + s*50e-6)`; unity DC, HF asymptote 0.3 (-10.4576 dB) | I | Standard 50/15 us shelf from D-E01 | high | REQ-DEEM-01 | `[deemph]` | passing |
 | I-E02 | Coefficients, switching transients, and state retention are unpublished | I     | Absent from p.11 | high | REQ-DEEM-02, REQ-DEEM-03 | `[deemph]` | planned |
 
 ## 8. Soft mute

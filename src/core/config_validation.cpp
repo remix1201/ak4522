@@ -23,8 +23,6 @@ bool enumsValid(const DacConfig& config) noexcept
 {
     return enumAtMost(config.cmode, CmodePin::open)
         && enumAtMost(config.profile, ModelProfile::measured)
-        && enumAtMost(config.deemphasisRatePolicy, DeemphasisRatePolicy::followDacRate)
-        && enumAtMost(config.deemphasisSwitching, DeemphasisSwitching::hostCrossfade)
         && enumAtMost(config.initialDeemphasis, DeemphasisSelect::fs32000);
 }
 

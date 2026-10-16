@@ -16,6 +16,7 @@ add_executable(ak4522_tests
     api_contract_test.cpp
     config_validation_test.cpp
     control_timeline_test.cpp
+    deemphasis_test.cpp
     interpolator_test.cpp
     pcm_test.cpp
     reconstruction_test.cpp
