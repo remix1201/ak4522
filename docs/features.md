@@ -31,11 +31,15 @@ Last substantive update: 2026-10-16. M0 to M4 were merged into `main` and approv
 | NominalAnalog noise             | REQ-NOISE-01, REQ-NOISE-02            | implemented    | passing (see below)      | approved 2026-10-16 (`m4-approved`)                  | merged into `main`    |
 | NominalAnalog profile report    | REQ-NOISE-01, REQ-DIST-01             | implemented    | passing (see below)      | approved 2026-10-16 (`m4-approved`)                  | merged into `main`    |
 | NominalAnalog output stage      | REQ-DIST-01, REQ-CHANNEL-01, REQ-ANALOG-01, REQ-ANALOG-02 | implemented | passing (see below) | approved 2026-10-16 (`m4-approved`)          | merged into `main`    |
-| VST3 plugin adapter             | REQ-VST-01, REQ-VST-02, REQ-LAT-03    | planned (M5)   | none                     | none                              | none                  |
+| DacStream (pull and push, fractional DAC rates) | REQ-API-01, REQ-RATE-02 | planned (M5) | none            | none                              | none                  |
+| Extended DAC-rate range (opt-in, up to 50.4 kHz) | REQ-CLOCK-02          | planned (M5)   | none                     | none                              | none                  |
+| C API                           | REQ-API-02                            | planned (M5)   | none                     | none                              | none                  |
+| Packaging, integration guide, examples | REQ-API-03                     | planned (M5)   | none                     | none                              | none                  |
+| Demo plugin (VST3, AU)          | REQ-VST-01, REQ-VST-02, REQ-LAT-03    | planned (M5)   | none                     | none                              | none                  |
 | Measured profile                | AGENTS.md s.14                        | planned (M6, conditional on hardware) | none | none                         | none                  |
 | ADC section and loopback        | REQ-SCOPE-04, REQ-ADC-01 to REQ-ADC-07 | planned (M7)  | none                     | none                              | none                  |
 
-The DAC core produces audio through the public `DacCore` API at the DAC rate in, 8x the DAC rate out, with the Specification profile. Host-rate processing (`HostProcessor`), analog imperfections, and the plugin do not exist yet.
+Available on `main`: `DacCore` (DAC-rate PCM in, 8x the DAC rate out), `HostProcessor` (host-rate audio in and out), the Specification profile, and the optional NominalAnalog profile. Planned for M5: `DacStream` for sources at their own DAC rate, the opt-in extended rate range, a C API, packaging, and a demo plugin.
 
 ## Build and test foundation
 

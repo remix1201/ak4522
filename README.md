@@ -1,6 +1,6 @@
 # AK4522VF DAC Emulator
 
-An independent C++20 project to model the DAC section of the AKM AK4522VF for use in VST3 audio effects and other audio software.
+An independent C++20 library that models the DAC section of the AKM AK4522VF, for use in audio effects, instruments and emulators, offline tools, and other audio software.
 
 The goal is to reproduce documented signal processing and control behavior, then refine the model through hardware measurements where available. The reusable DSP core will remain independent of plugin frameworks.
 
@@ -135,7 +135,7 @@ Decoded PCM and serial input adapters will feed the same DAC core. Plugin integr
 
 The core must support continuous processing across arbitrary block boundaries without allocations, locks, blocking operations, file I/O, or coefficient generation on the audio thread. Noise generation, when enabled, must be reproducible from a stored seed.
 
-The intended toolchain is C++20 with CMake and CTest. The plugin adapter may use JUCE or the VST3 SDK; the framework choice is not yet established by this documentation.
+The intended toolchain is C++20 with CMake and CTest. The library does not depend on any plugin framework. The M5 demo plugin is a separate adapter and is planned to use JUCE.
 
 ## Development roadmap
 
@@ -146,13 +146,13 @@ The intended toolchain is C++20 with CMake and CTest. The plugin adapter may use
 | M2        | Linear DAC response, de-emphasis, coefficient generation, and core latency accounting   |
 | M3        | Host-rate adaptation, event timing, reusable library, and streaming verification        |
 | M4        | Optional calibrated nominal analog profile                                              |
-| M5        | VST3 adapter, automation, state handling, bypass, and host validation                   |
+| M5        | `DacStream` for sources at their own rate, C API, packaging, and a demo plugin (VST3, AU) |
 | M6        | Hardware-characterized refinement when suitable measurements are available              |
 | M7        | ADC section, SDTO serial output, and optional DAC-to-ADC loopback                       |
 
 Detailed requirements and acceptance gates are maintained in [AGENTS.md](AGENTS.md).
 
-Progress: M0 (evidence ledger, build foundation, API proposal, requirement-to-test mapping) is complete and approved (tag `m0-approved`). M1 (PCM mapping, serial decoder, timing validator, clock configuration, reset, and mute state machine) is complete and approved (tag `m1-approved`). M2 (linear DAC response) is complete and approved (tag `m2-approved`). M3 (host-rate adaptation) is complete and approved (tag `m3-approved`). M4 (NominalAnalog profile) is complete and approved (tag `m4-approved`). M5 (VST3 plugin) is next.
+Progress: M0 (evidence ledger, build foundation, API proposal, requirement-to-test mapping) is complete and approved (tag `m0-approved`). M1 (PCM mapping, serial decoder, timing validator, clock configuration, reset, and mute state machine) is complete and approved (tag `m1-approved`). M2 (linear DAC response) is complete and approved (tag `m2-approved`). M3 (host-rate adaptation) is complete and approved (tag `m3-approved`). M4 (NominalAnalog profile) is complete and approved (tag `m4-approved`). M5 (integration API, packaging, and demo plugin) is in progress.
 
 ## Verification
 

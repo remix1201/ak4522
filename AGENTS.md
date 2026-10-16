@@ -14,7 +14,7 @@
 
 ## 1. Mission and working rules
 
-Build an independent, reusable C++20 stereo DAC emulation library suitable for a VST3 audio effect. Model the DAC section of the AKM AK4522VF first. The ADC section follows as a separate core in milestone M7 (section 17); a complete sound card is out of scope. Keep the library independent of JUCE, VST SDK headers, GUI frameworks, and host APIs. A thin optional plugin adapter may use JUCE or the VST3 SDK.
+Build an independent, reusable C++20 stereo DAC emulation library. The library is the product: it MUST stay generic and usable however its users need, as an audio effect, inside an instrument or emulator that generates samples at its own rate, in offline tools, or from other languages through a C API. A specific downstream project is a user of the library, never its design target. A demo plugin shows the library in use but does not define it. Model the DAC section of the AKM AK4522VF first. The ADC section follows as a separate core in milestone M7 (section 17); a complete sound card is out of scope. Keep the library independent of JUCE, VST SDK headers, GUI frameworks, and host APIs. A thin optional plugin adapter may use JUCE or the VST3 SDK.
 
 The mandatory baseline is a documented, specification-constrained behavioral model. Hardware-characterized fidelity is a later, separately identified profile. Do not describe either an invented delta-sigma modulator or a filter fitted to a few limits as a bit-exact reconstruction of AKM silicon.
 
@@ -145,7 +145,7 @@ Figure 3 prints “23 22” at the start of the right-channel DAC word although 
 
 ## 6. Clocks and sample rates
 
-**REQ-CLOCK-01:** Distinguish `hostRate`, `dacRate`, and internal processing rates in every interface and formula. Accept DAC rates within [16000, 48000] Hz. Test 16, 32, 44.1, and 48 kHz. Host rates outside this interval must not silently become DAC rates.
+**REQ-CLOCK-01:** Distinguish `hostRate`, `dacRate`, and internal processing rates in every interface and formula. Accept DAC rates within [16000, 48000] Hz, or the extended range of REQ-CLOCK-02 when it is enabled. Test 16, 32, 44.1, and 48 kHz. Host rates outside this interval must not silently become DAC rates.
 
 CMODE low selects 256fs, high selects 384fs, and unconnected selects 512fs [DS pp.3,9]. Represent this three-state input with an enum, not a Boolean. At 44.1 kHz the exact derived clocks are 11.2896, 16.9344, and 22.5792 MHz. Calculate from the ratio rather than rounded table examples. MCLK ranges are 4.096-12.288 MHz, 6.144-18.432 MHz, and 8.192-24.576 MHz respectively. Minimum MCLK high/low widths are 27, 20, and 15 ns [DS p.7].
 
@@ -158,6 +158,8 @@ LRCK must be synchronized with MCLK; phase is not critical. Internal timing sync
 **REQ-RATE-03:** Initial host support: 44.1, 48, 88.2, 96, 176.4, and 192 kHz. Reject unsupported configurations before playback with a clear status. Add other rates only with tests. Low host Nyquist limits observable output bandwidth; do not claim that a 44.1 kHz host preserves a 48 kHz DAC's entire analog bandwidth.
 
 **REQ-RATE-04:** Use an SRC whose measured added in-band ripple is <=0.005 dB and stopband rejection >=120 dB in the declared supported conversion bands, with a published transition band. These are P quality targets. If a near-Nyquist conversion cannot meet both bandwidth and cost goals, expose and document its passband limitation. Do not overwrite the DAC's intentionally modest 43 dB image-rejection target with claims about the SRC.
+
+**REQ-CLOCK-02:** An opt-in extended DAC-rate range MAY accept rates above 48 kHz up to 50 400 Hz (48 kHz plus 5%), upper side only. This is P, not documented chip behavior: the datasheet gives no behavior outside 16 to 48 kHz [DS pp.1,7], and real parts often run somewhat beyond their rated clocks, but no particular part is guaranteed to. It is off by default; without it, out-of-range rates are rejected as before. When enabled, the model applies its normalized-frequency policy (section 4.2) unchanged, validation reports that the rate is outside the documented range, and `describe()` and latency reports state it. Documented-range gates apply only within 16 to 48 kHz. The option relaxes validation only; it adds no new behavior to the core.
 
 Rate changes require off-thread preparation and an explicit reset/restart or a preallocated crossfade strategy. Transport stop/start alone must not arbitrarily re-seed noise or reset the chip. Treat host lifecycle reset separately from a PD transition.
 
@@ -259,6 +261,18 @@ Supply noise, temperature, load effects, jitter, clipping recovery, and intersam
 
 **REQ-VST-02:** Map host automation to sample offsets. Provide latency-compensated bypass and optional wet/dry mixing without comb filtering caused by mismatched fixed delay. Do not report zero tail if filters still ring; use a declared practical settling threshold or framework-supported infinite tail when continuous noise is enabled. Silent-input optimizations must not skip pending mute/reset events, filter tails, or enabled noise.
 
+**REQ-API-01:** Provide three integration modes over the same core, each with the real-time rules of this section:
+
+- `DacCore`: DAC-rate PCM in, DAC response out at the core's output rate. For callers that run their own rate conversion.
+- `HostProcessor`: an audio effect. Host-rate audio in, host-rate audio out, with input and output SRC (REQ-RATE-01).
+- `DacStream`: a source at the DAC rate, such as an instrument or emulator that produces samples at its own clock. DAC-rate PCM in, host-rate audio out, with only output SRC. It supports pull mode (the caller asks for N host frames; the stream requests the DAC frames it needs through a callback) and push mode (the caller supplies DAC frames as they are produced; the stream returns the host frames that become available, with bounded buffering and reported underrun and overrun counts).
+
+`DacStream` MUST accept exact fractional DAC rates given as a rational number (numerator and denominator), such as 112 000 000 / 2304 Hz, and keep a drift-free position (REQ-RATE-02). It accepts 16-bit, 20-bit, and 24-bit integer input and float input. 16-bit maps per REQ-PCM-02. 24-bit input keeps its top 20 bits and drops the rest, as the serial interface ignores bits after the 20th (I, from REQ-SERIAL-01 and [DS p.9]). Float follows REQ-PCM-03. Host rates follow REQ-RATE-03.
+
+**REQ-API-02:** Provide a C API over the library for use from C and other languages: opaque handles, explicit create/prepare/process/destroy, plain status codes, caller-owned buffers, and no exceptions or C++ types crossing the boundary. It exposes `HostProcessor` and `DacStream` and their configuration, events, latency, and diagnostics. Document ownership and thread rules for every function.
+
+**REQ-API-03:** Package the library for reuse: CMake install rules and a versioned `find_package(ak4522)` config, usable also through `add_subdirectory` or FetchContent; an integration guide covering the three modes, threading, latency, and events; and small framework-free examples for each mode and for the C API. Examples MUST NOT depend on a plugin framework.
+
 **REQ-RT-01:** No heap allocation/deallocation, locks, file/network I/O, logging, sleeps, blocking calls, coefficient design, or unbounded retry loops on the audio thread. Preallocate for worst supported rate/block and handle unexpectedly larger blocks by bounded chunking. Avoid shared mutable static state and denormal slowdowns. Cross-thread changes use bounded communication and off-thread object reclamation.
 
 **REQ-RT-02:** Perform prepare/configuration off-thread. `process` must not throw. Invalid inputs produce bounded documented behavior and counters readable off-thread. All states remain finite under supported full-scale and overload tests. Offline and realtime output are deterministic for the same configuration, seed, input, and events, within the declared floating-point tolerance.
@@ -354,9 +368,11 @@ Deliver SRC, all supported rate pairs, event mapping, latency alignment, and pub
 
 Deliver calibrated noise, optional distortion/mismatch/crosstalk/voltage diagnostics, and profile metadata. Gate: weighted measurement methods are validated; synthetic assumptions are explicit; typical-target reports pass within project tolerances. Hardware fidelity claims remain limited.
 
-### M5: VST3 adapter
+### M5: Integration API, packaging, and demo plugin
 
-Deliver stereo plugin, documented parameters and versioned state, automation, compensated bypass, float/double processing, tail policy, and minimal controls. Gate: plugin validation and representative host smoke tests pass; latency agrees with emitted audio; release benchmark meets the stated budget.
+Deliver, in this order: `DacStream` with pull and push modes, exact fractional rates, and 16/20/24-bit and float input (REQ-API-01); the opt-in extended rate range (REQ-CLOCK-02); the C API (REQ-API-02); packaging, the integration guide, and generic examples (REQ-API-03); then a demo plugin. The demo plugin is an adapter outside the library (section 0) and may use JUCE. It provides a stereo effect built on `HostProcessor` and an instrument-style demo built on `DacStream`, with documented parameters and versioned state, automation, compensated bypass, float/double processing, a tail policy, and minimal generic controls. A delta listen mode (processed output minus the latency-aligned dry input) MAY be offered as host behavior. Formats are VST3 and, on macOS, AU.
+
+Gate: library tests for each new API, including block-partition invariance, drift-free long runs at a fractional DAC rate, push and pull equivalence, and real-time allocation checks; a C API test built as C; a consumer project built against the installed package; plugin validation with pluginval (VST3 and AU) and auval (AU) passing; smoke tests in representative hosts (FL Studio and Ableton Live); latency agreeing with emitted audio; release benchmark meeting the stated budget. Plugin-specific requirements (REQ-VST-01, REQ-VST-02) apply to the demo plugin.
 
 ### M6: Hardware-characterized refinement, conditional
 
