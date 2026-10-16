@@ -114,6 +114,9 @@ if(AK4522_BUILD_EXAMPLES)
     if(UNIX AND NOT APPLE)
         target_link_libraries(ak4522_c_api_example PRIVATE m)
     endif()
+    # CPU benchmark (REQ-PERF-01); meaningful in a release build.
+    add_executable(ak4522_benchmark tools/cpp/benchmark.cpp)
+    target_link_libraries(ak4522_benchmark PRIVATE ak4522::ak4522 ak4522_options)
 endif()
 
 if(AK4522_BUILD_TESTS)

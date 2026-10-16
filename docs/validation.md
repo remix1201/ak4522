@@ -12,7 +12,7 @@ Measurement methods, results, and known deviations. Every result states the mode
 | Catch2     | v3.16.0 (commit 317ac1ed)                     |
 | Python     | 3.12.15; numpy 2.5.4, scipy 1.18.1, matplotlib 3.11.2 |
 
-No reference CPU for REQ-PERF-01 has been named yet.
+Proposed reference machine for REQ-PERF-01 (P-93): Apple M1 Max, macOS 26.5.2, Apple clang 21.0.0, `release` preset. Pending owner approval.
 
 ## Results
 
@@ -357,6 +357,22 @@ Above 48 kHz these are consistency checks of the unchanged model; the datasheet'
 | Examples | five programs, one per entry point and the C API, run by CTest with checked output | pass |
 
 Development note: the push example first rendered as fast as the CPU allowed, which could outrun the producer on a slow machine; it now paces renders like a host callback.
+
+### 2026-10-16: CPU benchmark (branch `m5-package`)
+
+`build/release/ak4522_benchmark --check --seconds 60` on the proposed reference machine, one instance, ordinary thread priority, other virtual machines idle. Shares of the callback period:
+
+| Case | Block | Median | p99.9 | Max | Over the period |
+| ---- | ----: | -----: | ----: | --: | --------------: |
+| HostProcessor 48 / 44.1 kHz, clean (budget case) | 64 | 2.10% | 3.40% | 10.3% | 0 of 45 000 |
+| | 128 | 2.08% | 2.88% | 5.9% | 0 |
+| | 256 | 2.07% | 2.51% | 2.7% | 0 |
+| | 512 | 2.11% | 2.59% | 3.0% | 0 |
+| HostProcessor 48 / 44.1 kHz, nominal profile | 64 | 2.83% | 4.14% | 9.7% | 0 |
+| HostProcessor 192 / 48 kHz, clean | 64 | 2.64% | 5.66% | 28.4% | 0 of 180 000 |
+| DacStream 48 kHz / 48.611 kHz | 64 | 2.13% | 3.59% | 7.5% | 0 |
+
+Budget (p99.9 below 10% for blocks of 64 or more): met. Before the output converter's loop was restructured, the same case measured a median of 6.2% and p99.9 of 9.2% (and 10.1% with other virtual machines busy). The change alters only the rounding of the kernel sums; golden lock, matrix, and response gates pass. A mutation check of the new loop detected 4 of 4 faults after a channel-symmetry test was added (a wrong tap index in the right channel first survived).
 
 ## M4 gate status
 

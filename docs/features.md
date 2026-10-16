@@ -35,6 +35,7 @@ Last substantive update: 2026-10-16. M0 to M4 were merged into `main` and approv
 | Extended DAC-rate range (opt-in, up to 50.4 kHz) | REQ-CLOCK-02          | implemented    | passing (see below)      | not yet approved                  | branch `m5-extended-rate` |
 | C API                           | REQ-API-02                            | implemented    | passing (see below)      | not yet approved                  | branch `m5-c-api`     |
 | Packaging, integration guide, examples | REQ-API-03                     | implemented    | passing (see below)      | not yet approved                  | branch `m5-package`   |
+| CPU benchmark                   | REQ-PERF-01                           | implemented    | budget met on the reference machine (see below) | not yet approved | branch `m5-package` |
 | Demo plugin (VST3, AU), separate project | REQ-VST-01, REQ-VST-02, REQ-LAT-03 | planned (after M5) | none                     | none                              | none                  |
 | Measured profile                | AGENTS.md s.14                        | planned (M6, conditional on hardware) | none | none                         | none                  |
 | ADC section and loopback        | REQ-SCOPE-04, REQ-ADC-01 to REQ-ADC-07 | planned (M7)  | none                     | none                              | none                  |
@@ -47,7 +48,7 @@ Available on `main`: `DacCore` (DAC-rate PCM in, 8x the DAC rate out), `HostProc
 - **Contents:** CMake library target `ak4522::ak4522`; Catch2 v3.16.0 pinned by commit; CTest labels from test tags (`unit`, `dsp`, `soak`); JUnit XML output in `build/<preset>/test-results/`; presets `dev` (warnings as errors), `asan` (address and undefined-behavior sanitizers), `release`; uv-locked Python 3.12 environment in `tools/` with numpy, scipy, matplotlib.
 - **Validation:** `dev` and `asan` presets build without warnings and pass all tests. See [validation.md](validation.md).
 - **Real-time checks:** `tests/support/allocation_counter.hpp` replaces global `operator new` and `delete` in the test executable and counts allocations per thread while armed (REQ-RT-01). Its own tests confirm it detects plain, array-backed, and over-aligned allocations.
-- **Limitations:** tested only on macOS with Apple clang. No CI yet. The CPU benchmark harness (REQ-PERF-01) is not written yet.
+- **Limitations:** CI is defined but has not run. Platform results are under Platform support.
 - **Usage:**
 
   ```sh
@@ -350,6 +351,16 @@ Available on `main`: `DacCore` (DAC-rate PCM in, 8x the DAC rate out), `HostProc
 - **Examples** (each built and run by CTest, label `examples`): `host_processor_example.cpp` (effect), `dac_stream_example.cpp` (pull source at 112 MHz / 2304 with the extended range and a mute event), `dac_stream_push_example.cpp` (producer thread), `dac_core_example.cpp` (chip model alone, impulse delay), `c_api_example.c` (C).
 - **Validation:** CTest label `package` builds `tests/package/consumer`, a separate project with a C++ and a C program, three ways: against this build installed to a prefix, through `add_subdirectory`, and against a shared library built and installed for the test; each program runs and checks its result. The shared case was confirmed to link the shared library.
 - **Limitations:** no pkg-config file; no binary packages.
+- **Updated:** 2026-10-16.
+
+## CPU benchmark
+
+- **Purpose:** measure the cost of one stereo instance against the budget of REQ-PERF-01 (P-93): a clean `HostProcessor` at 48 kHz host and 44.1 kHz DAC under 10% of the callback period at the 99.9th percentile for blocks of 64 frames or more.
+- **Status:** implemented on branch `m5-package`; the reference machine is proposed, not yet approved.
+- **Usage:** `cmake --preset release && cmake --build --preset release`, then `build/release/ak4522_benchmark [--check] [--seconds S]` on an otherwise idle machine. It times every callback after a warm-up and prints the median, 99.9th percentile, and maximum as a share of the period, and the callbacks that took longer than the period, for the budget case at 64 to 512 frames and for the nominal profile, a 192 kHz host, and `DacStream` at 48.611 kHz.
+- **Reference machine (proposed):** Apple M1 Max, macOS 26.5.2, Apple clang 21.0.0, `release` preset, one instance, ordinary thread priority.
+- **Result** (60 s of audio per case): budget case p99.9 3.4% at 64 frames and 2.5 to 2.9% at 128 to 512 frames; median 2.1%; no callback over the period. Maximums up to 10% are single callbacks interrupted by the operating system; the benchmark does not run at real-time priority.
+- **Optimization:** the first run measured a median of 6.2% and p99.9 of 9.2% at 64 frames, just inside the budget. The output converter's kernel (about 640 taps at 8x the DAC rate) dominated; it now computes both channels in one pass with four partial sums each, which tripled throughput. Only the rounding of the sums changed: the golden lock (1e-12), the matrix, and every response gate pass. A new test checks that both channels are converted identically, after a mutation in the right channel's taps went unnoticed by the existing tests.
 - **Updated:** 2026-10-16.
 
 ## Documentation process

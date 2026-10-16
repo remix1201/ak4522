@@ -76,8 +76,11 @@ private:
         [[nodiscard]] const double* window() const noexcept { return ring.data() + head; }
     };
 
-    [[nodiscard]] double dot(const double* row, const double* x) const noexcept;
-    [[nodiscard]] double output(const Channel& channel) const noexcept;
+    // Both channels' outputs for the current phase. One pass over the kernel
+    // row with four partial sums per channel, which the compiler can keep in
+    // vector registers; the result differs from a single running sum only by
+    // rounding.
+    void output(double& left, double& right) const noexcept;
 
     std::int64_t p_ = 1;          // input samples per output, numerator
     std::int64_t q_ = 1;          // denominator

@@ -339,6 +339,29 @@ TEST_CASE("Channels are independent", "[unit][rate]")
     CHECK(std::all_of(orr.begin(), orr.begin() + static_cast<std::ptrdiff_t>(got), [](double v) { return v == 0.0; }));
 }
 
+TEST_CASE("Both channels are converted identically", "[unit][rate]")
+{
+    // Swapping the inputs swaps the outputs exactly, in exact and in
+    // interpolated phase modes.
+    const double out = GENERATE(48000.0, 44123.0);
+    CAPTURE(out);
+    std::vector<double> a(3000), b(3000);
+    for (std::size_t n = 0; n < a.size(); ++n) {
+        a[n] = std::sin(0.05 * static_cast<double>(n));
+        b[n] = std::cos(0.31 * static_cast<double>(n)) * 0.5;
+    }
+    Resampler r;
+    REQUIRE(r.prepare({44100, out}) == Status::ok);
+    std::vector<double> l1(r.maxOutputsFor(a.size())), r1(l1.size()), l2(l1.size()), r2(l1.size());
+    const std::size_t n1 = r.process(a, b, l1, r1);
+    r.reset();
+    const std::size_t n2 = r.process(b, a, l2, r2);
+    REQUIRE(n1 == n2);
+    REQUIRE(n1 > 0);
+    CHECK(l1 == r2);
+    CHECK(r1 == l2);
+}
+
 TEST_CASE("Resampling does not allocate", "[unit][rate][rt]")
 {
     Resampler r;

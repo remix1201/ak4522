@@ -164,21 +164,30 @@ std::size_t Resampler::maxOutputsFor(std::size_t inputFrames) const noexcept
     return static_cast<std::size_t>((n * q_ + p_ - 1) / p_ + 1);
 }
 
-double Resampler::dot(const double* row, const double* x) const noexcept
+void Resampler::output(double& left, double& right) const noexcept
 {
-    double sum = 0.0;
-    for (std::size_t j = 0; j < taps_; ++j) {
-        sum += row[j] * x[j];
+    const double* row = exact_ ? rows_.data() + static_cast<std::size_t>(nextRemainder_) * taps_ : blended_.data();
+    const double* xl = left_.window();
+    const double* xr = right_.window();
+    double l0 = 0.0, l1 = 0.0, l2 = 0.0, l3 = 0.0;
+    double r0 = 0.0, r1 = 0.0, r2 = 0.0, r3 = 0.0;
+    std::size_t j = 0;
+    for (; j + 4 <= taps_; j += 4) {
+        l0 += row[j] * xl[j];
+        l1 += row[j + 1] * xl[j + 1];
+        l2 += row[j + 2] * xl[j + 2];
+        l3 += row[j + 3] * xl[j + 3];
+        r0 += row[j] * xr[j];
+        r1 += row[j + 1] * xr[j + 1];
+        r2 += row[j + 2] * xr[j + 2];
+        r3 += row[j + 3] * xr[j + 3];
     }
-    return sum;
-}
-
-double Resampler::output(const Channel& channel) const noexcept
-{
-    if (exact_) {
-        return dot(rows_.data() + static_cast<std::size_t>(nextRemainder_) * taps_, channel.window());
+    for (; j < taps_; ++j) {
+        l0 += row[j] * xl[j];
+        r0 += row[j] * xr[j];
     }
-    return dot(blended_.data(), channel.window());
+    left = (l0 + l1) + (l2 + l3);
+    right = (r0 + r1) + (r2 + r3);
 }
 
 std::size_t Resampler::process(std::span<const double> inLeft, std::span<const double> inRight,
@@ -210,8 +219,7 @@ std::size_t Resampler::process(std::span<const double> inLeft, std::span<const d
                     blended_[j] = a[j] + alpha * (b[j] - a[j]);
                 }
             }
-            outLeft[written] = output(left_);
-            outRight[written] = output(right_);
+            output(outLeft[written], outRight[written]);
             ++written;
             nextIndex_ += pWhole_;
             nextRemainder_ += pRemainder_;
