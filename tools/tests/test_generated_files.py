@@ -8,6 +8,7 @@ import unittest
 from pathlib import Path
 
 import numpy as np
+from scipy import signal
 
 from ak4522_tools import dac_gates
 
@@ -45,6 +46,38 @@ class InterpolatorFilesTest(unittest.TestCase):
             checks = dac_gates.digital_filter_checks(self.taps, 8 * dac_rate, dac_rate,
                                                      check_delay=False)
             for check in checks:
+                with self.subTest(rate=dac_rate, check=check.name):
+                    self.assertTrue(check.passed, check)
+
+
+class ReconstructionFilesTest(unittest.TestCase):
+    def setUp(self):
+        self.values = read_inc(ROOT / "src/dsp/reconstruction_coefficients.inc")
+        self.report = json.loads((ROOT / "src/dsp/reconstruction_design.json").read_text())
+        self.header = (ROOT / "src/dsp/reconstruction.hpp").read_text(encoding="utf-8")
+
+    def test_counts_match_report_and_cpp(self):
+        sections = int(re.search(r"sections = (\d+);", self.header).group(1))
+        pipeline = int(re.search(r"samples = (\d+);", self.header).group(1))
+        self.assertEqual(self.values.size, 5 * sections)
+        self.assertEqual(pipeline, self.report["pipeline_samples_8x"])
+
+    def test_checksum_matches_report(self):
+        digest = hashlib.sha256(np.ascontiguousarray(self.values, dtype="<f8").tobytes()).hexdigest()
+        self.assertEqual(digest, self.report["sha256_le_f8"])
+
+    def test_sections_are_stable(self):
+        for s in self.values.reshape(-1, 5):
+            radius = np.max(np.abs(np.roots([1.0, s[3], s[4]])))
+            self.assertLess(radius, 1.0)
+
+    def test_committed_chain_meets_core_gates(self):
+        interpolator = read_inc(ROOT / "src/dsp/interpolator_coefficients.inc")
+        sos = np.array([[s[0], s[1], s[2], 1.0, s[3], s[4]] for s in self.values.reshape(-1, 5)])
+        x = np.concatenate([np.zeros(self.report["pipeline_samples_8x"]), interpolator, np.zeros(6000)])
+        h = signal.sosfilt(sos, x)
+        for dac_rate in (32000.0, 44100.0, 48000.0):
+            for check in dac_gates.core_checks(h, 8 * dac_rate, dac_rate):
                 with self.subTest(rate=dac_rate, check=check.name):
                     self.assertTrue(check.passed, check)
 

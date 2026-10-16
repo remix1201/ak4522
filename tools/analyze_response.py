@@ -62,14 +62,19 @@ def main(argv=None) -> int:
     parser.add_argument("--dac-rate", type=float, required=True, help="DAC sample rate, Hz")
     parser.add_argument("--combined", action="store_true",
                         help="also check the digital plus analog response (gate 2)")
+    parser.add_argument("--core", action="store_true",
+                        help="whole linear chip model: combined response and delay only")
     parser.add_argument("--no-delay", action="store_true", help="skip the delay check")
     parser.add_argument("--plot", type=Path, help="write a response plot (PNG)")
     args = parser.parse_args(argv)
 
     h = load(args.impulse_response)
-    checks = dac_gates.digital_filter_checks(h, args.fs_high, args.dac_rate,
-                                             check_delay=not args.no_delay)
-    if args.combined:
+    if args.core:
+        checks = dac_gates.core_checks(h, args.fs_high, args.dac_rate)
+    else:
+        checks = dac_gates.digital_filter_checks(h, args.fs_high, args.dac_rate,
+                                                 check_delay=not args.no_delay)
+    if args.combined and not args.core:
         checks.append(dac_gates.combined_response_check(h, args.fs_high, args.dac_rate))
     result = dac_gates.report(checks, source=str(args.impulse_response), taps=int(h.size),
                               fs_high=args.fs_high, dac_rate=args.dac_rate)

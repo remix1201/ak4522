@@ -162,6 +162,16 @@ Findings during design:
 - Measured against an absolute 1 kHz, the same filter shows 0.088 dB ripple at 32 kHz and 0.065 dB at 48 kHz. The reference is taken to scale with fs (I-F07).
 - A DC input does not give a constant 8x output: its images at multiples of fs, each at most -43 dB, form a repeating 8-sample pattern. The test now checks the average and an analytic bound on the pattern.
 
+### 2026-10-16: pipeline delay and reconstruction (branch `m2-reconstruction`, merged into `main`)
+
+| Check | Method | Result |
+| ----- | ------ | ------ |
+| Design | cutoff solved for a 14.7-frame chain delay with a 21-sample pipeline | 1.764485 fs; pole radius 0.673 |
+| Linear chain, C++ output, 32 / 44.1 / 48 kHz | `ak4522_impulse_dump core-linear` then `analyze_response.py --core` | delay 14.700 frames (limit 14.7 +/- 0.1); combined deviation 0.058 dB (limit 0.2) |
+| Pipeline length choice | prototype at 19 to 22 samples | 19: cutoff 0.92 fs, 0.08 frames dispersion; 20: 1.21 fs; 21: 1.76 fs, 0.013 frames; 22: 2.91 fs, near the 8x Nyquist frequency |
+| Generated files and time domain | file checks; 8 C++ test cases | pass |
+| Mutation check | 10 deliberate faults | 9 detected at first. Raising the state flush threshold to 1e-6 went unnoticed because every test signal was near full scale; a test with a tone at 1/16 LSB was added. Final: 10 of 10. |
+
 ## M1 gate status
 
 AGENTS.md section 16, M1: "boundary/serial/control tests pass, including I2S short-word framing and partial mute reversal. No plugin GUI yet."
