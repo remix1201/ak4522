@@ -11,7 +11,7 @@ Last substantive update: 2026-10-16. M0 was merged into `main` and approved by t
 | Build and test foundation       | AGENTS.md s.13, M0                    | implemented    | passing (see below)      | approved 2026-10-16 (`m0-approved`) | merged into `main` |
 | Evidence and assumptions ledgers | AGENTS.md s.2, M0                    | implemented    | reviewed against [DS]    | approved 2026-10-16 (`m0-approved`) | merged into `main` |
 | Public API proposal             | REQ-ARCH-01, REQ-ARCH-02, REQ-RT-02   | in progress (declared, not implemented) | compile-time contract checks pass | approved 2026-10-16 (`m0-approved`) | merged into `main` |
-| PCM mapping and quantization    | REQ-PCM-01 to REQ-PCM-03              | planned (M1)   | none                     | none                              | none                  |
+| PCM mapping and quantization    | REQ-PCM-01 to REQ-PCM-03              | implemented    | passing (see below)      | not yet approved                  | merged into `main`    |
 | Serial decoder and timing validator | REQ-SERIAL-01 to REQ-SERIAL-03    | planned (M1)   | none                     | none                              | none                  |
 | Clock configuration and reset   | REQ-CLOCK-01, REQ-RESET-01, REQ-RESET-02 | planned (M1) | none                    | none                              | none                  |
 | Soft mute                       | REQ-MUTE-01, REQ-MUTE-02              | planned (M1)   | none                     | none                              | none                  |
@@ -22,7 +22,7 @@ Last substantive update: 2026-10-16. M0 was merged into `main` and approved by t
 | VST3 plugin adapter             | REQ-VST-01, REQ-VST-02, REQ-LAT-03    | planned (M5)   | none                     | none                              | none                  |
 | Measured profile                | AGENTS.md s.14                        | planned (M6, conditional on hardware) | none | none                         | none                  |
 
-None of the emulator's signal processing is usable yet.
+None of the emulator's signal processing is usable yet. PCM conversion exists as a library function but is not yet connected to any processing path.
 
 ## Build and test foundation
 
@@ -51,6 +51,19 @@ None of the emulator's signal processing is usable yet.
 - **Implementation:** pin mappings, defaults, and data types are defined. All processing functions are declared only; calling them fails to link.
 - **Validation:** `tests/api_contract_test.cpp` checks pin mappings against [DS] tables, P-01 defaults, same-frame event order, and `noexcept` on every audio-thread entry point at compile time.
 - **Approval:** project owner approved decisions O-01 (8x core output), O-02 (256 pending events), and O-03 (reserve the measured profile) on 2026-10-15, and approved the API proposal as part of M0 on 2026-10-16 (tag `m0-approved`). Approval covers the proposal; implementations are approved with their milestones.
+
+## PCM mapping and quantization
+
+- **Purpose:** convert serial words, 16-bit samples, and host floating-point audio into the DAC's 20-bit codes, and back to normalized values.
+- **Requirements:** REQ-PCM-01, REQ-PCM-02, REQ-PCM-03; evidence D-P01, D-P02, I-P01, I-P02; policy P-10.
+- **Functions** (`include/ak4522/pcm.hpp`):
+  - `pcm20FromRaw(word)`: low 20 bits as two's complement; upper bits ignored.
+  - `pcm20FromInt16(sample)`: multiplies by 16, so the four low bits are zero.
+  - `quantizeToPcm20(x, counters)`: NaN and infinity become 0 and increment `nonFinite`; otherwise `x * 2^19` rounded to nearest with ties to even (implemented explicitly, independent of the floating-point rounding mode), then saturated to [-524288, 524287] with `clipped` incremented. +1.0 is not representable and saturates to 524287; -1.0 maps exactly to -524288.
+  - `toNormalized(pcm)`: `code / 2^19`.
+- **Validation:** 12 tests in `tests/pcm_test.cpp`, including all 2^20 raw words, all 2^20 codes through normalize and quantize, all 65,536 16-bit samples, half-LSB ties on both signs and at both range ends, saturation, non-finite input, and 200,000 random and tie inputs against the C library's `std::nearbyint`. Six deliberate code mutations were each caught by the tests. Passes in the `dev` and `asan` presets.
+- **Limitations:** optional TPDF dither (P-12) and the host-side 16-bit input resolution are not implemented; they belong to `HostProcessor` (M3).
+- **Updated:** 2026-10-16.
 
 ## Documentation process
 

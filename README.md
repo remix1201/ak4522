@@ -6,7 +6,7 @@ The goal is to reproduce documented signal processing and control behavior, then
 
 ## Status
 
-**Alpha, milestone M0 complete.** The project has an engineering specification ([AGENTS.md](AGENTS.md)), a C++20 build and test foundation, a public API proposal, and evidence and assumptions ledgers. **No signal processing is implemented yet**: there is no usable DAC model, compiled plugin, or hardware validation result.
+**Alpha, milestone M0 complete, M1 in progress.** The project has an engineering specification ([AGENTS.md](AGENTS.md)), a C++20 build and test foundation, a public API proposal, and evidence and assumptions ledgers. **No signal processing is implemented yet**: there is no usable DAC model, compiled plugin, or hardware validation result.
 
 See [docs/features.md](docs/features.md) for the current status of each feature.
 
