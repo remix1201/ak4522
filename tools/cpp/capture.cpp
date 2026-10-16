@@ -5,6 +5,8 @@
 //       --host HZ --dac HZ --seconds S     rates and length (default 44100 44100 10)
 //       --tone HZ --level DBFS             sine input (default: zero input)
 //       --noise                            NominalAnalog profile with noise
+//       --distortion [equal|odd|even]      NominalAnalog distortion with a shape
+//       --nominal                          NominalAnalog with every option except DC offset
 //       --mute                             SMUTE high from the first frame
 //       --bits16 --dither                  host input resolution and dither
 
@@ -39,6 +41,21 @@ int main(int argc, char** argv)
         else if (!std::strcmp(argv[i], "--noise")) {
             config.dac.profile = ak4522::ModelProfile::nominalAnalog;
             config.dac.analog.noise = true;
+        }
+        else if (!std::strcmp(argv[i], "--distortion")) {
+            config.dac.profile = ak4522::ModelProfile::nominalAnalog;
+            config.dac.analog.distortion = true;
+            if (i + 1 < argc && argv[i + 1][0] != '-') {
+                const char* shape = argv[++i];
+                config.dac.analog.distortionShape = !std::strcmp(shape, "odd")
+                    ? ak4522::DistortionShape::mostly3rd
+                    : !std::strcmp(shape, "even") ? ak4522::DistortionShape::mostly2nd
+                                                  : ak4522::DistortionShape::equal2nd3rd;
+            }
+        }
+        else if (!std::strcmp(argv[i], "--nominal")) {
+            config.dac.profile = ak4522::ModelProfile::nominalAnalog;
+            config.dac.analog = ak4522::AnalogOptions::nominal();
         }
         else if (!std::strcmp(argv[i], "--mute")) mute = true;
         else if (!std::strcmp(argv[i], "--bits16")) config.inputResolution = ak4522::InputResolution::bits16;

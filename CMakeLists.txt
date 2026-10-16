@@ -39,6 +39,7 @@ endif()
 # Framework-independent core library.
 add_library(ak4522
     src/analog/analog_noise.cpp
+    src/analog/output_stage.cpp
     src/core/config_validation.cpp
     src/core/control_timeline.cpp
     src/core/dac_core.cpp
@@ -103,13 +104,19 @@ if(AK4522_BUILD_TESTS)
         target_link_libraries(ak4522_capture PRIVATE ak4522 ak4522_options)
         function(ak4522_profile_gate name metric expect tolerance)
             set(file ${CMAKE_BINARY_DIR}/dsp/${name}.f64)
+            set(tone 1000)
+            list(FIND ARGN --tone tone_index)
+            if(tone_index GREATER -1)
+                math(EXPR tone_index "${tone_index} + 1")
+                list(GET ARGN ${tone_index} tone)
+            endif()
             add_test(NAME analog.${name}_capture COMMAND ak4522_capture ${file} ${ARGN})
             set_tests_properties(analog.${name}_capture PROPERTIES
                 LABELS "analog" FIXTURES_SETUP ${name})
             add_test(NAME analog.${name}
                 COMMAND ${AK4522_UV} run --directory ${PROJECT_SOURCE_DIR}/tools
                     python measure_profile.py ${file} --rate 44100 --metric ${metric}
-                    --expect ${expect} --tolerance ${tolerance})
+                    --tone ${tone} --expect ${expect} --tolerance ${tolerance})
             set_tests_properties(analog.${name} PROPERTIES
                 LABELS "analog" FIXTURES_REQUIRED ${name} TIMEOUT 600)
         endfunction()
@@ -120,6 +127,14 @@ if(AK4522_BUILD_TESTS)
         # CCIR-ARM: 97.33 dB for this flat noise, against 96 dB typical
         # (DISC-08). Locked to the disclosed value, not to the datasheet.
         ak4522_profile_gate(noise_snr_ccir_arm snr_ccir_arm 97.33 0.3 --noise --seconds 10)
+        # S/(N+D) 90 +/- 1 dB at the declared 0 dBFS level (D-A01, P-90, P-96),
+        # for the full nominal profile and for each distortion shape.
+        ak4522_profile_gate(sinad_nominal sinad 90 1 --nominal --tone 997 --level 0 --seconds 5)
+        ak4522_profile_gate(sinad_equal sinad 90 1 --noise --distortion equal --tone 997 --level 0 --seconds 5)
+        ak4522_profile_gate(sinad_odd sinad 90 1 --noise --distortion odd --tone 997 --level 0 --seconds 5)
+        ak4522_profile_gate(sinad_even sinad 90 1 --noise --distortion even --tone 997 --level 0 --seconds 5)
+        # Dynamic range: -60 dBFS tone, A-weighted residual, 100 +/- 1 dB (D-A02, P-90).
+        ak4522_profile_gate(dynamic_range dynamic_range 100 1 --nominal --tone 997 --level -60 --seconds 10)
 
         # Golden Specification-profile outputs for tests/data (regenerate only
         # on a deliberate change to the clean signal path).

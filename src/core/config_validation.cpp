@@ -23,7 +23,10 @@ bool enumsValid(const DacConfig& config) noexcept
 {
     return enumAtMost(config.cmode, CmodePin::open)
         && enumAtMost(config.profile, ModelProfile::measured)
-        && enumAtMost(config.initialDeemphasis, DeemphasisSelect::fs32000);
+        && enumAtMost(config.initialDeemphasis, DeemphasisSelect::fs32000)
+        && enumAtMost(config.analog.distortionShape, DistortionShape::mostly2nd)
+        && enumAtMost(config.analog.crosstalkShape, CrosstalkShape::flat)
+        && enumAtMost(config.analog.mismatchMode, MismatchMode::perInstance);
 }
 
 } // namespace

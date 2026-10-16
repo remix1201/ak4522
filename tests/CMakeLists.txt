@@ -22,6 +22,7 @@ add_executable(ak4522_tests
     golden_test.cpp
     host_processor_test.cpp
     interpolator_test.cpp
+    output_stage_test.cpp
     pcm_test.cpp
     reconstruction_test.cpp
     resampler_test.cpp

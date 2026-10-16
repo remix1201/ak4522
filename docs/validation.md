@@ -281,6 +281,18 @@ The datasheet pair implies -4.0 dB. No measurement effect accounts for the remai
 | Clean profile | golden lock | unchanged |
 | Mutation check | 8 deliberate faults | 7 detected; one equivalent (see the feature record) |
 
+### 2026-10-16: NominalAnalog output stage, branch `m4-imperfections`
+
+| Check | Method | Result |
+| ----- | ------ | ------ |
+| S/(N+D) at 0 dBFS, 997 Hz | 5 s captures, `measure_profile.py` | equal 2nd/3rd 90.004 dB; 3rd only 90.006 dB; 2nd only 90.002 dB; full nominal profile 89.88 dB (90 +/- 1) |
+| Dynamic range | -60 dBFS, A-weighted, 10 s | 99.89 dB (100 +/- 1) |
+| Harmonics, mismatch, crosstalk, offset | joint sine fits on `DacCore` output | within 0.05 dB of design |
+| Isolation through the host path | 10 s with noise, coherent fit (gate 7) | 110 dB at 1 kHz (after the 0.2 dB mismatch) |
+| Mutation check | 10 deliberate faults | 8 detected at first. Coupling from the wrong channel went unnoticed because only one direction was tested; gate 7 requires both, and a test now covers it. The cubic sign was invisible to magnitude tests; the model was changed to the physically usual compressive sign, and a phase test pins it. Final: 10 of 10. |
+
+Development notes: a level-scaling test at -20 dBFS measured the harmonics of the periodic 20-bit quantization error of a 1 kHz test tone rather than the distortion; the tests now use 997 Hz at -6 dBFS. A first phase test fitted the 3rd harmonic alone and picked up leakage from the fundamental (about 9e-5); it now uses a joint fit.
+
 ## M3 gate status
 
 AGENTS.md section 16, M3: "Deliver SRC, all supported rate pairs, event mapping, latency alignment, and public examples. Gate: alias/count/block-invariance tests and real-time allocation checks pass. Publish core versus wrapper response separately."

@@ -77,22 +77,22 @@ Conditions: Ta = 25 degrees C, VA = VD = 5 V, VREFH = VA, fs = 44.1 kHz, SCLK = 
 
 | ID    | Quantity                                 | Min      | Typ             | Max      | Class | Source        | Conf. | Requirement    | Test       | Status  |
 | ----- | ---------------------------------------- | -------- | --------------- | -------- | ----- | ------------- | ----- | -------------- | ---------- | ------- |
-| D-A01 | S/(N+D)                                  | 80 dB    | 90 dB           |          | D     | p.5           | high  | REQ-DIST-01    | `[analog]` | planned |
-| D-A02 | Dynamic range, -60 dB output, A-weighted | 95 dB    | 100 dB          |          | D     | p.5, note 5   | high  | REQ-NOISE-01   | `[analog]` | planned |
-| D-A03 | S/N, A-weighted                          | 95 dB    | 100 dB          |          | D     | p.5, notes 6,9 | high | REQ-NOISE-01   | `[analog]` | planned |
-| D-A04 | Interchannel isolation                   | 90 dB    | 110 dB          |          | D     | p.5           | high  | REQ-CHANNEL-01 | `[analog]` | planned |
-| D-A05 | Interchannel gain mismatch               |          | 0.2 dB          | 0.5 dB   | D     | p.5           | high  | REQ-CHANNEL-01 | `[analog]` | planned |
+| D-A01 | S/(N+D)                                  | 80 dB    | 90 dB           |          | D     | p.5           | high  | REQ-DIST-01    | `[analog]` | passing |
+| D-A02 | Dynamic range, -60 dB output, A-weighted | 95 dB    | 100 dB          |          | D     | p.5, note 5   | high  | REQ-NOISE-01   | `[analog]` | passing |
+| D-A03 | S/N, A-weighted                          | 95 dB    | 100 dB          |          | D     | p.5, notes 6,9 | high | REQ-NOISE-01   | `[analog]` | passing |
+| D-A04 | Interchannel isolation                   | 90 dB    | 110 dB          |          | D     | p.5           | high  | REQ-CHANNEL-01 | `[analog]` | passing |
+| D-A05 | Interchannel gain mismatch               |          | 0.2 dB          | 0.5 dB   | D     | p.5           | high  | REQ-CHANNEL-01 | `[analog]` | passing |
 | D-A06 | Gain drift                               |          | 20 ppm/degree C |          | D     | p.5           | high  | n/a (not modeled) | n/a     | planned |
-| D-A07 | Output voltage (labeled AOUT = 0.6 x VREFH) | 2.65 Vpp | 2.9 Vpp      | 3.15 Vpp | D     | p.5           | high  | REQ-ANALOG-01  | `[analog]` | planned |
+| D-A07 | Output voltage (labeled AOUT = 0.6 x VREFH) | 2.65 Vpp | 2.9 Vpp      | 3.15 Vpp | D     | p.5           | high  | REQ-ANALOG-01  | `[analog]` | passing |
 | D-A08 | Load resistance                          | 5 kohm   |                 |          | D     | p.5           | high  | n/a (not modeled) | n/a     | planned |
 | D-A09 | Load capacitance                         |          |                 | 25 pF    | D     | p.5           | high  | n/a (not modeled) | n/a     | planned |
 | D-A10 | Power-supply rejection                   |          | 50 dB           |          | D     | p.5, note 8   | high  | n/a (not modeled) | n/a     | planned |
 | D-A11 | 16-bit DAC dynamic range                 |          | 98 dB           |          | D     | p.5 note 5    | high  | REQ-NOISE-01   | `[analog]` | planned |
-| D-A12 | Zero-input S/N, any resolution           |          | 100 dB          |          | D     | p.5 note 9    | high  | REQ-NOISE-01   | `[analog]` | planned |
-| D-A13 | S/N, CCIR-ARM weighted, each converter   |          | 96 dB           |          | D     | p.5 note 6    | high  | REQ-NOISE-01   | `[analog]` | planned |
+| D-A12 | Zero-input S/N, any resolution           |          | 100 dB          |          | D     | p.5 note 9    | high  | REQ-NOISE-01   | `[analog]` | passing |
+| D-A13 | S/N, CCIR-ARM weighted, each converter   |          | 96 dB           |          | D     | p.5 note 6    | high  | REQ-NOISE-01   | `[analog]` | deviation |
 | D-A14 | PSR stimulus: 1 kHz, 50 mVpp on VA and VD; VREFH held constant | |     |          | D     | p.5 note 8    | high  | n/a            | n/a        | planned |
-| D-A15 | Physical DC offset at outputs: "a few mV"; removed by AC coupling |   |    |          | D     | p.16 s.4      | medium | REQ-ANALOG-02 | `[analog]` | planned |
-| D-A16 | *new* Output noise level while soft-muted is shown as -100 dB | |       |          | D     | p.11 Fig.5    | medium | REQ-NOISE-02  | `[mute][analog]` | planned |
+| D-A15 | Physical DC offset at outputs: "a few mV"; removed by AC coupling |   |    |          | D     | p.16 s.4      | medium | REQ-ANALOG-02 | `[analog]` | passing |
+| D-A16 | *new* Output noise level while soft-muted is shown as -100 dB | |       |          | D     | p.11 Fig.5    | medium | REQ-NOISE-02  | `[mute][analog]` | passing |
 
 D-A16 is a figure annotation, not a table value. It agrees with D-A12 and supports keeping analog noise audible after digital mute.
 

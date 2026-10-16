@@ -140,11 +140,11 @@ TEST_CASE("Prepare validates the configuration", "[unit][core]")
     config = DacConfig{};
     config.analog.noise = true;
     CHECK(core.prepare(config, 64) == Status::invalidConfiguration);
-    // NominalAnalog accepts the options implemented so far.
+    // NominalAnalog accepts every option.
     config.profile = ModelProfile::nominalAnalog;
+    config.analog = AnalogOptions::nominal();
+    config.analog.dcOffset = true;
     CHECK(core.prepare(config, 64) == Status::ok);
-    config.analog.distortion = true; // not yet implemented
-    CHECK(core.prepare(config, 64) == Status::invalidConfiguration);
 
     CHECK(core.prepare(DacConfig{}, 64) == Status::ok);
     CHECK(core.isPrepared());

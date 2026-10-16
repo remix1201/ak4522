@@ -1,6 +1,7 @@
 #include "ak4522/dac_core.hpp"
 
 #include "analog/analog_noise.hpp"
+#include "analog/output_stage.hpp"
 #include "core/config_validation.hpp"
 #include "core/control_timeline.hpp"
 #include "dsp/deemphasis.hpp"
@@ -27,11 +28,6 @@ bool analogOptionsRequested(const AnalogOptions& options) noexcept
         || options.dcOffset;
 }
 
-// Analog options implemented so far; the rest are rejected until they exist.
-bool analogOptionsAvailable(const AnalogOptions& options) noexcept
-{
-    return !(options.distortion || options.channelMismatch || options.crosstalk || options.dcOffset);
-}
 
 void zero(std::span<double> samples) noexcept
 {
@@ -52,6 +48,7 @@ struct DacCore::Impl {
     detail::Reconstruction reconstruction;
     detail::AnalogNoise noise;
     bool noiseEnabled = false;
+    detail::OutputStage outputStage;
 
     // DAC-rate scratch for one chunk.
     std::vector<double> left;
@@ -73,6 +70,7 @@ struct DacCore::Impl {
         interpolator.reset();
         pipeline.reset();
         reconstruction.reset();
+        outputStage.reset();
     }
 
     // Runs frames [begin, begin + count) of a segment with constant controls.
@@ -98,6 +96,7 @@ struct DacCore::Impl {
             noise.add(output.left, output.right);
         }
         reconstruction.process(output.left, output.right);
+        outputStage.process(output.left, output.right); // NominalAnalog output stage (P-96 to P-99)
     }
 };
 
@@ -124,9 +123,6 @@ Status DacCore::prepare(const DacConfig& config, std::size_t maxBlockFrames)
     if (config.profile == ModelProfile::specification && analogOptionsRequested(config.analog)) {
         return Status::invalidConfiguration;
     }
-    if (config.profile == ModelProfile::nominalAnalog && !analogOptionsAvailable(config.analog)) {
-        return Status::invalidConfiguration;
-    }
 
     impl_->config = config;
     impl_->maxBlockFrames = maxBlockFrames;
@@ -138,6 +134,11 @@ Status DacCore::prepare(const DacConfig& config, std::size_t maxBlockFrames)
     impl_->deemphasis = detail::Deemphasis{};
     impl_->noiseEnabled = config.profile == ModelProfile::nominalAnalog && config.analog.noise;
     impl_->noise.prepare(config.analog.noiseSeed, config.dacRate * static_cast<double>(oversampling));
+    if (config.profile == ModelProfile::nominalAnalog) {
+        impl_->outputStage.prepare(config.analog, config.dacRate * static_cast<double>(oversampling));
+    } else {
+        impl_->outputStage.prepare(AnalogOptions{}, 1.0);
+    }
     impl_->resetState();
     impl_->prepared = true;
     return Status::ok;

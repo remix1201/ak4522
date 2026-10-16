@@ -28,7 +28,7 @@ Last substantive update: 2026-10-16. M0 to M3 were merged into `main` and approv
 | Specification profile lock      | REQ-SCOPE-03                          | implemented    | passing (see below)      | not yet approved                  | branch `m4-lock`      |
 | Weighted measurement tools      | REQ-NOISE-01, REQ-DIST-01             | implemented    | passing (see below)      | not yet approved                  | branch `m4-measure`   |
 | NominalAnalog noise             | REQ-NOISE-01, REQ-NOISE-02            | implemented    | passing (see below)      | not yet approved                  | branch `m4-noise`     |
-| NominalAnalog profile           | REQ-NOISE-01, REQ-NOISE-02, REQ-DIST-01, REQ-CHANNEL-01 | planned (M4) | none     | none                              | none                  |
+| NominalAnalog output stage      | REQ-DIST-01, REQ-CHANNEL-01, REQ-ANALOG-01, REQ-ANALOG-02 | implemented | passing (see below) | not yet approved          | branch `m4-imperfections` |
 | VST3 plugin adapter             | REQ-VST-01, REQ-VST-02, REQ-LAT-03    | planned (M5)   | none                     | none                              | none                  |
 | Measured profile                | AGENTS.md s.14                        | planned (M6, conditional on hardware) | none | none                         | none                  |
 | ADC section and loopback        | REQ-SCOPE-04, REQ-ADC-01 to REQ-ADC-07 | planned (M7)  | none                     | none                              | none                  |
@@ -279,6 +279,16 @@ The DAC core produces audio through the public `DacCore` API at the DAC rate in,
 - **Measured** (CTest label `analog`, 10 s captures through `HostProcessor` at 44.1 kHz with `ak4522_capture` and `tools/measure_profile.py`): A-weighted S/N 100.006 dB (target 100 +/- 1); with a full-scale tone held muted by SMUTE, identical; CCIR-ARM 97.32 dB, the disclosed value for flat noise (96 dB typical, DISC-08).
 - **Validation:** 8 C++ test cases: level against density at three rates; zero mean, variance within 1 %, Gaussian kurtosis; channel correlation below 0.005; seed reproducibility; NominalAnalog without options equal to the clean profile; noise while muted and none in power-down; reset not reseeding; no allocations. Seven deliberate mutations detected; an eighth (both channels drawing alternately from one generator) was dropped as equivalent, since Box-Muller's paired outputs are independent.
 - **Limitations:** distortion, mismatch, crosstalk, and DC offset are next (`m4-imperfections`); the real noise spectrum, idle tones, and correlation are unknown (U-09).
+- **Updated:** 2026-10-16.
+
+## NominalAnalog output stage
+
+- **Purpose:** the remaining datasheet typical imperfections, each optional and labeled synthetic, plus voltage scaling and profile metadata.
+- **Requirements:** REQ-DIST-01, REQ-CHANNEL-01, REQ-ANALOG-01, REQ-ANALOG-02; evidence D-A01, D-A04, D-A05, D-A07, D-A15; policies P-96 to P-99; API decision O-10 (proposed).
+- **Usage:** with `profile = ModelProfile::nominalAnalog`, set any of `analog.distortion`, `channelMismatch`, `crosstalk`, `dcOffset` (and `noise`), or use `AnalogOptions::nominal()` for all except the DC offset. Shapes: `distortionShape` (`equal2nd3rd` default, `mostly3rd`, `mostly2nd`), `crosstalkShape` (`capacitive` default, `flat`), `mismatchMode` (`fixed` default, `perInstance`). `ak4522::outputVolts(x, vrefh)` converts a normalized sample to volts; `ak4522::describe(profile)` returns the profile's name, synthetic flag, availability, and summary.
+- **Model:** at 8x after the reconstruction sections: channel gain, distortion polynomial, crosstalk between channels, DC offset. Power-down output stays exactly VCOM.
+- **Measured** (44.1 kHz, `measure_profile.py`): S/(N+D) at 0 dBFS 90.004 / 90.006 / 90.002 dB for the three distortion shapes and 89.88 dB with the full nominal profile (target 90 +/- 1); dynamic range at -60 dBFS 99.89 dB A-weighted (100 +/- 1); isolation 110 dB at 1 kHz through the host path with noise (gate 7); fixed mismatch 0.200 dB.
+- **Validation:** 14 C++ test cases: harmonic levels per shape within 0.05 dB of the design; compressive 3rd-harmonic phase; level scaling; crosstalk in both directions; fixed and per-instance mismatch (seeded, median 0.2 dB, capped at 0.5 dB, both signs); crosstalk level at 1 and 10 kHz and phase per shape; DC offset; power-down; block invariance with every option; no allocations; isolation through the host path; voltage scaling and profile descriptions. Python gates for SINAD per shape and dynamic range. Ten deliberate mutations detected.
 - **Updated:** 2026-10-16.
 
 ## Documentation process

@@ -13,6 +13,7 @@ namespace ak4522::test {
 
 struct MultiSineFit {
     std::vector<double> amplitudes; // one per frequency
+    std::vector<double> phases;     // y ~ amplitude * sin(2 pi f t + phase)
     double residualRms;
 };
 
@@ -78,6 +79,7 @@ inline MultiSineFit fitSines(std::span<const double> y, std::span<const double> 
     MultiSineFit out;
     for (std::size_t i = 0; i < freqs.size(); ++i) {
         out.amplitudes.push_back(std::hypot(coef[1 + 2 * i], coef[2 + 2 * i]));
+        out.phases.push_back(std::atan2(coef[1 + 2 * i], coef[2 + 2 * i]));
     }
     out.residualRms = std::sqrt(sq / static_cast<double>(y.size()));
     return out;
