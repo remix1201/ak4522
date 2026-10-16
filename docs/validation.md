@@ -45,6 +45,18 @@ First run found and fixed: evidence row I-T01 had its cells shifted into the wro
 | Serial modes (p.9 Table 2), Fig.4 32fs and 64fs framing | confirmed; 64fs bit 0 is in slot 20 per text coordinates |
 | DEM, CMODE, mute, reset, DAC filter values, filter conditions, serial timing | confirmed |
 
+### 2026-10-16: PCM mapping and quantization, branch `m1-pcm`
+
+| Check | Method | Result |
+| ----- | ------ | ------ |
+| Raw 20-bit words, exhaustive (2^20) | compare with integer two's complement | pass |
+| Normalize then quantize, exhaustive (2^20 codes) | round trip must be identity with no clipping | pass |
+| 16-bit scaling, exhaustive (65,536) | `code == s * 16`, low four bits zero, `s / 32768` normalization | pass |
+| Ties to even, saturation, non-finite, signed zero, subnormal | table-driven cases | pass |
+| Random and tie inputs (200,000, fixed seed) | compare with `std::nearbyint` under FE_TONEAREST, then clamp | pass |
+| Mutation check | six deliberate faults (tie direction, sign extension, scaling, saturation bound, counter, tie boundary) in a separate non-Werror build | all six detected |
+| Sanitizers | `asan` preset, all tests | pass |
+
 No signal-processing measurements exist yet. DSP gates from AGENTS.md section 13.2 begin in M1 and M2.
 
 ## Known deviations

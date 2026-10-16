@@ -25,7 +25,7 @@ Printed page numbers match PDF page numbers. The PDF is not committed; see [refe
 
 Confidence: **high** (explicit text or table value), **medium** (figure reading or single-source statement), **low** (ambiguous or conflicting).
 
-Test column names the planned Catch2 tag from AGENTS.md section 13.1. Status values: *planned*, *implemented*, *passing*, *failing*, *deviation*. No test exists yet, so every entry is *planned*.
+Test column names the planned Catch2 tag from AGENTS.md section 13.1. Status values: *planned*, *implemented*, *passing*, *failing*, *deviation*. *passing* means the linked test exists and passes on the branch named in [features.md](features.md).
 
 ## 1. Structure and operating conditions
 
@@ -99,11 +99,11 @@ D-A16 is a figure annotation, not a table value. It agrees with D-A12 and suppor
 
 | ID    | Fact                                                                 | Class | Source               | Conf. | Requirement | Test    | Status  |
 | ----- | -------------------------------------------------------------------- | ----- | -------------------- | ----- | ----------- | ------- | ------- |
-| D-P01 | DAC input is two's complement, MSB first, in all modes               | D     | p.9; p.16 s.4        | high  | REQ-PCM-01  | `[pcm]` | planned |
-| D-P02 | 7FFFFh is positive full scale; 80000h is negative full scale (20-bit) | D    | p.16 s.4             | high  | REQ-PCM-01  | `[pcm]` | planned |
+| D-P01 | DAC input is two's complement, MSB first, in all modes               | D     | p.9; p.16 s.4        | high  | REQ-PCM-01  | `[pcm]` | passing |
+| D-P02 | 7FFFFh is positive full scale; 80000h is negative full scale (20-bit) | D    | p.16 s.4             | high  | REQ-PCM-01  | `[pcm]` | passing |
 | D-P03 | 00000h ideally produces VCOM at the output                           | D     | p.16 s.4             | high  | REQ-PCM-01  | `[pcm]` | planned |
-| I-P01 | Normalized value `code / 524288.0`; +FS is `1 - 2^-19`               | I     | D-P02 with 20-bit range | high | REQ-PCM-01 | `[pcm]` | planned |
-| I-P02 | 16-bit words map to 20-bit scale by multiplication by 16             | I     | Mode 0 and 32fs I2S carry the top 16 bits; MSB weight is preserved | high | REQ-PCM-02 | `[pcm]` | planned |
+| I-P01 | Normalized value `code / 524288.0`; +FS is `1 - 2^-19`               | I     | D-P02 with 20-bit range | high | REQ-PCM-01 | `[pcm]` | passing |
+| I-P02 | 16-bit words map to 20-bit scale by multiplication by 16             | I     | Mode 0 and 32fs I2S carry the top 16 bits; MSB weight is preserved | high | REQ-PCM-02 | `[pcm]` | passing |
 
 ## 5. Serial interface
 
