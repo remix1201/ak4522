@@ -131,11 +131,11 @@ Output sample-rate conversion and latency alignment
 Host audio
 ```
 
-Decoded PCM and serial input adapters will feed the same DAC core. Plugin integration will handle host automation, state, bypass, and latency reporting separately from chip behavior.
+Decoded PCM and serial input adapters will feed the same DAC core. Plugin adapters, which live in separate projects, handle host automation, state, bypass, and latency reporting separately from chip behavior.
 
 The core must support continuous processing across arbitrary block boundaries without allocations, locks, blocking operations, file I/O, or coefficient generation on the audio thread. Noise generation, when enabled, must be reproducible from a stored seed.
 
-The intended toolchain is C++20 with CMake and CTest. The library does not depend on any plugin framework. The M5 demo plugin is a separate adapter and is planned to use JUCE.
+The intended toolchain is C++20 with CMake and CTest. The library does not depend on any plugin framework, and this repository contains no plugin code. A demo plugin (VST3, AU) is planned as a separate project that uses the packaged library and JUCE.
 
 ## Development roadmap
 
@@ -146,13 +146,13 @@ The intended toolchain is C++20 with CMake and CTest. The library does not depen
 | M2        | Linear DAC response, de-emphasis, coefficient generation, and core latency accounting   |
 | M3        | Host-rate adaptation, event timing, reusable library, and streaming verification        |
 | M4        | Optional calibrated nominal analog profile                                              |
-| M5        | `DacStream` for sources at their own rate, C API, packaging, and a demo plugin (VST3, AU) |
+| M5        | `DacStream` for sources at their own rate, C API, packaging, and integration guide       |
 | M6        | Hardware-characterized refinement when suitable measurements are available              |
 | M7        | ADC section, SDTO serial output, and optional DAC-to-ADC loopback                       |
 
 Detailed requirements and acceptance gates are maintained in [AGENTS.md](AGENTS.md).
 
-Progress: M0 (evidence ledger, build foundation, API proposal, requirement-to-test mapping) is complete and approved (tag `m0-approved`). M1 (PCM mapping, serial decoder, timing validator, clock configuration, reset, and mute state machine) is complete and approved (tag `m1-approved`). M2 (linear DAC response) is complete and approved (tag `m2-approved`). M3 (host-rate adaptation) is complete and approved (tag `m3-approved`). M4 (NominalAnalog profile) is complete and approved (tag `m4-approved`). M5 (integration API, packaging, and demo plugin) is in progress.
+Progress: M0 (evidence ledger, build foundation, API proposal, requirement-to-test mapping) is complete and approved (tag `m0-approved`). M1 (PCM mapping, serial decoder, timing validator, clock configuration, reset, and mute state machine) is complete and approved (tag `m1-approved`). M2 (linear DAC response) is complete and approved (tag `m2-approved`). M3 (host-rate adaptation) is complete and approved (tag `m3-approved`). M4 (NominalAnalog profile) is complete and approved (tag `m4-approved`). M5 (integration API and packaging) is in progress. The demo plugin follows M5 as a separate project.
 
 ## Verification
 

@@ -14,7 +14,7 @@
 
 ## 1. Mission and working rules
 
-Build an independent, reusable C++20 stereo DAC emulation library. The library is the product: it MUST stay generic and usable however its users need, as an audio effect, inside an instrument or emulator that generates samples at its own rate, in offline tools, or from other languages through a C API. A specific downstream project is a user of the library, never its design target. A demo plugin shows the library in use but does not define it. Model the DAC section of the AKM AK4522VF first. The ADC section follows as a separate core in milestone M7 (section 17); a complete sound card is out of scope. Keep the library independent of JUCE, VST SDK headers, GUI frameworks, and host APIs. A thin optional plugin adapter may use JUCE or the VST3 SDK.
+Build an independent, reusable C++20 stereo DAC emulation library. The library is the product: it MUST stay generic and usable however its users need, as an audio effect, inside an instrument or emulator that generates samples at its own rate, in offline tools, or from other languages through a C API. A specific downstream project is a user of the library, never its design target. A demo plugin shows the library in use but does not define it; it lives in a separate sibling project that consumes the library as any outside user would. Model the DAC section of the AKM AK4522VF first. The ADC section follows as a separate core in milestone M7 (section 17); a complete sound card is out of scope. Keep the library independent of JUCE, VST SDK headers, GUI frameworks, and host APIs. This repository contains no plugin framework code or dependency. Plugin adapters, including the demo plugin, live in separate projects and may use JUCE or the VST3 SDK.
 
 The mandatory baseline is a documented, specification-constrained behavioral model. Hardware-characterized fidelity is a later, separately identified profile. Do not describe either an invented delta-sigma modulator or a filter fitted to a few limits as a bit-exact reconstruction of AKM silicon.
 
@@ -173,7 +173,6 @@ src/core/             PCM, events, reset, mute, de-emphasis
 src/dsp/              Interpolation, reconstruction, SRC
 src/analog/           Optional voltage/noise/nonlinearity models
 src/serial/           Serial decoder and timing validator
-plugin/               Optional VST3 adapter
 tests/                Unit, DSP, integration tests
  tools/               Coefficient design, analysis, benchmarks
  reference/           Source manifest and permitted reference material
@@ -368,11 +367,15 @@ Deliver SRC, all supported rate pairs, event mapping, latency alignment, and pub
 
 Deliver calibrated noise, optional distortion/mismatch/crosstalk/voltage diagnostics, and profile metadata. Gate: weighted measurement methods are validated; synthetic assumptions are explicit; typical-target reports pass within project tolerances. Hardware fidelity claims remain limited.
 
-### M5: Integration API, packaging, and demo plugin
+### M5: Integration API and packaging
 
-Deliver, in this order: `DacStream` with pull and push modes, exact fractional rates, and 16/20/24-bit and float input (REQ-API-01); the opt-in extended rate range (REQ-CLOCK-02); the C API (REQ-API-02); packaging, the integration guide, and generic examples (REQ-API-03); then a demo plugin. The demo plugin is an adapter outside the library (section 0) and may use JUCE. It provides a stereo effect built on `HostProcessor` and an instrument-style demo built on `DacStream`, with documented parameters and versioned state, automation, compensated bypass, float/double processing, a tail policy, and minimal generic controls. A delta listen mode (processed output minus the latency-aligned dry input) MAY be offered as host behavior. Formats are VST3 and, on macOS, AU.
+Deliver, in this order: `DacStream` with pull and push modes, exact fractional rates, and 16/20/24-bit and float input (REQ-API-01); the opt-in extended rate range (REQ-CLOCK-02); the C API (REQ-API-02); packaging, the integration guide, and generic examples (REQ-API-03).
 
-Gate: library tests for each new API, including block-partition invariance, drift-free long runs at a fractional DAC rate, push and pull equivalence, and real-time allocation checks; a C API test built as C; a consumer project built against the installed package; plugin validation with pluginval (VST3 and AU) and auval (AU) passing; smoke tests in representative hosts (FL Studio and Ableton Live); latency agreeing with emitted audio; release benchmark meeting the stated budget. Plugin-specific requirements (REQ-VST-01, REQ-VST-02) apply to the demo plugin.
+Gate: library tests for each new API, including block-partition invariance, drift-free long runs at a fractional DAC rate, push and pull equivalence, and real-time allocation checks; a C API test built as C; a consumer project, outside the library's own build, built against the installed package and run; release benchmark meeting the stated budget.
+
+### Demo plugin (sibling project, after M5)
+
+A separate repository, with its own README, feature record, and instructions, consumes a tagged library release through `find_package` or FetchContent and never through private headers or this repository's build tree. It is an adapter outside the library (section 0) and may use JUCE; its framework licence applies to it, not to this library. It provides a stereo effect built on `HostProcessor` and an instrument-style demo built on `DacStream`, with documented parameters and versioned state, automation, compensated bypass, float/double processing, a tail policy, and minimal generic controls. A delta listen mode (processed output minus the latency-aligned dry input) MAY be offered as host behavior. Formats are VST3 and, on macOS, AU. REQ-VST-01, REQ-VST-02, and REQ-LAT-03 apply to it and to any other plugin adapter. Gate: pluginval (VST3 and AU) and auval (AU) pass; smoke tests in representative hosts (FL Studio and Ableton Live) pass; latency agrees with emitted audio. Library gaps found there are fixed here, in this repository's milestones.
 
 ### M6: Hardware-characterized refinement, conditional
 
@@ -380,7 +383,7 @@ Deliver calibrated captures, fitted profile, residual-error plots, held-out vali
 
 ### M7: ADC section and loopback
 
-Deliver the ADC evidence entries, `AdcCore`, SDTO serial encoder, ADC reset and initialization behavior, the optional DAC-to-ADC loopback chain, and plugin integration. Gate: decimation response, high-pass response, initialization timing, serial output framing, and streaming tests pass under the same rules as the DAC; ADC and DAC results are reported separately. M7 depends on M3 and on M5 for plugin integration; it does not depend on M6.
+Deliver the ADC evidence entries, `AdcCore`, SDTO serial encoder, ADC reset and initialization behavior, and the optional DAC-to-ADC loopback chain, exposed through the integration modes and C API. Plugin use of the ADC belongs to the sibling plugin project. Gate: decimation response, high-pass response, initialization timing, serial output framing, and streaming tests pass under the same rules as the DAC; ADC and DAC results are reported separately. M7 depends on M3 and on M5; it does not depend on M6.
 
 For each milestone, report changes, tests run, measured results, known deviations, and the next unmet gate. Completion means reproducible builds, passing applicable gates, documented assumptions, an up-to-date feature record and README, no hidden real-time violations, and an honest fidelity statement. Never represent an unmeasured approximation as the recovered AKM implementation.
 

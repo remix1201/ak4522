@@ -35,11 +35,11 @@ Last substantive update: 2026-10-16. M0 to M4 were merged into `main` and approv
 | Extended DAC-rate range (opt-in, up to 50.4 kHz) | REQ-CLOCK-02          | planned (M5)   | none                     | none                              | none                  |
 | C API                           | REQ-API-02                            | planned (M5)   | none                     | none                              | none                  |
 | Packaging, integration guide, examples | REQ-API-03                     | planned (M5)   | none                     | none                              | none                  |
-| Demo plugin (VST3, AU)          | REQ-VST-01, REQ-VST-02, REQ-LAT-03    | planned (M5)   | none                     | none                              | none                  |
+| Demo plugin (VST3, AU), separate project | REQ-VST-01, REQ-VST-02, REQ-LAT-03 | planned (after M5) | none                     | none                              | none                  |
 | Measured profile                | AGENTS.md s.14                        | planned (M6, conditional on hardware) | none | none                         | none                  |
 | ADC section and loopback        | REQ-SCOPE-04, REQ-ADC-01 to REQ-ADC-07 | planned (M7)  | none                     | none                              | none                  |
 
-Available on `main`: `DacCore` (DAC-rate PCM in, 8x the DAC rate out), `HostProcessor` (host-rate audio in and out), the Specification profile, and the optional NominalAnalog profile. Planned for M5: `DacStream` for sources at their own DAC rate, the opt-in extended rate range, a C API, packaging, and a demo plugin.
+Available on `main`: `DacCore` (DAC-rate PCM in, 8x the DAC rate out), `HostProcessor` (host-rate audio in and out), the Specification profile, and the optional NominalAnalog profile. Planned for M5: `DacStream` for sources at their own DAC rate, the opt-in extended rate range, a C API, and packaging. A demo plugin follows in a separate project.
 
 ## Build and test foundation
 
