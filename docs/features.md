@@ -19,7 +19,8 @@ Last substantive update: 2026-10-16. M0 and M1 were merged into `main` and appro
 | Soft mute                       | REQ-MUTE-01, REQ-MUTE-02              | implemented    | passing (see below)      | approved 2026-10-16 (`m1-approved`) | merged into `main`    |
 | De-emphasis                     | REQ-DEEM-01 to REQ-DEEM-03            | planned (M2)   | none                     | none                              | none                  |
 | Response analysis tools         | REQ-FILTER-01, REQ-LAT-02, REQ-DEEM-02 | implemented   | passing (see below)      | not yet approved                  | merged into `main`    |
-| Interpolation and reconstruction | REQ-FILTER-01, REQ-FILTER-02, REQ-LAT-02 | planned (M2) | none                   | none                              | none                  |
+| 8x interpolator                 | REQ-FILTER-01                         | implemented    | passing (see below)      | not yet approved                  | merged into `main`    |
+| Analog reconstruction and pipeline delay | REQ-FILTER-02, REQ-LAT-02    | planned (M2)   | none                     | none                              | none                  |
 | Host-rate adaptation            | REQ-RATE-01 to REQ-RATE-04, REQ-CTRL-01 | planned (M3) | none                     | none                              | none                  |
 | NominalAnalog profile           | REQ-NOISE-01, REQ-NOISE-02, REQ-DIST-01, REQ-CHANNEL-01 | planned (M4) | none     | none                              | none                  |
 | VST3 plugin adapter             | REQ-VST-01, REQ-VST-02, REQ-LAT-03    | planned (M5)   | none                     | none                              | none                  |
@@ -151,6 +152,16 @@ None of the emulator's signal processing is usable yet. PCM conversion exists as
 - **Location and usage:** `tools/ak4522_tools/` and `tools/analyze_response.py`; see [tools/README.md](../tools/README.md).
 - **Validation:** 16 tests in `tools/tests/test_response.py` against analytic responses, exact delays, and a 4-million-point FFT, including filters whose ripple and stopband attenuation fall just outside the limits. See [validation.md](validation.md) for the mutation check.
 - **Limitations:** analyzes impulse responses; the C++ side that exports `DacCore` impulse responses arrives with the core in M2. Weighted noise, SINAD, and alias analysis belong to M3 and M4.
+- **Updated:** 2026-10-16.
+
+## 8x interpolator
+
+- **Purpose:** the DAC's 8x interpolation filter (D-02), the first stage of the DAC response.
+- **Requirements:** REQ-FILTER-01; evidence D-02, D-F01 to D-F05, D-F08, D-F09, I-F07; policies P-87, P-88.
+- **Design:** `tools/design_interpolator.py` (linear program, HiGHS) writes `src/dsp/interpolator_coefficients.inc` (exact hexadecimal doubles) and `src/dsp/interpolator_design.json` (parameters, versions, SHA-256, measured checks). 191 taps, linear phase, delay 95 samples at 8x = 11.875 DAC frames. Measured: passband ripple 0.058 dB, -0.058 dB at 20/44.1 fs, -6.000 dB at 0.5 fs, stopband 43.46 dB from 24.1/44.1 fs to the 8x Nyquist frequency. One coefficient set at every DAC rate. The coefficients are fitted, not AKM's.
+- **Implementation:** internal `detail::Interpolator8x` in `src/dsp/interpolator.hpp`: 8-phase polyphase FIR with a mirrored history buffer, double precision, stereo.
+- **Validation:** the C++ impulse response is dumped by `ak4522_impulse_dump` and measured by `analyze_response.py` at 32, 44.1, and 48 kHz (CTest `dsp` label). `tools/tests/test_generated_files.py` checks that the coefficient file, design report, checksum, and the C++ length agree. 9 C++ test cases cover exact impulse response, symmetry, DC with bounded image ripple, channel independence, block partitioning, reset, full-scale bound, and no allocations. Seven deliberate mutations detected. Passes in `dev` and `asan`.
+- **Limitations:** the 14.7-frame delay gate applies to the whole core and is checked in M2 once the pipeline delay and reconstruction exist.
 - **Updated:** 2026-10-16.
 
 ## Documentation process

@@ -1,0 +1,105 @@
+{
+  "generator": "tools/design_interpolator.py",
+  "method": "linear program (scipy.optimize.linprog, HiGHS): minimize stopband peak subject to passband ripple, edge, and half-rate equality constraints",
+  "parameters": {
+    "oversampling": 8,
+    "reference_rate_hz": 44100.0,
+    "passband_hz": 20000.0,
+    "half_hz": 22050.0,
+    "stopband_hz": 24100.0,
+    "ripple_db": 0.058,
+    "edge_db": -0.058,
+    "half_db": -6.0,
+    "min_stopband_db": 43.2,
+    "passband_grid": 800,
+    "stopband_grid": 4000
+  },
+  "length": 191,
+  "delay_samples_8x": 95.0,
+  "delay_dac_frames": 11.875,
+  "precision": "IEEE 754 double",
+  "sha256_le_f8": "8656e7f392ae49ccd00afd14de8077dc019aa59cce871330a30c47632147436e",
+  "lengths_searched": [
+    {
+      "length": 175,
+      "feasible": true,
+      "stopband_db": 31.5656
+    },
+    {
+      "length": 177,
+      "feasible": true,
+      "stopband_db": 33.5271
+    },
+    {
+      "length": 179,
+      "feasible": true,
+      "stopband_db": 35.6172
+    },
+    {
+      "length": 181,
+      "feasible": true,
+      "stopband_db": 37.8208
+    },
+    {
+      "length": 183,
+      "feasible": true,
+      "stopband_db": 40.1271
+    },
+    {
+      "length": 185,
+      "feasible": true,
+      "stopband_db": 42.511
+    },
+    {
+      "length": 187,
+      "feasible": true,
+      "stopband_db": 42.7623
+    },
+    {
+      "length": 189,
+      "feasible": true,
+      "stopband_db": 43.0619
+    },
+    {
+      "length": 191,
+      "feasible": true,
+      "stopband_db": 43.4648
+    }
+  ],
+  "measured": [
+    {
+      "name": "passband_ripple_db",
+      "value": 0.058018412320809176,
+      "limit": "<= 0.06 dB from 0 to 20/44.1 fs, relative to 1 kHz",
+      "source": "D-F04",
+      "passed": true
+    },
+    {
+      "name": "passband_edge_db",
+      "value": -0.05800000000001404,
+      "limit": "-0.06 +/- 0.01 dB at 20/44.1 fs",
+      "source": "D-F01, P-80",
+      "passed": true
+    },
+    {
+      "name": "half_rate_db",
+      "value": -5.999999999999872,
+      "limit": "-6 +/- 0.1 dB at 0.5 fs",
+      "source": "D-F02, P-80",
+      "passed": true
+    },
+    {
+      "name": "stopband_attenuation_db",
+      "value": 43.464754908370345,
+      "limit": ">= 43 dB from 24.1/44.1 fs to the high-rate Nyquist frequency",
+      "source": "D-F05, I-F04",
+      "passed": true
+    }
+  ],
+  "versions": {
+    "python": "3.12.15",
+    "numpy": "2.5.4",
+    "scipy": "1.18.1",
+    "platform": "macOS-26.5.2-arm64-arm-64bit"
+  }
+}
