@@ -177,11 +177,11 @@ D-A16 is a figure annotation, not a table value. It agrees with D-A12 and suppor
 
 | ID    | Fact                                                                    | Class | Source                | Conf.  | Requirement    | Test      | Status  |
 | ----- | ----------------------------------------------------------------------- | ----- | --------------------- | ------ | -------------- | --------- | ------- |
-| D-R01 | PD is active low and resets both ADC and DAC                            | D     | p.3 pin 20; p.12      | high   | REQ-RESET-01   | `[reset]` | planned |
+| D-R01 | PD is active low and resets both ADC and DAC                            | D     | p.3 pin 20; p.12      | high   | REQ-RESET-01   | `[reset]` | passing |
 | D-R02 | Reset should always be performed after power-up                         | D     | p.12                  | high   | REQ-RESET-02   | `[reset]` | planned |
 | D-R03 | Minimum PD low pulse tPD                                                | D     | p.7 (150 ns)          | high   | REQ-RESET-01   | `[reset]` | planned |
-| D-R04 | Clocks may be stopped while PD is low                                   | D     | p.12 Fig.6            | high   | REQ-RESET-01   | `[reset]` | planned |
-| D-R05 | DAC returns to normal operation at PD release; the 516-cycle initialization does not affect the DAC | D | p.12 text and Fig.6 | high | REQ-RESET-01 | `[reset]` | planned |
+| D-R04 | Clocks may be stopped while PD is low                                   | D     | p.12 Fig.6            | high   | REQ-RESET-01   | `[reset]` | passing |
+| D-R05 | DAC returns to normal operation at PD release; the 516-cycle initialization does not affect the DAC | D | p.12 text and Fig.6 | high | REQ-RESET-01 | `[reset]` | passing |
 | D-R06 | Click noise occurs at PD edges; external analog mute recommended        | D     | p.12 Fig.6 notes 5,6  | high   | REQ-RESET-02   | `[reset]` | planned |
 | I-R01 | DAC analog output during reset is drawn flat (no signal)                | I     | p.12 Fig.6 DAC Out    | medium | REQ-RESET-02   | `[reset]` | planned |
 

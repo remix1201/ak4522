@@ -1,0 +1,3 @@
+[('zero block allowed', '    if (config.maxBlockFrames == 0) {', '    if (false) {'),
+ ('host rate unchecked', '        return Status::unsupportedHostRate;', '        return Status::ok;'),
+ ('zero pending events allowed', '    if (config.maxPendingEvents == 0\n        || ', '    if (false\n        || ')]

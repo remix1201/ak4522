@@ -15,6 +15,7 @@ add_executable(ak4522_tests
     allocation_counter_test.cpp
     api_contract_test.cpp
     config_validation_test.cpp
+    control_timeline_test.cpp
     pcm_test.cpp
     smoke_test.cpp
     soft_mute_test.cpp
