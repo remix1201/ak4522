@@ -12,6 +12,7 @@ list(APPEND CMAKE_MODULE_PATH ${catch2_SOURCE_DIR}/extras)
 include(Catch)
 
 add_executable(ak4522_tests
+    api_contract_test.cpp
     smoke_test.cpp)
 target_link_libraries(ak4522_tests PRIVATE
     ak4522::ak4522 ak4522_options Catch2::Catch2WithMain)
