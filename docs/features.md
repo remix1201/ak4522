@@ -22,7 +22,8 @@ Last substantive update: 2026-10-16. M0, M1, and M2 were merged into `main` and 
 | Response analysis tools         | REQ-FILTER-01, REQ-LAT-02, REQ-DEEM-02 | implemented   | passing (see below)      | approved 2026-10-16 (`m2-approved`)       | merged into `main`    |
 | 8x interpolator                 | REQ-FILTER-01                         | implemented    | passing (see below)      | approved 2026-10-16 (`m2-approved`)       | merged into `main`    |
 | Analog reconstruction and pipeline delay | REQ-FILTER-02, REQ-LAT-02    | implemented    | passing (see below)      | approved 2026-10-16 (`m2-approved`)       | merged into `main`    |
-| Host-rate adaptation            | REQ-RATE-01 to REQ-RATE-04, REQ-CTRL-01 | planned (M3) | none                     | none                              | none                  |
+| Sample-rate converter           | REQ-RATE-02, REQ-RATE-04              | implemented    | passing (see below)      | not yet approved                  | branch `m3-resampler` |
+| Host-rate adaptation            | REQ-RATE-01, REQ-RATE-03, REQ-CTRL-01, REQ-LAT-03 | planned (M3) | none          | none                              | none                  |
 | NominalAnalog profile           | REQ-NOISE-01, REQ-NOISE-02, REQ-DIST-01, REQ-CHANNEL-01 | planned (M4) | none     | none                              | none                  |
 | VST3 plugin adapter             | REQ-VST-01, REQ-VST-02, REQ-LAT-03    | planned (M5)   | none                     | none                              | none                  |
 | Measured profile                | AGENTS.md s.14                        | planned (M6, conditional on hardware) | none | none                         | none                  |
@@ -207,6 +208,15 @@ The DAC core produces audio through the public `DacCore` API at the DAC rate in,
 - **Behavior:** `prepare` validates the configuration and allocates; `process`, `reset`, `latency`, and `diagnostics` never allocate or throw. Blocks larger than the prepared maximum are processed in chunks. Rejected calls change no state. `latency()` reports 14.7 DAC frames. The NominalAnalog and Measured profiles and every analog imperfection flag are rejected with `invalidConfiguration` until they exist.
 - **Validation:** 17 C++ test cases: configuration and call validation, output equal to the component chain for three DEM selections, de-emphasis before the mute ramp, mute to exact silence after ramp and filter delay, PD zeros and clean restart, SMUTE latched through PD, DEM change at its frame, identical output for single-frame, mixed, and random partitions and for chunk sizes from 7 to 4000 frames, chunk and ignored-event counters, reset, latency, move, full-scale bound, and no allocations. Twelve deliberate mutations detected. Passes in `dev` and `asan`, including the response gates.
 - **Limitations:** no host-rate conversion yet (M3); no noise, distortion, or channel imperfections (M4).
+- **Updated:** 2026-10-16.
+
+## Sample-rate converter
+
+- **Purpose:** convert between the host rate and the DAC rate (input side) and between 8x the DAC rate and the host rate (output side). Host behavior, not part of the chip model.
+- **Requirements:** REQ-RATE-02, REQ-RATE-04; policies P-33, P-34, P-37, P-38.
+- **Implementation:** internal `detail::Resampler` in `src/dsp/resampler.hpp`. Kaiser-windowed sinc designed for 125 dB, per-phase unity DC gain; exact phase rows for ratios such as 147/160 and 8/1, interpolated rows (4096 plus linear interpolation) otherwise. Rates are exact integers in micro-hertz; output m is input time m P / Q exactly; delay W input samples (`halfWidth()`). The kernel is designed in `prepare`, off the audio thread.
+- **Validation:** 20 test cases across 14 rate pairs from both sides of the plugin path (including 44 123 Hz, which needs interpolated rows), measured by least-squares sine fits: passband error <= 0.005 dB and residual <= -110 dBFS at 12 frequencies per pair; stopband <= -120 dB where the input reaches the stopband; transition-band content folding only above the passband edge; exact output timing (impulse peak and sine phase); unity DC; exact output counts over 3 million inputs in random blocks; block invariance; reset; channels; no allocations. Twelve deliberate mutations detected. Passes in `dev` and `asan`.
+- **Limitations:** not yet used by `HostProcessor` (next branch).
 - **Updated:** 2026-10-16.
 
 ## Documentation process

@@ -1,0 +1,1 @@
+[('coarse phase table', '    static constexpr std::size_t interpolatedPhases = 4096;', '    static constexpr std::size_t interpolatedPhases = 64;')]

@@ -21,6 +21,7 @@ add_executable(ak4522_tests
     interpolator_test.cpp
     pcm_test.cpp
     reconstruction_test.cpp
+    resampler_test.cpp
     serial_decoder_test.cpp
     smoke_test.cpp
     soft_mute_test.cpp
@@ -37,8 +38,11 @@ file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/test-results)
 
 # Catch2 tags become CTest labels: [unit] fast checks, [dsp] response gates,
 # [soak] long runs. Run a subset with `ctest -L unit`.
+# A per-test timeout turns a hang (for example in a mutation check) into a
+# failure within minutes instead of CTest's 25-minute default.
 catch_discover_tests(ak4522_tests
     ADD_TAGS_AS_LABELS
+    PROPERTIES TIMEOUT 120
     REPORTER junit
     OUTPUT_DIR ${CMAKE_BINARY_DIR}/test-results
     OUTPUT_SUFFIX .xml)
