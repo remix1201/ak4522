@@ -2,7 +2,7 @@
 
 What exists in this branch, as distinct from what AGENTS.md specifies. Implementation, validation, approval, and availability are tracked separately: a feature can be implemented without being approved or released (REQ-DOC-01, REQ-DOC-02).
 
-Last substantive update: 2026-10-16. M0 and M1 were merged into `main` and approved by the project owner on 2026-10-16; the approved states are tagged `m0-approved` and `m1-approved`.
+Last substantive update: 2026-10-16. M0, M1, and M2 were merged into `main` and approved by the project owner on 2026-10-16; the approved states are tagged `m0-approved`, `m1-approved`, and `m2-approved`.
 
 ## Summary
 
@@ -17,11 +17,11 @@ Last substantive update: 2026-10-16. M0 and M1 were merged into `main` and appro
 | Configuration validation        | REQ-CLOCK-01, REQ-RATE-03             | implemented    | passing (see below)      | approved 2026-10-16 (`m1-approved`) | merged into `main`    |
 | Reset and control timeline      | REQ-RESET-01, REQ-RESET-02, REQ-CTRL-01 | implemented  | passing (see below)     | approved 2026-10-16 (`m1-approved`) | merged into `main`    |
 | Soft mute                       | REQ-MUTE-01, REQ-MUTE-02              | implemented    | passing (see below)      | approved 2026-10-16 (`m1-approved`) | merged into `main`    |
-| De-emphasis                     | REQ-DEEM-01 to REQ-DEEM-03            | implemented    | passing (see below)      | not yet approved                  | merged into `main`    |
-| DAC core (linear Specification profile) | REQ-ARCH-02, REQ-ARCH-03, REQ-LAT-01, REQ-RT-01, REQ-RT-02 | implemented | passing (see below) | not yet approved           | merged into `main`    |
-| Response analysis tools         | REQ-FILTER-01, REQ-LAT-02, REQ-DEEM-02 | implemented   | passing (see below)      | not yet approved                  | merged into `main`    |
-| 8x interpolator                 | REQ-FILTER-01                         | implemented    | passing (see below)      | not yet approved                  | merged into `main`    |
-| Analog reconstruction and pipeline delay | REQ-FILTER-02, REQ-LAT-02    | implemented    | passing (see below)      | not yet approved                  | merged into `main`    |
+| De-emphasis                     | REQ-DEEM-01 to REQ-DEEM-03            | implemented    | passing (see below)      | approved 2026-10-16 (`m2-approved`)       | merged into `main`    |
+| DAC core (linear Specification profile) | REQ-ARCH-02, REQ-ARCH-03, REQ-LAT-01, REQ-RT-01, REQ-RT-02 | implemented | passing (see below) | approved 2026-10-16 (`m2-approved`)| merged into `main`    |
+| Response analysis tools         | REQ-FILTER-01, REQ-LAT-02, REQ-DEEM-02 | implemented   | passing (see below)      | approved 2026-10-16 (`m2-approved`)       | merged into `main`    |
+| 8x interpolator                 | REQ-FILTER-01                         | implemented    | passing (see below)      | approved 2026-10-16 (`m2-approved`)       | merged into `main`    |
+| Analog reconstruction and pipeline delay | REQ-FILTER-02, REQ-LAT-02    | implemented    | passing (see below)      | approved 2026-10-16 (`m2-approved`)       | merged into `main`    |
 | Host-rate adaptation            | REQ-RATE-01 to REQ-RATE-04, REQ-CTRL-01 | planned (M3) | none                     | none                              | none                  |
 | NominalAnalog profile           | REQ-NOISE-01, REQ-NOISE-02, REQ-DIST-01, REQ-CHANNEL-01 | planned (M4) | none     | none                              | none                  |
 | VST3 plugin adapter             | REQ-VST-01, REQ-VST-02, REQ-LAT-03    | planned (M5)   | none                     | none                              | none                  |
