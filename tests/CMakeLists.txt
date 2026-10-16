@@ -99,7 +99,14 @@ set_tests_properties(capi.c_test PROPERTIES LABELS "unit;capi")
 # Package consumers (REQ-API-03): a separate project built against the
 # installed library, through add_subdirectory, and as a shared library.
 if(AK4522_INSTALL)
-    foreach(mode install subdirectory shared)
+    # A sanitizer build's library needs the sanitizer runtime, so installing
+    # it for an ordinary consumer is not meaningful; the other two modes build
+    # their own library.
+    set(package_modes install subdirectory shared)
+    if(AK4522_SANITIZE)
+        list(REMOVE_ITEM package_modes install)
+    endif()
+    foreach(mode ${package_modes})
         add_test(NAME package.${mode}
             COMMAND ${CMAKE_COMMAND} -DMODE=${mode} -DSOURCE_DIR=${PROJECT_SOURCE_DIR}
                 -DBUILD_DIR=${PROJECT_BINARY_DIR} -DWORK_DIR=${CMAKE_CURRENT_BINARY_DIR}/package-${mode}
@@ -107,5 +114,4 @@ if(AK4522_INSTALL)
                 -P ${CMAKE_CURRENT_SOURCE_DIR}/package/run_consumer.cmake)
         set_tests_properties(package.${mode} PROPERTIES LABELS "package" TIMEOUT 900)
     endforeach()
-    # The install test reads this build's files, so it runs after the build.
 endif()
