@@ -29,6 +29,10 @@ TEST_CASE("Multiply-divide matches hand-computed values", "[unit]")
 }
 
 #if defined(__SIZEOF_INT128__)
+// A compiler extension, used only here as an independent reference;
+// __extension__ keeps GCC's -Wpedantic quiet about it.
+__extension__ typedef unsigned __int128 Reference128;
+
 TEST_CASE("Multiply-divide matches 128-bit integers", "[unit]")
 {
     std::mt19937_64 rng(31);
@@ -36,7 +40,7 @@ TEST_CASE("Multiply-divide matches 128-bit integers", "[unit]")
         const std::uint64_t a = rng() >> (rng() % 64);
         const std::uint64_t b = rng() >> (rng() % 64);
         std::uint64_t d = (rng() >> (rng() % 64)) | 1u;
-        const unsigned __int128 product = static_cast<unsigned __int128>(a) * b;
+        const Reference128 product = static_cast<Reference128>(a) * b;
         if ((product >> 64) >= d) {
             continue; // quotient would not fit 64 bits
         }
