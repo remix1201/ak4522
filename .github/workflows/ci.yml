@@ -1,0 +1,42 @@
+# Build and test on macOS, Windows, and Linux. Supported platforms are a
+# release requirement (AGENTS.md); every change must pass on all three.
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - name: Configure
+        run: cmake --preset dev
+      - name: Build
+        run: cmake --build --preset dev --parallel
+      - name: Test (all but the rate matrix)
+        run: ctest --preset dev -LE matrix --output-on-failure
+
+  matrix:
+    name: rate matrix (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure
+        run: cmake --preset release
+      - name: Build
+        run: cmake --build --preset release --parallel
+      - name: Rate matrix tests
+        run: ctest --test-dir build/release -C Release -L matrix --output-on-failure

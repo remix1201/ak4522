@@ -2,6 +2,9 @@
 
 #include <cstddef>
 #include <cstdlib>
+#if defined(_MSC_VER)
+#include <malloc.h>
+#endif
 #include <new>
 
 namespace {
@@ -10,6 +13,8 @@ thread_local bool armed = false;
 thread_local std::uint64_t allocationCount = 0;
 thread_local std::uint64_t deallocationCount = 0;
 
+// Over-aligned allocations use the platform's aligned allocator, which on
+// MSVC must be paired with _aligned_free.
 void* allocate(std::size_t size, std::size_t alignment)
 {
     if (armed) {
@@ -22,8 +27,12 @@ void* allocate(std::size_t size, std::size_t alignment)
     if (alignment <= alignof(std::max_align_t)) {
         pointer = std::malloc(size);
     } else {
+#if defined(_MSC_VER)
+        pointer = _aligned_malloc(size, alignment);
+#else
         const std::size_t rounded = (size + alignment - 1) / alignment * alignment;
         pointer = std::aligned_alloc(alignment, rounded);
+#endif
     }
     if (pointer == nullptr) {
         throw std::bad_alloc();
@@ -31,7 +40,7 @@ void* allocate(std::size_t size, std::size_t alignment)
     return pointer;
 }
 
-void release(void* pointer) noexcept
+void release(void* pointer, bool aligned = false) noexcept
 {
     if (pointer == nullptr) {
         return;
@@ -39,6 +48,13 @@ void release(void* pointer) noexcept
     if (armed) {
         ++deallocationCount;
     }
+#if defined(_MSC_VER)
+    if (aligned) {
+        _aligned_free(pointer);
+        return;
+    }
+#endif
+    static_cast<void>(aligned);
     std::free(pointer);
 }
 
@@ -98,11 +114,11 @@ void operator delete(void* p) noexcept { release(p); }
 void operator delete[](void* p) noexcept { release(p); }
 void operator delete(void* p, std::size_t) noexcept { release(p); }
 void operator delete[](void* p, std::size_t) noexcept { release(p); }
-void operator delete(void* p, std::align_val_t) noexcept { release(p); }
-void operator delete[](void* p, std::align_val_t) noexcept { release(p); }
-void operator delete(void* p, std::size_t, std::align_val_t) noexcept { release(p); }
-void operator delete[](void* p, std::size_t, std::align_val_t) noexcept { release(p); }
+void operator delete(void* p, std::align_val_t) noexcept { release(p, true); }
+void operator delete[](void* p, std::align_val_t) noexcept { release(p, true); }
+void operator delete(void* p, std::size_t, std::align_val_t) noexcept { release(p, true); }
+void operator delete[](void* p, std::size_t, std::align_val_t) noexcept { release(p, true); }
 void operator delete(void* p, const std::nothrow_t&) noexcept { release(p); }
 void operator delete[](void* p, const std::nothrow_t&) noexcept { release(p); }
-void operator delete(void* p, std::align_val_t, const std::nothrow_t&) noexcept { release(p); }
-void operator delete[](void* p, std::align_val_t, const std::nothrow_t&) noexcept { release(p); }
+void operator delete(void* p, std::align_val_t, const std::nothrow_t&) noexcept { release(p, true); }
+void operator delete[](void* p, std::align_val_t, const std::nothrow_t&) noexcept { release(p, true); }

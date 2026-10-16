@@ -1,0 +1,8 @@
+# Normalize text files; keep generated coefficient and golden data byte-stable
+# on every platform.
+* text=auto
+*.inc text eol=lf
+*.json text eol=lf
+tests/data/*.txt text eol=lf
+*.PDF binary
+*.pdf binary

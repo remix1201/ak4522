@@ -17,6 +17,7 @@ from pathlib import Path
 
 import numpy as np
 
+from ak4522_tools import tool_path
 from ak4522_tools import metrics, weighting
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -27,7 +28,7 @@ TONE = 997.0
 
 def capture(build: Path, work: Path, name: str, *args: str) -> np.ndarray:
     path = work / f"{name}.f64"
-    subprocess.run([str(build / "ak4522_capture"), str(path), *args], check=True)
+    subprocess.run([str(tool_path.find(build, "ak4522_capture")), str(path), *args], check=True)
     return np.fromfile(path, dtype="<f8")
 
 

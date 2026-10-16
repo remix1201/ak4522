@@ -42,14 +42,16 @@ def main(argv=None):
     parser.add_argument("label")
     parser.add_argument("mutations", type=Path)
     parser.add_argument("--build", type=Path, default=Path("build/mutation"))
+    parser.add_argument("--config", default="Debug",
+                        help="configuration for multi-config generators (Visual Studio, Xcode)")
     args = parser.parse_args(argv)
 
     mutations = ast.literal_eval(args.mutations.read_text(encoding="utf-8"))
     original = args.source.read_text(encoding="utf-8")
     problems = 0
 
-    baseline = run(["ctest", "--test-dir", str(args.build), "-L", args.label])
-    if run(["cmake", "--build", str(args.build), "-j"]).returncode != 0 or baseline.returncode != 0:
+    baseline = run(["ctest", "--test-dir", str(args.build), "-C", args.config, "-L", args.label])
+    if run(["cmake", "--build", str(args.build), "-j", "--config", args.config]).returncode != 0 or baseline.returncode != 0:
         print("baseline build or tests fail; fix them before checking mutations")
         return 1
 
@@ -61,11 +63,11 @@ def main(argv=None):
                 problems += 1
                 continue
             write_with_new_stamp(args.source, original.replace(old, new))
-            if run(["cmake", "--build", str(args.build), "-j"]).returncode != 0:
+            if run(["cmake", "--build", str(args.build), "-j", "--config", args.config]).returncode != 0:
                 print(f"BUILD FAILED: {name}", flush=True)
                 problems += 1
                 continue
-            tests = run(["ctest", "--test-dir", str(args.build), "-L", args.label])
+            tests = run(["ctest", "--test-dir", str(args.build), "-C", args.config, "-L", args.label])
             summary = next((l for l in tests.stdout.splitlines() if "tests passed" in l), "?")
             if tests.returncode == 0:
                 problems += 1
@@ -73,7 +75,7 @@ def main(argv=None):
                   flush=True)
     finally:
         write_with_new_stamp(args.source, original)
-        run(["cmake", "--build", str(args.build), "-j"])
+        run(["cmake", "--build", str(args.build), "-j", "--config", args.config])
     return 1 if problems else 0
 
 
