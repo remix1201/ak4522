@@ -3,8 +3,8 @@
  *
  * Usable from C99 and later, C++, and other languages with a C foreign
  * function interface. It wraps HostProcessor (an audio effect at the host
- * rate) and DacStream (a source at its own DAC rate); see docs/api.md for
- * their behavior. Alpha: the API and ABI may change in any release.
+ * rate), DacStream (a source at its own DAC rate), and the SerialDecoder and
+ * TimingValidator conformance tools; see docs/api.md for their behavior. Alpha: the API and ABI may change in any release.
  *
  * Conventions:
  * - Handles are opaque. Create and destroy them off the audio thread.
@@ -74,6 +74,46 @@ enum {
 };
 enum { AK4522_MODE_PULL = 0, AK4522_MODE_PUSH = 1 };
 enum { AK4522_EVENT_POWER_DOWN = 0, AK4522_EVENT_DEEMPHASIS = 1, AK4522_EVENT_SOFT_MUTE = 2 };
+/* Serial formats; the values are the DIF1:DIF0 pin bits. */
+enum {
+    AK4522_SERIAL_MODE0_RIGHT_JUSTIFIED_16 = 0,
+    AK4522_SERIAL_MODE1_RIGHT_JUSTIFIED_20 = 1,
+    AK4522_SERIAL_MODE2_LEFT_JUSTIFIED_20 = 2,
+    AK4522_SERIAL_MODE3_I2S = 3
+};
+/* Outcome of one SCLK rising edge in the serial decoder. */
+enum {
+    AK4522_SERIAL_NONE = 0,
+    AK4522_SERIAL_FRAME_COMPLETE = 1,
+    AK4522_SERIAL_INCOMPLETE_FRAME = 2,
+    AK4522_SERIAL_SCLK_RATIO_TOO_LOW = 3
+};
+enum { AK4522_PIN_MCLK = 0, AK4522_PIN_LRCK = 1, AK4522_PIN_SCLK = 2, AK4522_PIN_SDTI = 3, AK4522_PIN_PD = 4 };
+/* Timing checks counted by the validator; limits in docs/features.md. */
+enum {
+    AK4522_TIMING_SCLK_PERIOD = 0,
+    AK4522_TIMING_SCLK_PULSE_WIDTH = 1,
+    AK4522_TIMING_LRCK_TO_SCLK_RISE = 2,
+    AK4522_TIMING_SCLK_RISE_TO_LRCK = 3,
+    AK4522_TIMING_SCLK_RISE_COINCIDES_WITH_LRCK = 4,
+    AK4522_TIMING_SDTI_SETUP = 5,
+    AK4522_TIMING_SDTI_HOLD = 6,
+    AK4522_TIMING_LRCK_DUTY_CYCLE = 7,
+    AK4522_TIMING_LRCK_FREQUENCY = 8,
+    AK4522_TIMING_MCLK_FREQUENCY = 9,
+    AK4522_TIMING_MCLK_PULSE_WIDTH = 10,
+    AK4522_TIMING_MCLK_NOT_SYNCHRONIZED = 11,
+    AK4522_TIMING_PD_PULSE_WIDTH = 12,
+    AK4522_TIMING_CLOCK_STOPPED = 13,
+    AK4522_TIMING_KINDS = 14
+};
+
+/* A pin level with an absolute timestamp, for the timing validator. */
+typedef struct ak4522_pin_edge {
+    double time_ns;
+    int32_t pin;
+    bool level;
+} ak4522_pin_edge;
 
 /* A timestamped pin change. offset is in host frames for the host processor
  * and DAC frames for the stream, relative to the block. value: PD and SMUTE
@@ -144,6 +184,8 @@ typedef struct ak4522_stream_config {
     int32_t format;
     int32_t mode;
     size_t max_block_frames;
+    bool input_dither;          /* float formats: TPDF dither before quantization */
+    uint64_t dither_seed;
     ak4522_pull_fn pull;
     void* pull_context;
     size_t max_events_per_block;
@@ -180,6 +222,8 @@ typedef struct ak4522_diagnostics {
 
 typedef struct ak4522_host ak4522_host;
 typedef struct ak4522_stream ak4522_stream;
+typedef struct ak4522_serial_decoder ak4522_serial_decoder;
+typedef struct ak4522_timing_validator ak4522_timing_validator;
 
 /* Library */
 const char* ak4522_version(void);
@@ -227,6 +271,29 @@ size_t ak4522_stream_free_frames(const ak4522_stream* stream);
 size_t ak4522_stream_dac_frames_for(const ak4522_stream* stream, size_t host_frames);
 ak4522_status ak4522_stream_latency(const ak4522_stream* stream, ak4522_latency* latency);
 ak4522_status ak4522_stream_diagnostics(const ak4522_stream* stream, ak4522_diagnostics* diagnostics);
+
+/* Serial decoder: SDTI bits to 20-bit frames (SerialDecoder). Call once per
+ * SCLK rising edge with the latched LRCK and SDTI levels. event receives an
+ * AK4522_SERIAL_* value; on AK4522_SERIAL_FRAME_COMPLETE, left and right (each
+ * may be NULL) receive the 20-bit codes. */
+ak4522_serial_decoder* ak4522_serial_decoder_create(void);
+void ak4522_serial_decoder_destroy(ak4522_serial_decoder* decoder);
+ak4522_status ak4522_serial_decoder_prepare(ak4522_serial_decoder* decoder, int32_t format);
+ak4522_status ak4522_serial_decoder_reset(ak4522_serial_decoder* decoder);
+ak4522_status ak4522_serial_decoder_sclk_rising_edge(ak4522_serial_decoder* decoder, bool lrck, bool sdti,
+                                                     int32_t* event, int32_t* left, int32_t* right);
+
+/* Timing validator: counts datasheet timing violations in timestamped pin
+ * transitions (TimingValidator). Timestamps must not decrease. */
+ak4522_timing_validator* ak4522_timing_validator_create(void);
+void ak4522_timing_validator_destroy(ak4522_timing_validator* validator);
+ak4522_status ak4522_timing_validator_prepare(ak4522_timing_validator* validator, int32_t cmode);
+ak4522_status ak4522_timing_validator_reset(ak4522_timing_validator* validator);
+ak4522_status ak4522_timing_validator_observe(ak4522_timing_validator* validator, const ak4522_pin_edge* edge);
+/* Advances time without an edge, so clocks that stop for good are reported. */
+ak4522_status ak4522_timing_validator_advance_to(ak4522_timing_validator* validator, double time_ns);
+uint64_t ak4522_timing_validator_violations(const ak4522_timing_validator* validator, int32_t kind);
+uint64_t ak4522_timing_validator_total_violations(const ak4522_timing_validator* validator);
 
 #ifdef __cplusplus
 }

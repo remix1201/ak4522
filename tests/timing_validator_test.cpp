@@ -345,3 +345,105 @@ TEST_CASE("Timing validation does not allocate", "[unit][serial][rt]")
     validator.reset();
     CHECK(counter.allocations() == 0);
 }
+
+// Clock stop (D-C07, P-31): a clock that has been running and then has no
+// transition for more than 62.5 us while PD is high is reported once.
+namespace {
+
+// A square wave on one pin from `start` to `end` with the given period.
+void square(std::vector<PinEdge>& edges, Pin pin, double period, double start, double end)
+{
+    for (double t = start; t < end; t += period) {
+        edges.push_back({t, pin, true});
+        edges.push_back({t + period / 2, pin, false});
+    }
+}
+
+void sortEdges(std::vector<PinEdge>& edges)
+{
+    std::stable_sort(edges.begin(), edges.end(),
+                     [](const PinEdge& a, const PinEdge& b) { return a.timeNs < b.timeNs; });
+}
+
+} // namespace
+
+TEST_CASE("A clock silent for more than 62.5 us is reported once", "[unit][serial][clock]")
+{
+    // LRCK keeps running at 44.1 kHz; SCLK runs throughout; MCLK stops
+    // for 200 us in the middle.
+    const double frame = 1e9 / 44100.0;
+    std::vector<PinEdge> edges;
+    square(edges, Pin::lrck, frame, 0.0, 1e6);
+    square(edges, Pin::sclk, frame / 64, 0.0, 1e6);
+    square(edges, Pin::mclk, frame / 256, 0.0, 400e3);
+    square(edges, Pin::mclk, frame / 256, 600e3, 1e6);
+    sortEdges(edges);
+    TimingValidator v = prepared();
+    feed(v, edges);
+    CHECK(v.violations(V::clockStopped) == 1);
+}
+
+TEST_CASE("A gap of exactly 62.5 us passes and a longer one fails", "[unit][serial][clock]")
+{
+    const double gap = GENERATE(62500.0, 62500.001);
+    TimingValidator v = prepared();
+    v.observe({0.0, Pin::lrck, true});
+    v.observe({gap, Pin::lrck, false});
+    CHECK(v.violations(V::clockStopped) == (gap > 62500.0 ? 1u : 0u));
+}
+
+TEST_CASE("Clocks that stop for good are found by advanceTo", "[unit][serial][clock]")
+{
+    const double frame = 1e9 / 48000.0;
+    std::vector<PinEdge> edges;
+    square(edges, Pin::lrck, frame, 0.0, 200e3);
+    square(edges, Pin::sclk, frame / 64, 0.0, 200e3);
+    square(edges, Pin::mclk, frame / 256, 0.0, 200e3);
+    sortEdges(edges);
+    TimingValidator v = prepared();
+    feed(v, edges);
+    CHECK(v.violations(V::clockStopped) == 0);
+    v.advanceTo(240e3);
+    CHECK(v.violations(V::clockStopped) == 0);
+    v.advanceTo(300e3);
+    CHECK(v.violations(V::clockStopped) == 3);
+    v.advanceTo(900e3); // already reported
+    CHECK(v.violations(V::clockStopped) == 3);
+    v.advanceTo(100e3); // earlier than the latest time: ignored
+    CHECK(v.violations(V::clockStopped) == 3);
+}
+
+TEST_CASE("Clocks may stop while PD is low and must resume after release", "[unit][serial][clock]")
+{
+    const double frame = 1e9 / 48000.0;
+    TimingValidator v = prepared();
+    std::vector<PinEdge> edges{{0.0, Pin::pd, true}};
+    square(edges, Pin::lrck, frame, 10.0, 100e3);
+    edges.push_back({100e3, Pin::pd, false}); // reset asserted; clocks stop
+    edges.push_back({500e3, Pin::pd, true});  // released
+    square(edges, Pin::lrck, frame, 540e3, 700e3); // resumes within 62.5 us
+    sortEdges(edges);
+    feed(v, edges);
+    CHECK(v.violations(V::clockStopped) == 0);
+
+    // Released again, but the clock does not resume.
+    v.observe({700e3, Pin::pd, false});
+    v.observe({701e3, Pin::pd, true});
+    v.advanceTo(701e3 + 62500.0);
+    CHECK(v.violations(V::clockStopped) == 0);
+    v.advanceTo(701e3 + 62501.0);
+    CHECK(v.violations(V::clockStopped) == 1);
+}
+
+TEST_CASE("A clock that stops twice is reported twice", "[unit][serial][clock]")
+{
+    TimingValidator v = prepared();
+    std::vector<PinEdge> edges;
+    const double frame = 1e9 / 48000.0;
+    square(edges, Pin::lrck, frame, 0.0, 100e3);
+    square(edges, Pin::lrck, frame, 300e3, 400e3); // after the first stop
+    square(edges, Pin::lrck, frame, 600e3, 700e3); // after the second
+    sortEdges(edges);
+    feed(v, edges);
+    CHECK(v.violations(V::clockStopped) == 2);
+}

@@ -4,6 +4,7 @@
 #include "ak4522/pcm.hpp"
 #include "core/config_validation.hpp"
 #include "core/control_timeline.hpp"
+#include "core/dither.hpp"
 #include "core/host_alignment.hpp"
 #include "core/wide_math.hpp"
 #include "dsp/resampler.hpp"
@@ -19,20 +20,6 @@ namespace {
 
 using detail::coreDelayFrames;
 constexpr std::size_t os = DacCore::oversampling;
-
-// splitmix64, used to seed and to step the dither generators (P-91).
-std::uint64_t splitmix(std::uint64_t& state) noexcept
-{
-    std::uint64_t z = (state += 0x9E3779B97F4A7C15ull);
-    z = (z ^ (z >> 30)) * 0xBF58476D1CE4E5B9ull;
-    z = (z ^ (z >> 27)) * 0x94D049BB133111EBull;
-    return z ^ (z >> 31);
-}
-
-double uniform(std::uint64_t& state) noexcept
-{
-    return static_cast<double>(splitmix(state) >> 11) * 0x1.0p-53; // [0, 1)
-}
 
 struct Pending {
     std::int64_t dacFrame;
@@ -73,8 +60,7 @@ struct HostProcessor::Impl {
     std::int64_t hostConsumed = 0;
     std::int64_t dacProduced = 0;
     QuantizeCounters quantize{};
-    std::uint64_t ditherLeft = 0;
-    std::uint64_t ditherRight = 0;
+    detail::TpdfDither dither;
 
     std::atomic<std::uint64_t> nonFinite{0};
     std::atomic<std::uint64_t> clipped{0};
@@ -85,9 +71,7 @@ struct HostProcessor::Impl {
 
     void seedDither() noexcept
     {
-        std::uint64_t s = config.ditherSeed;
-        ditherLeft = splitmix(s);
-        ditherRight = splitmix(s);
+        dither.seed(config.ditherSeed);
     }
 
     void resetStreams() noexcept
@@ -125,13 +109,12 @@ struct HostProcessor::Impl {
         ++pendingCount;
     }
 
-    Pcm20 quantizeSample(double x, std::uint64_t& dither) noexcept
+    Pcm20 quantizeSample(double x, std::uint64_t& state) noexcept
     {
         const bool sixteen = config.inputResolution == InputResolution::bits16;
         if (config.inputDither && std::isfinite(x)) {
             // TPDF of +/-1 LSB at the target resolution (P-12).
-            const double lsb = sixteen ? 0x1.0p-15 : 0x1.0p-19;
-            x += (uniform(dither) + uniform(dither) - 1.0) * lsb;
+            x += detail::TpdfDither::next(state, sixteen ? 0x1.0p-15 : 0x1.0p-19);
         }
         return sixteen ? quantizeTo16Bit(x, quantize) : quantizeToPcm20(x, quantize);
     }
@@ -156,7 +139,7 @@ struct HostProcessor::Impl {
             dr = dacR.data();
         }
         for (std::size_t j = 0; j < k; ++j) {
-            pcm[j] = {quantizeSample(dl[j], ditherLeft), quantizeSample(dr[j], ditherRight)};
+            pcm[j] = {quantizeSample(dl[j], dither.left), quantizeSample(dr[j], dither.right)};
         }
 
         // Events whose DAC frame falls in this chunk.

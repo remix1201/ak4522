@@ -536,3 +536,65 @@ TEST_CASE("Rendering and pushing do not allocate", "[unit][stream][rt]")
     CHECK(b.status == Status::ok);
     CHECK(d == Status::ok);
 }
+
+TEST_CASE("Optional dither makes a sub-LSB level audible on average", "[unit][stream][pcm]")
+{
+    // 0.3 LSB of DC: quantized away without dither; with TPDF dither the
+    // average output keeps it (P-12).
+    const double level = 0.3 / 524288.0;
+    auto run = [&](bool dither, std::uint64_t seed, DacSampleFormat format) {
+        Source src;
+        src.dl.assign(30000, level);
+        src.dr.assign(30000, level);
+        src.il.assign(30000, 0);
+        src.ir.assign(30000, 0);
+        DacStreamConfig c = config(44100, {44100, 1}, format);
+        c.inputDither = dither;
+        c.ditherSeed = seed;
+        DacStream s = pulling(c, src);
+        return render(s, 28000, {512});
+    };
+    auto mean = [](const std::vector<double>& x) {
+        double sum = 0.0;
+        for (std::size_t i = 2000; i < x.size(); ++i) {
+            sum += x[i];
+        }
+        return sum / static_cast<double>(x.size() - 2000);
+    };
+    const Stereo plain = run(false, 1, DacSampleFormat::float64);
+    CHECK(mean(plain.left) == 0.0);
+    const Stereo dithered = run(true, 1, DacSampleFormat::float64);
+    CHECK(std::abs(mean(dithered.left) / level - 1.0) < 0.1);
+    CHECK(std::abs(mean(dithered.right) / level - 1.0) < 0.1);
+    CHECK(dithered.left != dithered.right); // independent streams per channel
+
+    CHECK(run(true, 1, DacSampleFormat::float64).left == dithered.left); // seeded, reproducible
+    CHECK(run(true, 2, DacSampleFormat::float64).left != dithered.left);
+    CHECK(run(true, 1, DacSampleFormat::float32).left != plain.left);
+    // Integer input is exact and never dithered.
+    CHECK(run(true, 1, DacSampleFormat::int20).left == run(false, 1, DacSampleFormat::int20).left);
+}
+
+TEST_CASE("Dithered push and pull give the same output", "[unit][stream][push]")
+{
+    std::vector<double> data(6000);
+    for (std::size_t j = 0; j < data.size(); ++j) {
+        data[j] = 1e-6 * std::sin(0.01 * static_cast<double>(j));
+    }
+    Source src;
+    src.dl = src.dr = data;
+    DacStreamConfig c = config(48000, {44100, 1}, DacSampleFormat::float64);
+    c.inputDither = true;
+    DacStream pull = pulling(c, src);
+    const Stereo expected = render(pull, 4000, {4000});
+
+    c.mode = DacStreamMode::push;
+    DacStream push;
+    REQUIRE(push.prepare(c) == Status::ok);
+    const std::size_t need = push.dacFramesFor(4000);
+    REQUIRE(push.push(StereoView<const double>{std::span(data).first(need), std::span(data).first(need)}, {})
+                .framesAccepted
+            == need);
+    const Stereo out = render(push, 4000, {4000});
+    CHECK(out.left == expected.left);
+}

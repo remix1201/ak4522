@@ -67,6 +67,11 @@ struct DacStreamConfig {
     DacStreamMode mode = DacStreamMode::pull;
     std::size_t maxBlockFrames = 512; // host frames per render before internal chunking
 
+    // Float formats only: TPDF dither of +/-1 20-bit LSB before quantization.
+    // A host-input feature, off by default (P-12); seeded per stream (P-91).
+    bool inputDither = false;
+    std::uint64_t ditherSeed = 0x4449544845520001ull;
+
     // Pull mode: the source. The callback is required in pull mode.
     DacPullCallback pull = nullptr;
     void* pullContext = nullptr;

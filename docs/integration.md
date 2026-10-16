@@ -37,7 +37,9 @@ As a subproject the library builds no tests or examples and installs nothing unl
 
 **Static or shared.** The library is static by default. Set `BUILD_SHARED_LIBS=ON` for a shared library, for example to load the C API from Python, Rust, or another language. On Windows, keep the DLL next to your executable.
 
-**Versions.** During alpha only the same minor version is compatible (`find_package(ak4522 0.0)`), and any release may change the API.
+**Without CMake.** The install includes `lib/pkgconfig/ak4522.pc`: `cc main.c $(pkg-config --static --cflags --libs ak4522)` with `PKG_CONFIG_PATH` pointing at it.
+
+**Versions. During alpha only the same minor version is compatible (`find_package(ak4522 0.0)`), and any release may change the API.
 
 `tests/package/consumer` is a complete outside project, built by the test suite in all three ways.
 
@@ -85,7 +87,7 @@ static void pull(void* context, ak4522::DacPullBlock& block) noexcept
 
 **Push** suits a source on its own thread. Call `push(frames, events)` from that thread and `render` from the audio thread. The queue holds `pushCapacityFrames`. Prime it before rendering, and keep it ahead using `queuedFrames()`, `freeFrames()`, and `dacFramesFor(n)`. If it runs dry, the missing frames play as silence and `diagnostics().sourceUnderrunFrames` counts them. If it is full, the extra frames are dropped and `sourceOverrunFrames` counts them.
 
-**Formats.** `int16` (scaled to 20-bit weight), `int20`, `int24` (the top 20 bits are used, as the chip's serial input does), `float32`, and `float64`. Float is quantized to 20 bits with rounding to nearest, ties to even.
+**Formats.** `int16` (scaled to 20-bit weight), `int20`, `int24` (the top 20 bits are used, as the chip's serial input does), `float32`, and `float64`. Float is quantized to 20 bits with rounding to nearest, ties to even; `inputDither` adds optional TPDF dither first.
 
 ## Events
 

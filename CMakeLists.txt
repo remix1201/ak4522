@@ -95,6 +95,21 @@ if(AK4522_INSTALL)
     install(FILES ${PROJECT_BINARY_DIR}/ak4522Config.cmake ${PROJECT_BINARY_DIR}/ak4522ConfigVersion.cmake
         DESTINATION ${AK4522_CMAKE_DIR})
     install(FILES LICENSE README.md DESTINATION ${CMAKE_INSTALL_DOCDIR})
+
+    # pkg-config file for builds without CMake (not for MSVC).
+    if(NOT MSVC)
+        file(RELATIVE_PATH AK4522_PC_PREFIX_FROM_PCDIR
+            /prefix/${CMAKE_INSTALL_LIBDIR}/pkgconfig /prefix)
+        string(REGEX REPLACE "/$" "" AK4522_PC_PREFIX_FROM_PCDIR "${AK4522_PC_PREFIX_FROM_PCDIR}")
+        # Apple toolchains use libc++; GCC, and Clang on Linux by default, use libstdc++.
+        if(APPLE)
+            set(AK4522_PC_CXX_LIBS "-lc++")
+        else()
+            set(AK4522_PC_CXX_LIBS "-lstdc++ -lm")
+        endif()
+        configure_file(cmake/ak4522.pc.in ${PROJECT_BINARY_DIR}/ak4522.pc @ONLY)
+        install(FILES ${PROJECT_BINARY_DIR}/ak4522.pc DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
+    endif()
 endif()
 
 if(AK4522_BUILD_EXAMPLES)

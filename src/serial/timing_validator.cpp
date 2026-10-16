@@ -1,7 +1,9 @@
 #include "ak4522/serial.hpp"
 
+#include <array>
 #include <cmath>
 #include <limits>
+#include <utility>
 
 namespace ak4522 {
 
@@ -20,6 +22,9 @@ constexpr double dutyMax = 0.55;
 constexpr double lrckHzMin = 16000.0;    // D-04
 constexpr double lrckHzMax = 48000.0;
 constexpr double pdWidthMin = 150.0;     // D-R03
+// A running clock silent for longer than one LRCK period at the slowest
+// documented rate (16 kHz) has stopped (D-C07, P-31).
+constexpr double clockStopNs = 1e9 / lrckHzMin;
 
 // Relative tolerance on frequency limits, so a clock exactly at a limit is not
 // rejected for floating-point rounding of its timestamps (P-36).
@@ -76,6 +81,8 @@ void TimingValidator::reset() noexcept
     sdtiEdge_ = unseen;
     mclkRise_ = mclkFall_ = unseen;
     pdFall_ = unseen;
+    pdRise_ = unseen;
+    stopped_.fill(false);
     mclkRisesThisLrck_ = 0;
     mclkCounting_ = false;
 }
@@ -113,9 +120,11 @@ void TimingValidator::observe(const PinEdge& edge) noexcept
         return; // not a transition
     }
     anyEdge_ = true;
+    checkClocks(edge.timeNs);
     lastTimeNs_ = edge.timeNs;
     known_[pin] = true;
     level_[pin] = edge.level;
+    stopped_[pin] = false;
 
     switch (edge.pin) {
     case Pin::sclk: onSclk(edge.timeNs, edge.level); break;
@@ -228,12 +237,49 @@ void TimingValidator::onMclk(double t, bool rising) noexcept
     ++mclkRisesThisLrck_;
 }
 
+void TimingValidator::advanceTo(double timeNs) noexcept
+{
+    if (!anyEdge_ || !std::isfinite(timeNs) || timeNs < lastTimeNs_) {
+        return;
+    }
+    checkClocks(timeNs);
+    lastTimeNs_ = timeNs;
+}
+
+void TimingValidator::checkClocks(double t) noexcept
+{
+    // Clocks may stop while PD is low (D-R01); an unobserved PD counts as high.
+    const auto pd = static_cast<std::size_t>(Pin::pd);
+    if (known_[pd] && !level_[pd]) {
+        return;
+    }
+    const auto latest = [](double a, double b) { return seen(a) && (!seen(b) || a > b) ? a : b; };
+    const std::array<std::pair<Pin, double>, 3> clocks{{
+        {Pin::mclk, latest(mclkRise_, mclkFall_)},
+        {Pin::sclk, latest(sclkRise_, sclkFall_)},
+        {Pin::lrck, latest(lrckRise_, lrckFall_)},
+    }};
+    for (const auto& [clockPin, lastEdge] : clocks) {
+        const auto index = static_cast<std::size_t>(clockPin);
+        if (!seen(lastEdge) || stopped_[index]) {
+            continue; // never running, or already reported
+        }
+        // After PD is released the clocks have one limit to resume.
+        const double since = latest(lastEdge, pdRise_);
+        if (t - since > clockStopNs) {
+            count(TimingViolation::clockStopped);
+            stopped_[index] = true;
+        }
+    }
+}
+
 void TimingValidator::onPd(double t, bool rising) noexcept
 {
     if (!rising) {
         pdFall_ = t;
         return;
     }
+    pdRise_ = t;
     if (seen(pdFall_) && t - pdFall_ < pdWidthMin) {
         count(TimingViolation::pdPulseWidth);
     }

@@ -3,6 +3,7 @@
 #include "ak4522/ak4522.h"
 #include "ak4522/dac_stream.hpp"
 #include "ak4522/host_processor.hpp"
+#include "ak4522/serial.hpp"
 #include "support/allocation_counter.hpp"
 
 #include <catch2/catch_test_macros.hpp>
@@ -10,6 +11,7 @@
 #include <catch2/generators/catch_generators_range.hpp>
 
 #include <cmath>
+#include <random>
 #include <vector>
 
 using namespace ak4522;
@@ -274,4 +276,122 @@ TEST_CASE("C processing does not allocate", "[unit][capi][rt]")
     CHECK(c == AK4522_OK);
     ak4522_host_destroy(host);
     ak4522_stream_destroy(stream);
+}
+
+TEST_CASE("C serial decoder equals SerialDecoder", "[unit][capi][serial]")
+{
+    const int format = GENERATE(0, 1, 2, 3);
+    CAPTURE(format);
+    SerialDecoder cpp;
+    REQUIRE(cpp.prepare(static_cast<SerialFormat>(format)) == Status::ok);
+    ak4522_serial_decoder* c = ak4522_serial_decoder_create();
+    REQUIRE(ak4522_serial_decoder_prepare(c, format) == AK4522_OK);
+    // Random data with half-frames of 16 to 40 bit clocks, so every event occurs.
+    std::mt19937_64 rng(static_cast<std::uint64_t>(format) + 3);
+    std::uniform_int_distribution<int> slots(16, 40);
+    std::bernoulli_distribution bit;
+    bool lrck = false;
+    int frames = 0;
+    for (int half = 0; half < 400; ++half) {
+        lrck = !lrck;
+        const int n = slots(rng);
+        for (int s = 0; s < n; ++s) {
+            const bool sdti = bit(rng);
+            const SerialEdgeResult r = cpp.sclkRisingEdge(lrck, sdti);
+            int32_t event = -1, left = 0, right = 0;
+            REQUIRE(ak4522_serial_decoder_sclk_rising_edge(c, lrck, sdti, &event, &left, &right) == AK4522_OK);
+            REQUIRE(event == static_cast<int32_t>(r.event));
+            if (r.frame) {
+                ++frames;
+                REQUIRE(left == r.frame->left.code);
+                REQUIRE(right == r.frame->right.code);
+            }
+        }
+    }
+    CHECK(frames > 50);
+    ak4522_serial_decoder_destroy(c);
+}
+
+TEST_CASE("C timing validator equals TimingValidator", "[unit][capi][serial]")
+{
+    TimingValidator cpp;
+    REQUIRE(cpp.prepare(CmodePin::high) == Status::ok);
+    ak4522_timing_validator* c = ak4522_timing_validator_create();
+    REQUIRE(ak4522_timing_validator_prepare(c, AK4522_CMODE_HIGH) == AK4522_OK);
+    // Random edges on every pin with gaps from 1 ns to 100 us, so many
+    // kinds of violation occur.
+    std::mt19937_64 rng(11);
+    std::uniform_int_distribution<int> pin(0, 4);
+    std::exponential_distribution<double> gap(1.0 / 300.0);
+    std::bernoulli_distribution level;
+    double t = 0.0;
+    for (int i = 0; i < 20000; ++i) {
+        t += 1.0 + (i % 997 == 0 ? 100000.0 : gap(rng));
+        const PinEdge e{t, static_cast<Pin>(pin(rng)), level(rng)};
+        cpp.observe(e);
+        const ak4522_pin_edge ce{e.timeNs, static_cast<int32_t>(e.pin), e.level};
+        REQUIRE(ak4522_timing_validator_observe(c, &ce) == AK4522_OK);
+    }
+    cpp.advanceTo(t + 1e6);
+    REQUIRE(ak4522_timing_validator_advance_to(c, t + 1e6) == AK4522_OK);
+    int kinds = 0;
+    for (int k = 0; k < AK4522_TIMING_KINDS; ++k) {
+        const std::uint64_t expected = cpp.violations(static_cast<TimingViolation>(k));
+        CHECK(ak4522_timing_validator_violations(c, k) == expected);
+        kinds += expected > 0 ? 1 : 0;
+    }
+    CHECK(kinds >= 8);
+    CHECK(ak4522_timing_validator_violations(c, AK4522_TIMING_CLOCK_STOPPED) > 0);
+    CHECK(ak4522_timing_validator_total_violations(c) == cpp.totalViolations());
+    ak4522_timing_validator_destroy(c);
+}
+
+TEST_CASE("C stream dither equals DacStream dither", "[unit][capi][stream]")
+{
+    struct Tiny {
+        std::size_t position = 0;
+        static void pullCpp(void* context, DacPullBlock& b) noexcept
+        {
+            auto& s = *static_cast<Tiny*>(context);
+            for (std::size_t j = 0; j < b.frames; ++j) {
+                b.floats.left[j] = b.floats.right[j] = static_cast<float>(1e-6 * std::sin(0.01 * static_cast<double>(s.position + j)));
+            }
+            s.position += b.frames;
+        }
+        static void pullC(void* context, ak4522_pull_block* b)
+        {
+            auto& s = *static_cast<Tiny*>(context);
+            for (std::size_t j = 0; j < b->frames; ++j) {
+                b->f32_left[j] = b->f32_right[j] = static_cast<float>(1e-6 * std::sin(0.01 * static_cast<double>(s.position + j)));
+            }
+            s.position += b->frames;
+        }
+    };
+    Tiny a, b;
+    DacStreamConfig cfg;
+    cfg.format = DacSampleFormat::float32;
+    cfg.inputDither = true;
+    cfg.ditherSeed = 99;
+    cfg.pull = &Tiny::pullCpp;
+    cfg.pullContext = &a;
+    DacStream cpp;
+    REQUIRE(cpp.prepare(cfg) == Status::ok);
+    std::vector<double> x(3000), xr(3000);
+    REQUIRE(cpp.render(StereoView<double>{x, xr}) == Status::ok);
+
+    ak4522_stream_config c;
+    ak4522_stream_config_default(&c);
+    CHECK_FALSE(c.input_dither);
+    CHECK(c.dither_seed == DacStreamConfig{}.ditherSeed);
+    c.format = AK4522_FORMAT_FLOAT32;
+    c.input_dither = true;
+    c.dither_seed = 99;
+    c.pull = &Tiny::pullC;
+    c.pull_context = &b;
+    ak4522_stream* s = ak4522_stream_create();
+    REQUIRE(ak4522_stream_prepare(s, &c) == AK4522_OK);
+    std::vector<double> y(3000), yr(3000);
+    REQUIRE(ak4522_stream_render_f64(s, y.data(), yr.data(), y.size()) == AK4522_OK);
+    CHECK(x == y);
+    ak4522_stream_destroy(s);
 }
