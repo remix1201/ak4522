@@ -34,8 +34,8 @@ Test column names the planned Catch2 tag from AGENTS.md section 13.1. Status val
 | D-01 | Stereo 20-bit delta-sigma DAC, 128x oversampling                                  | D     | p.1 Features            | high   | REQ-SCOPE-01    | n/a         | planned |
 | D-02 | 8x interpolator precedes each DAC delta-sigma modulator                           | D     | p.1 block diagram       | high   | REQ-FILTER-01   | `[filter]`  | planned |
 | D-03 | DAC analog filtering is 2nd-order SCF plus 2nd-order CTF                          | D     | p.1 Features; p.16 s.4  | high   | REQ-FILTER-02   | `[filter]`  | planned |
-| D-04 | DAC sample rate 16 to 48 kHz; LRCK typical 44.1 kHz                               | D     | p.1; p.7 LRCK fsn       | high   | REQ-CLOCK-01    | `[clock]`   | planned |
-| D-05 | MCLK ratio 256fs, 384fs, or 512fs                                                 | D     | p.1; p.3 pin 21; p.9    | high   | REQ-CLOCK-01    | `[clock]`   | planned |
+| D-04 | DAC sample rate 16 to 48 kHz; LRCK typical 44.1 kHz                               | D     | p.1; p.7 LRCK fsn       | high   | REQ-CLOCK-01    | `[clock]`   | passing |
+| D-05 | MCLK ratio 256fs, 384fs, or 512fs                                                 | D     | p.1; p.3 pin 21; p.9    | high   | REQ-CLOCK-01    | `[clock]`   | passing |
 | D-06 | VA 4.5 to 5.5 V; VD 2.7 V min, 5.0 V typ, VA max                                  | D     | p.4 recommended         | high   | REQ-ANALOG-01   | n/a         | planned |
 | D-07 | DAC outputs single-ended, centered on VCOM; VCOM = VA/2                           | D     | p.3 pin 24; p.16 s.4    | high   | REQ-ANALOG-01   | `[analog]`  | planned |
 | D-08 | *new* VREFH sets the output range; normally connected to VA                       | D     | p.3 pin 1; p.15 s.2     | high   | REQ-ANALOG-01   | `[analog]`  | planned |
@@ -140,15 +140,15 @@ D-A16 is a figure annotation, not a table value. It agrees with D-A12 and suppor
 
 | ID    | Fact                                                                    | Class | Source            | Conf. | Requirement   | Test      | Status  |
 | ----- | ----------------------------------------------------------------------- | ----- | ----------------- | ----- | ------------- | --------- | ------- |
-| D-C01 | CMODE L = 256fs, H = 384fs, not connected = 512fs (internally biased)    | D     | p.3 pin 21; p.9   | high  | REQ-CLOCK-01  | `[clock]` | planned |
-| D-C02 | MCLK 256fs: 4.096 to 12.288 MHz; low/high width >= 27 ns                 | D     | p.7               | high  | REQ-CLOCK-01  | `[clock]` | planned |
-| D-C03 | MCLK 384fs: 6.144 to 18.432 MHz; low/high width >= 20 ns                 | D     | p.7               | high  | REQ-CLOCK-01  | `[clock]` | planned |
-| D-C04 | MCLK 512fs: 8.192 to 24.576 MHz; low/high width >= 15 ns                 | D     | p.7               | high  | REQ-CLOCK-01  | `[clock]` | planned |
-| D-C05 | LRCK must be synchronized with MCLK; phase is not critical               | D     | p.9               | high  | REQ-CLOCK-01  | `[clock]` | planned |
+| D-C01 | CMODE L = 256fs, H = 384fs, not connected = 512fs (internally biased)    | D     | p.3 pin 21; p.9   | high  | REQ-CLOCK-01  | `[clock]` | passing |
+| D-C02 | MCLK 256fs: 4.096 to 12.288 MHz; low/high width >= 27 ns                 | D     | p.7               | high  | REQ-CLOCK-01  | `[clock]` | passing |
+| D-C03 | MCLK 384fs: 6.144 to 18.432 MHz; low/high width >= 20 ns                 | D     | p.7               | high  | REQ-CLOCK-01  | `[clock]` | passing |
+| D-C04 | MCLK 512fs: 8.192 to 24.576 MHz; low/high width >= 15 ns                 | D     | p.7               | high  | REQ-CLOCK-01  | `[clock]` | passing |
+| D-C05 | LRCK must be synchronized with MCLK; phase is not critical               | D     | p.9               | high  | REQ-CLOCK-01  | `[clock]` | passing |
 | D-C06 | Internal timing synchronizes to LRCK at power-up                         | D     | p.9               | high  | REQ-RESET-02  | `[reset]` | planned |
 | D-C07 | All external clocks must be present unless PD is low; otherwise abnormal operation | D | p.9         | high  | REQ-CLOCK-01  | `[clock]` | planned |
-| I-C01 | At 44.1 kHz: MCLK 11.2896, 16.9344, 22.5792 MHz (Table 1 prints 22.579)  | I     | ratio x fs        | high  | REQ-CLOCK-01  | `[clock]` | planned |
-| I-C02 | MCLK ranges equal ratio x 16 kHz to ratio x 48 kHz                      | I     | D-C02 to D-C04 vs D-04 | high | REQ-CLOCK-01 | `[clock]` | planned |
+| I-C01 | At 44.1 kHz: MCLK 11.2896, 16.9344, 22.5792 MHz (Table 1 prints 22.579)  | I     | ratio x fs        | high  | REQ-CLOCK-01  | `[clock]` | passing |
+| I-C02 | MCLK ranges equal ratio x 16 kHz to ratio x 48 kHz                      | I     | D-C02 to D-C04 vs D-04 | high | REQ-CLOCK-01 | `[clock]` | passing |
 
 ## 7. De-emphasis
 

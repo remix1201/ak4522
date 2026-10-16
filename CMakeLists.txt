@@ -37,12 +37,14 @@ endif()
 
 # Framework-independent core library.
 add_library(ak4522
+    src/core/config_validation.cpp
     src/core/pcm.cpp
     src/core/status.cpp
     src/core/version.cpp)
 add_library(ak4522::ak4522 ALIAS ak4522)
-target_include_directories(ak4522 PUBLIC
-    $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>)
+target_include_directories(ak4522
+    PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
+    PRIVATE ${PROJECT_SOURCE_DIR}/src)
 target_link_libraries(ak4522 PRIVATE ak4522_options)
 target_compile_definitions(ak4522 PRIVATE
     AK4522_VERSION_STRING="${PROJECT_VERSION}")
