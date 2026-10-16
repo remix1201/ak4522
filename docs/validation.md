@@ -178,8 +178,8 @@ Findings during design:
 | ----- | ------ | ------ |
 | Fit | minimax first-order sections; independent evaluation with `scipy.signal.freqz` | 0.093 / 0.073 / 0.048 dB at 32 / 44.1 / 48 kHz (limit 0.1); bilinear would be 1.59 / 0.97 / 0.85 dB |
 | Phase | reported against the analog reference | up to 19.0 / 15.0 / 12.6 degrees; a second-order fit reduced magnitude error but not phase error |
-| C++ behavior | 14 test cases | pass |
-| Mutation check | 11 deliberate faults | 10 detected at first. Swapping the 32 and 48 kHz coefficient sets went unnoticed because the tests took expected values from the same table. A test now checks each selection against the analog curve at its own rate. Final: 11 of 11. |
+| C++ behavior | 14 test cases; 13 after follow mode was removed (O-07) | pass |
+| Mutation check | 11 deliberate faults | 10 detected at first. Swapping the 32 and 48 kHz coefficient sets went unnoticed because the tests took expected values from the same table. A test now checks each selection against the analog curve at its own rate. Final: 11 of 11; 9 remain after the two follow-mode mutations were retired with the feature (O-07). |
 
 Development notes: a guessed bound on the Nyquist gain (0.25 to 0.36) failed for the 32 kHz set (0.365), whose fit band ends at 14.4 kHz; the test now checks the implementation against its closed-form Nyquist gain instead. A first draft of the per-rate test probed 21.6 kHz at 48 kHz, beyond the 20 kHz fit band.
 

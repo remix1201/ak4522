@@ -24,18 +24,17 @@ public:
     // to the nearest frame, halves away from zero (P-64).
     [[nodiscard]] static std::size_t crossfadeFrames(double dacRate) noexcept;
 
-    // Sets the rate and policies, clears all state, and selects OFF.
-    void prepare(double dacRate, DeemphasisRatePolicy ratePolicy,
-                 DeemphasisSwitching switching) noexcept;
+    // Sets the rate and switching policy, clears all state, and selects OFF.
+    void prepare(double dacRate, DeemphasisSwitching switching) noexcept;
 
     // Clears filter state and ends any crossfade; keeps the selection.
     void reset() noexcept;
 
-    // Applies a DEM pin selection at the next frame. The coefficient set in
-    // use follows the rate policy (P-62, P-63). If the set changes, the new
-    // section starts from zero state (P-64); with hostCrossfade and
-    // allowCrossfade, the old section keeps running and the output fades
-    // linearly to the new one over crossfadeFrames().
+    // Applies a DEM pin selection at the next frame. The selected set runs at
+    // any DAC rate, as fixed chip coefficients would (P-62). If the set
+    // changes, the new section starts from zero state (P-64); with
+    // hostCrossfade and allowCrossfade, the old section keeps running and the
+    // output fades linearly to the new one over crossfadeFrames().
     void select(DeemphasisSelect pins, bool allowCrossfade) noexcept;
 
     // Filters both channels in place. Spans must have equal length.
@@ -56,11 +55,8 @@ private:
         [[nodiscard]] double tick(double x, double& state) const noexcept;
     };
 
-    [[nodiscard]] DeemphasisSelect effectiveSet(DeemphasisSelect pins) const noexcept;
     [[nodiscard]] static Section makeSection(DeemphasisSelect set) noexcept;
 
-    double dacRate_ = 44100.0;
-    DeemphasisRatePolicy ratePolicy_ = DeemphasisRatePolicy::pinFaithful;
     DeemphasisSwitching switching_ = DeemphasisSwitching::resetSection;
     Section current_;
     Section previous_;

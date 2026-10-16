@@ -56,30 +56,8 @@ Deemphasis::Section Deemphasis::makeSection(DeemphasisSelect set) noexcept
     return section;
 }
 
-DeemphasisSelect Deemphasis::effectiveSet(DeemphasisSelect pins) const noexcept
+void Deemphasis::prepare(double dacRate, DeemphasisSwitching switching) noexcept
 {
-    if (pins == DeemphasisSelect::off || ratePolicy_ == DeemphasisRatePolicy::pinFaithful) {
-        return pins; // P-62
-    }
-    // followDacRate: the matching set at the three nominal rates; elsewhere
-    // the pin selection stands (P-63).
-    if (dacRate_ == 32000.0) {
-        return DeemphasisSelect::fs32000;
-    }
-    if (dacRate_ == 44100.0) {
-        return DeemphasisSelect::fs44100;
-    }
-    if (dacRate_ == 48000.0) {
-        return DeemphasisSelect::fs48000;
-    }
-    return pins;
-}
-
-void Deemphasis::prepare(double dacRate, DeemphasisRatePolicy ratePolicy,
-                         DeemphasisSwitching switching) noexcept
-{
-    dacRate_ = dacRate;
-    ratePolicy_ = ratePolicy;
     switching_ = switching;
     fadeLength_ = crossfadeFrames(dacRate);
     current_ = makeSection(DeemphasisSelect::off);
@@ -96,7 +74,7 @@ void Deemphasis::reset() noexcept
 
 void Deemphasis::select(DeemphasisSelect pins, bool allowCrossfade) noexcept
 {
-    const DeemphasisSelect set = effectiveSet(pins);
+    const DeemphasisSelect set = pins; // P-62
     if (set == current_.set) {
         return;
     }

@@ -46,12 +46,6 @@ enum class DeemphasisSelect : std::uint8_t {
     return static_cast<DeemphasisSelect>((dem1 ? 0b10u : 0u) | (dem0 ? 0b01u : 0u));
 }
 
-// How a de-emphasis selection behaves when the DAC rate differs from it.
-enum class DeemphasisRatePolicy : std::uint8_t {
-    pinFaithful,   // keep the selected coefficient set at any rate (P-62)
-    followDacRate, // pick the matching set at 32/44.1/48 kHz only (P-63)
-};
-
 // What happens to filter state when the de-emphasis selection changes.
 enum class DeemphasisSwitching : std::uint8_t {
     resetSection,  // chip baseline: reset the new section at the event (P-64)
@@ -83,7 +77,6 @@ struct DacConfig {
     std::optional<double> masterClockHz;      // validated against CMODE when set
     ModelProfile profile = ModelProfile::specification;
     AnalogOptions analog{};
-    DeemphasisRatePolicy deemphasisRatePolicy = DeemphasisRatePolicy::pinFaithful;
     DeemphasisSwitching deemphasisSwitching = DeemphasisSwitching::resetSection;
 
     // Pin states latched when reset is released (P-72).
