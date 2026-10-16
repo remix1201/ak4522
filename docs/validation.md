@@ -374,6 +374,22 @@ Development note: the push example first rendered as fast as the CPU allowed, wh
 
 Budget (p99.9 below 10% for blocks of 64 or more): met. Before the output converter's loop was restructured, the same case measured a median of 6.2% and p99.9 of 9.2% (and 10.1% with other virtual machines busy). The change alters only the rounding of the kernel sums; golden lock, matrix, and response gates pass. A mutation check of the new loop detected 4 of 4 faults after a channel-symmetry test was added (a wrong tap index in the right channel first survived).
 
+## M5 gate status
+
+AGENTS.md section 16, M5: "Deliver, in this order: `DacStream` ...; the opt-in extended rate range (REQ-CLOCK-02); the C API (REQ-API-02); packaging, the integration guide, and generic examples (REQ-API-03). Gate: library tests for each new API, including block-partition invariance, drift-free long runs at a fractional DAC rate, push and pull equivalence, and real-time allocation checks; a C API test built as C; a consumer project, outside the library's own build, built against the installed package and run; release benchmark meeting the stated budget."
+
+| Gate item | Evidence | Status |
+| --------- | -------- | ------ |
+| Tests for each new API | `[stream]`, `[push]`, `[extended]`, `[capi]`, `package` labels; mutation checks 14/14, 4/4, 14/14, 4/4 | pass |
+| Block-partition invariance | `DacStream` random render sizes with events, within 1e-12 | pass |
+| Drift-free fractional rate | exact DAC-frame counts at 44 100 000 / 1001 Hz and 112 MHz / 2304 against integer arithmetic | pass |
+| Push and pull equivalence | bit-identical, also with the producer on another thread; ThreadSanitizer clean | pass |
+| Real-time allocation checks | render, push, and C calls under the allocation counter | pass |
+| C API test built as C | `tests/c_api/c_api_test.c`, C99, warnings as errors | pass |
+| Consumer against the installed package | `package.install`, plus `add_subdirectory` and shared-library variants | pass |
+| Release benchmark meets the budget | p99.9 3.4% at 64 frames on the proposed reference machine (budget 10%); Linux VM 5.4% | pass, reference machine pending approval |
+| Platforms | macOS, Windows ARM64 and x64, Linux aarch64: full suite, package tests, and matrix at `a210911` | pass |
+
 ## M4 gate status
 
 AGENTS.md section 16, M4: "Deliver calibrated noise, optional distortion/mismatch/crosstalk/voltage diagnostics, and profile metadata. Gate: weighted measurement methods are validated; synthetic assumptions are explicit; typical-target reports pass within project tolerances. Hardware fidelity claims remain limited."

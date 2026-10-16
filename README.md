@@ -6,7 +6,7 @@ The goal is to reproduce documented signal processing and control behavior, then
 
 ## Status
 
-**Alpha, milestones M0 to M4 complete.** The DAC core produces audio through the public `DacCore` API: 20-bit PCM frames and DEM, SMUTE, and PD events in, the reconstructed signal out at 8x the DAC rate, with the datasheet's filter response and 14.7-frame delay. `HostProcessor` wraps it for plugin use: host audio at 44.1 to 192 kHz in and out, with exactly reported latency. On branch `m5-c-api`, `DacStream` plays sources that run at their own DAC rate, an opt-in range reaches 50.4 kHz, and a C API exposes both entry points, and the library installs as a CMake package (M5, in progress). An optional NominalAnalog profile adds synthetic noise, distortion, channel mismatch, crosstalk, and DC offset calibrated to the datasheet's typical values ([docs/analog_profile.md](docs/analog_profile.md)); the clean Specification profile remains the default. The plugin and hardware validation do not exist yet.
+**Alpha, milestones M0 to M4 complete; M5 library work merged, awaiting approval.** The DAC core produces audio through the public `DacCore` API: 20-bit PCM frames and DEM, SMUTE, and PD events in, the reconstructed signal out at 8x the DAC rate, with the datasheet's filter response and 14.7-frame delay. `HostProcessor` wraps it for plugin use: host audio at 44.1 to 192 kHz in and out, with exactly reported latency. `DacStream` plays sources that run at their own DAC rate, such as instruments and emulated systems; an opt-in range reaches 50.4 kHz; a C API exposes both entry points; and the library installs as a CMake package ([integration guide](docs/integration.md)). An optional NominalAnalog profile adds synthetic noise, distortion, channel mismatch, crosstalk, and DC offset calibrated to the datasheet's typical values ([docs/analog_profile.md](docs/analog_profile.md)); the clean Specification profile remains the default. The plugin and hardware validation do not exist yet.
 
 See [docs/features.md](docs/features.md) for the current status of each feature.
 
@@ -171,7 +171,7 @@ The intended toolchain is C++20 with CMake and CTest. The library does not depen
 
 Detailed requirements and acceptance gates are maintained in [AGENTS.md](AGENTS.md).
 
-Progress: M0 (evidence ledger, build foundation, API proposal, requirement-to-test mapping) is complete and approved (tag `m0-approved`). M1 (PCM mapping, serial decoder, timing validator, clock configuration, reset, and mute state machine) is complete and approved (tag `m1-approved`). M2 (linear DAC response) is complete and approved (tag `m2-approved`). M3 (host-rate adaptation) is complete and approved (tag `m3-approved`). M4 (NominalAnalog profile) is complete and approved (tag `m4-approved`). M5 (integration API and packaging) is in progress. The demo plugin follows M5 as a separate project.
+Progress: M0 (evidence ledger, build foundation, API proposal, requirement-to-test mapping) is complete and approved (tag `m0-approved`). M1 (PCM mapping, serial decoder, timing validator, clock configuration, reset, and mute state machine) is complete and approved (tag `m1-approved`). M2 (linear DAC response) is complete and approved (tag `m2-approved`). M3 (host-rate adaptation) is complete and approved (tag `m3-approved`). M4 (NominalAnalog profile) is complete and approved (tag `m4-approved`). M5 (integration API and packaging) is implemented and merged into `main`, awaiting approval. The demo plugin follows M5 as a separate project.
 
 ## Verification
 
