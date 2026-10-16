@@ -38,6 +38,7 @@ endif()
 # Framework-independent core library.
 add_library(ak4522
     src/core/config_validation.cpp
+    src/core/control_timeline.cpp
     src/core/pcm.cpp
     src/core/soft_mute.cpp
     src/core/status.cpp

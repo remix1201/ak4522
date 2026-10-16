@@ -1,0 +1,9 @@
+[
+ ("ties round up", "    return lowerIsEven ? lower : lower + 1.0;", "    return lower + 1.0;"),
+ ("no sign extension", "(bits & signBit) != 0 ? magnitude - wordSpan : magnitude", "magnitude"),
+ ("16-bit scale x8", "* 16}", "* 8}"),
+ ("saturation off by one", "    if (rounded > static_cast<double>(Pcm20::maxCode)) {", "    if (rounded > static_cast<double>(Pcm20::maxCode) + 1.0) {"),
+ ("nonfinite not counted", "        ++counters.nonFinite;\n", ""),
+ ("tie treated as above half", "    if (fraction > 0.5) {", "    if (fraction >= 0.5) {"),
+ ("clip not counted", "        ++counters.clipped;\n        return Pcm20{Pcm20::minCode};", "        return Pcm20{Pcm20::minCode};"),
+]

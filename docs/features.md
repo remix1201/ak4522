@@ -14,7 +14,7 @@ Last substantive update: 2026-10-16. M0 was merged into `main` and approved by t
 | PCM mapping and quantization    | REQ-PCM-01 to REQ-PCM-03              | implemented    | passing (see below)      | not yet approved                  | merged into `main`    |
 | Serial decoder and timing validator | REQ-SERIAL-01 to REQ-SERIAL-03    | planned (M1)   | none                     | none                              | none                  |
 | Configuration validation        | REQ-CLOCK-01, REQ-RATE-03             | implemented    | passing (see below)      | not yet approved                  | merged into `main`    |
-| Reset and control timeline      | REQ-RESET-01, REQ-RESET-02, REQ-CTRL-01 | planned (M1) | none                    | none                              | none                  |
+| Reset and control timeline      | REQ-RESET-01, REQ-RESET-02, REQ-CTRL-01 | implemented  | passing (see below)     | not yet approved                  | merged into `main`    |
 | Soft mute                       | REQ-MUTE-01, REQ-MUTE-02              | implemented    | passing (see below)      | not yet approved                  | merged into `main`    |
 | De-emphasis                     | REQ-DEEM-01 to REQ-DEEM-03            | planned (M2)   | none                     | none                              | none                  |
 | Interpolation and reconstruction | REQ-FILTER-01, REQ-FILTER-02, REQ-LAT-02 | planned (M2) | none                   | none                              | none                  |
@@ -64,7 +64,7 @@ None of the emulator's signal processing is usable yet. PCM conversion exists as
   - `pcm20FromInt16(sample)`: multiplies by 16, so the four low bits are zero.
   - `quantizeToPcm20(x, counters)`: NaN and infinity become 0 and increment `nonFinite`; otherwise `x * 2^19` rounded to nearest with ties to even (implemented explicitly, independent of the floating-point rounding mode), then saturated to [-524288, 524287] with `clipped` incremented. +1.0 is not representable and saturates to 524287; -1.0 maps exactly to -524288.
   - `toNormalized(pcm)`: `code / 2^19`.
-- **Validation:** 12 tests in `tests/pcm_test.cpp`, including all 2^20 raw words, all 2^20 codes through normalize and quantize, all 65,536 16-bit samples, half-LSB ties on both signs and at both range ends, saturation, non-finite input, and 200,000 random and tie inputs against the C library's `std::nearbyint`. Six deliberate code mutations were each caught by the tests. Passes in the `dev` and `asan` presets.
+- **Validation:** 12 tests in `tests/pcm_test.cpp`, including all 2^20 raw words, all 2^20 codes through normalize and quantize, all 65,536 16-bit samples, half-LSB ties on both signs and at both range ends, saturation, non-finite input, and 200,000 random and tie inputs against the C library's `std::nearbyint`. Seven deliberate code mutations were each caught by the tests (`tools/mutations/pcm.txt`). Passes in the `dev` and `asan` presets.
 - **Limitations:** optional TPDF dither (P-12) and the host-side 16-bit input resolution are not implemented; they belong to `HostProcessor` (M3).
 - **Updated:** 2026-10-16.
 
@@ -78,7 +78,7 @@ None of the emulator's signal processing is usable yet. PCM conversion exists as
   - When `masterClockHz` is set, it must be finite and equal the CMODE ratio (256, 384, or 512) times the DAC rate within 1e-9 relative (`invalidMasterClock`). This implies the datasheet MCLK range, so there is no separate range check.
   - `ModelProfile::measured` and out-of-range enum values are rejected (`invalidConfiguration`).
   - Host rate must be exactly 44.1, 48, 88.2, 96, 176.4, or 192 kHz (`unsupportedHostRate`); `maxBlockFrames` and `maxPendingEvents` must be non-zero.
-- **Validation:** 14 test cases in `tests/config_validation_test.cpp`, including the nine p.9 Table 1 clock values, MCLK endpoints at both rate limits, the synchronization tolerance on both sides, and NaN inputs. Deliberate mutations were all caught after one redundant check was removed (see [validation.md](validation.md)).
+- **Validation:** 14 test cases in `tests/config_validation_test.cpp`, including the nine p.9 Table 1 clock values, MCLK endpoints at both rate limits, the synchronization tolerance on both sides, and NaN inputs. All eight deliberate mutations are detected (see [validation.md](validation.md)).
 - **Limitations:** the host/DAC rate-pair matrix (`unsupportedRatePair`) is defined in M3 with the SRC. Clock loss while running (D-C07) is a runtime fault for the serial adapter, not a configuration check.
 - **Updated:** 2026-10-16.
 
@@ -95,8 +95,24 @@ None of the emulator's signal processing is usable yet. PCM conversion exists as
   - Repeating the current level is ignored (`setPin` returns false).
   - `reset(pinHigh)` latches the level with no ramp: gain 0 if high, 1 if low.
   - One ramp is shared by both channels.
-- **Validation:** 11 test cases in `tests/soft_mute_test.cpp` against an integer reference model, including full transitions, reversals after 1, 511, and 1023 frames with no gain step larger than 1/1024, reversal during release, repeated events, reset, and identical output across single-frame, mixed, and random block partitions. No allocations during processing. Seven deliberate mutations detected. Passes in `dev` and `asan`.
+- **Validation:** 11 test cases in `tests/soft_mute_test.cpp` against an integer reference model, including full transitions, reversals after 1, 511, and 1023 frames with no gain step larger than 1/1024, reversal during release, repeated events, reset, and identical output across single-frame, mixed, and random block partitions. No allocations during processing. Seven deliberate mutations detected (`tools/mutation_check.py`, `tools/mutations/soft_mute.txt`). Passes in `dev` and `asan`.
 - **Limitations:** propagation through downstream filters, group delay, and residual analog noise while muted (D-M05, D-M06, P-54) are verified in M2 and M4, when those stages exist.
+- **Updated:** 2026-10-16.
+
+## Reset and control timeline
+
+- **Purpose:** apply PD, DEM, and SMUTE pin changes at exact DAC frames and split each block into runs of constant control state for the signal path.
+- **Requirements:** REQ-CTRL-01, REQ-RESET-01, REQ-RESET-02; evidence D-R01, D-R04, D-R05; policies P-42, P-52, P-53, P-64, P-70 to P-72.
+- **Implementation:** internal `detail::ControlTimeline` in `src/core/control_timeline.hpp`. `DacCore::process` will call it in M2; the host-to-DAC event mapping (P-41) is part of `HostProcessor` in M3.
+- **Behavior:**
+  - Events are validated first: offsets below the block length and non-decreasing, known types, pin values 0 or 1, DEM values 0 to 3. Any failure rejects the whole block with no state change.
+  - Events on the same frame apply in the order PD, DEM, SMUTE regardless of array order; same-type events on one frame apply in array order.
+  - PD low: segments report `powerDown` (output zero relative to VCOM) and `clearState` on the first segment. DEM and SMUTE changes during reset update the pin levels only.
+  - PD high: the current DEM and SMUTE levels are latched; the mute starts at 0 if SMUTE is high, unity if low, with no ramp. The DAC runs from that frame; there is no 516-frame delay.
+  - A DEM change marks the segment so the signal path can reset the new section.
+  - Repeated levels on any pin are ignored and counted.
+  - `reset(dem, smute)` is the software startup: release with the configured pin levels.
+- **Validation:** 12 test cases in `tests/control_timeline_test.cpp`, including all six array orders of a same-frame PD, DEM, SMUTE group, PD edges, latching during reset, no 516-frame delay, repeated levels, rejection without side effects, identical per-frame state across random block partitions, and no allocations. Eleven deliberate mutations detected. Passes in `dev` and `asan`.
 - **Updated:** 2026-10-16.
 
 ## Documentation process

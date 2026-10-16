@@ -83,6 +83,33 @@ The surviving mutation showed that the explicit MCLK range check could never cha
 | Mutation check | seven deliberate faults | all detected |
 | Sanitizers | `asan` preset, all 45 tests | pass |
 
+### 2026-10-16: control timeline, and a correction to earlier mutation results (branch `m1-control`, merged into `main`)
+
+| Check | Method | Result |
+| ----- | ------ | ------ |
+| Segmentation | splits exactly at event offsets; zero-frame blocks visit nothing | pass |
+| Same-frame order | all six array orders of a PD, DEM, SMUTE group give identical per-frame state | pass |
+| Power-down | zero output, state clear on both PD edges, no 516-frame delay | pass |
+| Latching | DEM and SMUTE changes during reset latched on release with no ramp | pass |
+| Validation | out-of-range, unsorted, and invalid events rejected with no side effects | pass |
+| Block invariance | per-frame state identical for one block, 1-frame, mixed, and five random partitions | pass |
+| Real-time | no allocations in `process` | pass |
+| Sanitizers | `asan` preset, all 57 tests | pass |
+
+**Correction to the mutation checks above.** The earlier checks for PCM, configuration, and soft mute applied each mutation and rebuilt immediately. make compares file times at one-second resolution, so a mutant written within the same second as the previous build could be tested against the previous mutant's binary. That can report a fault as detected or as surviving incorrectly; it was found when a control-timeline mutant survived in one run and was detected when repeated alone. The earlier counts are therefore not reliable on their own.
+
+All mutation checks were rerun with `tools/mutation_check.py`, which moves each mutated file's timestamp ahead and waits so every mutant is rebuilt. Mutation lists are in `tools/mutations/`.
+
+| Component | Mutations | Detected | Notes |
+| --------- | --------: | -------: | ----- |
+| PCM (`pcm`) | 7 | 7 | |
+| Configuration, DAC (`clock`) | 5 | 5 | |
+| Configuration, host (`rate`) | 3 | 3 | The first rerun ran these against the `clock` label by mistake and reported two as surviving. |
+| Soft mute (`mute`) | 7 | 7 | |
+| Control timeline (`control`) | 11 | 11 | 9 in the source file, 2 in the header |
+
+A twelfth control mutation survived: removing the PD check before updating the mute ramp's pin during reset. It has no observable effect, because the ramp does not advance during reset and release re-latches it. The check was removed from the code instead of being kept untestable.
+
 No signal-processing measurements exist yet. DSP gates from AGENTS.md section 13.2 begin in M1 and M2.
 
 ## Known deviations
