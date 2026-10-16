@@ -12,6 +12,8 @@ Printed page numbers match PDF page numbers. The PDF is not committed; see [refe
 
 **Verification record.** Every numeric hardware constant in AGENTS.md sections 4 to 10 was checked against [DS] on 2026-10-15. All values match except the items listed under [Discrepancies](#discrepancies). Entries below that are not in AGENTS.md are marked *new*.
 
+**Owner spot-check, 2026-10-16.** The project owner checked 14 items against the PDF: the discrepancies, serial modes and Fig.4 framing, DEM and CMODE mappings, mute, reset, DAC filter values, filter test conditions, and serial timing. Two corrections resulted: DISC-04 was withdrawn (the value is in the typ column), and DISC-01 now quotes the p.16 wording exactly. Table column placement was then confirmed from PDF text coordinates (`pdftotext -bbox`) rather than the page image.
+
 ## Classification
 
 | Class | Meaning                                                                        |
@@ -52,12 +54,10 @@ Conditions: Ta = 25 degrees C, VA 4.5 to 5.5 V, VD 2.7 to 5.5 V, fs = 44.1 kHz, 
 | D-F04 | Passband ripple (max)                                        | +/-0.06 dB         | D     | p.6 table           | high   | REQ-FILTER-01  | `[filter]`           | planned |
 | D-F05 | Stopband attenuation (min)                                   | 43 dB              | D     | p.6 table           | high   | REQ-FILTER-01  | `[filter]`           | planned |
 | D-F06 | Group delay (typ)                                            | 14.7 / fs          | D     | p.6 table, note 11  | high   | REQ-LAT-02     | `[filter][latency]`  | planned |
-| D-F07 | Digital filter plus analog filter, 0 to 20.0 kHz             | +/-0.2 dB          | D     | p.6 table           | low    | REQ-FILTER-02  | `[filter]`           | planned |
+| D-F07 | Digital filter plus analog filter, 0 to 20.0 kHz (typ)       | +/-0.2 dB          | D     | p.6 table           | high   | REQ-FILTER-02  | `[filter]`           | planned |
 | D-F08 | Passband and stopband frequencies scale with fs              | n/a                | D     | p.6 note 10         | high   | REQ-FILTER-01  | `[filter]`           | planned |
 | D-F09 | Response reference frequency                                 | 1 kHz              | D     | p.6 note 10         | high   | REQ-FILTER-01  | `[filter]`           | planned |
 | D-F10 | DAC delay runs from loading both channels' 20-bit input register to analog output | n/a | D | p.6 note 11 | medium | REQ-LAT-02 | `[latency]` | planned |
-
-D-F07 confidence is low because of its column placement; see DISC-04.
 
 ### Inferred filter values
 
@@ -116,7 +116,7 @@ D-A16 is a figure annotation, not a table value. It agrees with D-A12 and suppor
 | D-S05 | SDTI latched on SCLK rising edge                                         | D     | p.9                    | high   | REQ-SERIAL-01   | `[serial]` | planned |
 | D-S06 | Mode 3 at 32fs truncates the low bits                                    | D     | p.9                    | high   | REQ-SERIAL-01   | `[serial]` | planned |
 | D-S07 | Mode 3 at 32fs carries bits 19 to 4; bit 4 occupies the first SCLK slot after the LRCK edge | D | p.10 Fig.4 | medium | REQ-SERIAL-01 | `[serial]` | planned |
-| D-S08 | Mode 3 at 64fs: MSB one SCLK after LRCK edge, bits 19 to 0, then don't care | D  | p.10 Fig.4             | medium | REQ-SERIAL-01   | `[serial]` | planned |
+| D-S08 | Mode 3 at 64fs: bit 19 in the slot after the LRCK edge (slot 1), bit 0 in slot 20, then don't care | D | p.10 Fig.4 | medium | REQ-SERIAL-01   | `[serial]` | planned |
 | D-S09 | Mode 0 at 32fs: bits 15 to 0 fill the channel; at 64fs, don't care then bits 15 to 0 | D | p.9 Fig.1   | medium | REQ-SERIAL-01   | `[serial]` | planned |
 | D-S10 | Mode 1 at 64fs: don't care, then bits 19 to 0 ending at the channel boundary | D  | p.10 Fig.2             | medium | REQ-SERIAL-01   | `[serial]` | planned |
 | D-S11 | Mode 2 at 64fs: bits 19 to 0 from the channel boundary, then don't care  | D     | p.10 Fig.3             | medium | REQ-SERIAL-01   | `[serial]` | planned |
@@ -189,9 +189,9 @@ D-A16 is a figure annotation, not a table value. It agrees with D-A12 and suppor
 
 | ID    | Fact                                                                    | Class | Source       | Conf.  | Requirement   | Test       | Status  |
 | ----- | ----------------------------------------------------------------------- | ----- | ------------ | ------ | ------------- | ---------- | ------- |
-| D-O01 | Output range scales with supply; nominally 0.58 x VREFH Vpp             | D     | p.16 s.4     | high   | REQ-ANALOG-01 | `[analog]` | planned |
+| D-O01 | Analog Outputs section: "The input signal range scales with the supply voltage and nominally 0.58 x VREFH Vpp"; see DISC-01 | D | p.16 s.4 | medium | REQ-ANALOG-01 | `[analog]` | planned |
 | D-O02 | Fig.11 example: 27 uF input coupling, 10 kohm input, 18 kohm feedback, inverting NJM5532, 10 uF output coupling into 27 kohm; 2.9 Vpp in, 5.2 Vpp out; labeled 6 dB gain | D | p.16 Fig.11 | high | REQ-ANALOG-02 | n/a | planned |
-| I-O01 | Nominal peak `0.29 x VREFH`; `Vout = VCOM + 1.45 x` at VREFH = 5 V      | I     | D-O01 halved | high   | REQ-ANALOG-01 | `[analog]` | planned |
+| I-O01 | Nominal output 2.9 Vpp at VREFH = 5 V, scaling with VREFH; peak `0.29 x VREFH`; `Vout = VCOM + 1.45 x` at 5 V | I | D-A07 typ, D-O01, Fig.11 (AOUTL 2.9 Vpp) | high | REQ-ANALOG-01 | `[analog]` | planned |
 | I-O02 | Fig.11 gain is -1.8 (5.1 dB), not 6 dB                                  | I     | 18k / 10k; 2.9 x 1.8 = 5.22 Vpp | high | REQ-ANALOG-02 | n/a | planned |
 
 ## 11. ADC behavior excluded from the DAC path
@@ -211,10 +211,10 @@ These facts are documented but belong to the ADC. They MUST NOT appear in the DA
 
 | ID      | Description                                                                                                                                                                       | Source           | Resolution                                                                                                                         | Status |
 | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- | ---------------------------------------------------------------------------------------------------------------------------------- | ------ |
-| DISC-01 | Output voltage labeled `AOUT = 0.6 x VREFH` on p.5, but p.16 states nominally 0.58 x VREFH. 2.9 Vpp at 5 V agrees with 0.58.                                                      | p.5; p.16        | Use 2.9 Vpp and 0.58 for nominal scaling (AGENTS.md section 4.3).                                                                  | open   |
+| DISC-01 | p.5 labels the output voltage `AOUT = 0.6 x VREFH` (typ 2.9 Vpp). p.16 section 4 "Analog Outputs" says "the input signal range scales with the supply voltage and nominally 0.58 x VREFH Vpp", repeating the wording of section 3 "Analog Inputs" (0.6 x VREFH) with a different number. The DAC has no analog input, so the sentence is read as describing the output; 0.58 x 5 V = 2.9 Vpp agrees with the p.5 typical and the Fig.11 label "AOUTL 2.9Vpp". | p.5; p.15 s.3; p.16 s.4, Fig.11 | Use 2.9 Vpp at 5 V, scaling with VREFH (ratio 0.58), for nominal output (AGENTS.md section 4.3). The p.16 sentence alone is not relied on. | open |
 | DISC-02 | Fig.3 labels the first right-channel SDTI bits "23 22"; Table 2 and every other label specify 20 bits.                                                                            | p.10 Fig.3       | Treat as a diagram error; MSB is bit 19 for both channels (AGENTS.md section 5.1).                                                 | open   |
 | DISC-03 | The 14.7/fs delay is listed under "DAC Digital Filter", but note 11 defines it from input register to analog output.                                                              | p.6 table, note 11 | Keep the ambiguity in the latency report; do not add 14.7 frames on top of a filter that already provides it (AGENTS.md section 4.2). | open |
-| DISC-04 | *new* "DAC Digital Filter + Analog Filter" frequency response +/-0.2 dB is printed in the **min** column, not typ. AGENTS.md D-F07 calls it typical. A +/- value in the min column has no clear meaning. | p.6 table | Treat as a nominal target, not a guaranteed limit, as section 13.2 gate 2 already does. AGENTS.md D-F07 should note the column placement. | open |
+| DISC-04 | *withdrawn* Originally recorded the +/-0.2 dB combined response as printed in the min column. The owner's spot-check found it in the typ column, confirmed by PDF text coordinates (x 399.8 to 417.0, same as the typ header and the 14.7 group delay). The error came from reading the page image. | p.6 table | D-F07 is typical, as AGENTS.md states. The AGENTS.md note added for this item was reverted. | withdrawn |
 | DISC-05 | Fig.11 is labeled 6 dB gain, but its 10 kohm / 18 kohm network gives 5.1 dB; the drawn 5.2 Vpp output agrees with 5.1 dB.                                                        | p.16 Fig.11      | Calculate from components if the example circuit is modeled (AGENTS.md section 11).                                                | open   |
 | DISC-06 | *new* Pin table marks AOUTL and AOUTR (pins 22, 23) as I/O type "I"; they are outputs per p.1, p.13, and p.16.                                                                   | p.3              | Treat as outputs. No model impact.                                                                                                  | open   |
 | DISC-07 | *new* p.3 says all inputs "except pull-down pins" must not float; p.13 says all inputs "except CMODE pin". CMODE has internal pull-up and pull-down (p.6 note 12).               | p.3; p.13; p.6   | Only CMODE may float, and floating selects 512fs. No other model impact.                                                            | open   |

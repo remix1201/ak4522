@@ -83,9 +83,7 @@ Conditions: fs = 44.1 kHz, de-emphasis OFF, VA = 4.5 to 5.5 V, VD = 2.7 to 5.5 V
 | D-F04 | Digital passband ripple                   | +/-0.06 dB maximum         |
 | D-F05 | Digital stopband attenuation              | 43 dB minimum              |
 | D-F06 | DAC group delay                           | 14.7 / fs seconds, typical |
-| D-F07 | Digital plus analog response, 0 to 20 kHz | +/-0.2 dB, nominal (note)  |
-
-[DS] prints the D-F07 value in the table's minimum column rather than typical, which has no clear meaning for a +/- quantity. Treat it as a nominal target, not a guaranteed limit (docs/evidence.md DISC-04).
+| D-F07 | Digital plus analog response, 0 to 20 kHz | +/-0.2 dB, typical         |
 
 Use normalized boundaries `20/44.1 * fs`, `0.5 * fs`, and `24.1/44.1 * fs`. At 48 kHz these are approximately 21.7687, 24, and 26.2313 kHz. Do not fix the passband to 20 kHz at every DAC rate. The precise combined analog response away from the published conditions is not specified; treating it as invariant in normalized frequency is P.
 
