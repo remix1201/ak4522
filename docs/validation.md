@@ -374,6 +374,10 @@ Development note: the push example first rendered as fast as the CPU allowed, wh
 
 Budget (p99.9 below 10% for blocks of 64 or more): met. Before the output converter's loop was restructured, the same case measured a median of 6.2% and p99.9 of 9.2% (and 10.1% with other virtual machines busy). The change alters only the rounding of the kernel sums; golden lock, matrix, and response gates pass. A mutation check of the new loop detected 4 of 4 faults after a channel-symmetry test was added (a wrong tap index in the right channel first survived).
 
+### 2026-10-16: evidence ledger status review (branch `ledger-review`)
+
+The 24 ledger rows still marked *planned* were checked against the tests. 13 are covered by existing passing tests and now say so with the test tag (for example D-07 and I-O01 by the voltage-scaling test, D-P03 by the zero-code mapping, D-C06 by the serial decoder's startup handling, D-R02 by the startup latch test). 8 record facts with no software counterpart: supply voltages, gain drift, load limits, power-supply rejection, modulator noise, and PD-edge clicks; they are now *not modeled*, a status defined in the ledger. D-10 (package and temperature range) is *informational*. 4 remain planned with what they wait for: D-S12 (the ADC, M7), D-C07 (a clock-stop report, P-31, not yet implemented), and D-O02 and I-O02 (the optional Fig.11 board circuit).
+
 ## M5 gate status
 
 M5 approved by the project owner on 2026-10-16 (tag `m5-approved`).
