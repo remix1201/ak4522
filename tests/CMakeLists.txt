@@ -47,3 +47,16 @@ catch_discover_tests(ak4522_tests
     REPORTER junit
     OUTPUT_DIR ${CMAKE_BINARY_DIR}/test-results
     OUTPUT_SUFFIX .xml)
+
+# Host-rate matrix verification: slower, with its own timeout and label.
+add_executable(ak4522_matrix_tests
+    matrix/host_matrix_test.cpp
+    support/allocation_counter.cpp)
+target_include_directories(ak4522_matrix_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(ak4522_matrix_tests PRIVATE ak4522::ak4522 ak4522_options Catch2::Catch2WithMain)
+catch_discover_tests(ak4522_matrix_tests
+    ADD_TAGS_AS_LABELS
+    PROPERTIES TIMEOUT 1800
+    REPORTER junit
+    OUTPUT_DIR ${CMAKE_BINARY_DIR}/test-results
+    OUTPUT_SUFFIX .xml)

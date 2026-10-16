@@ -1,0 +1,1 @@
+[("converter stopband weakened to 70 dB", "    double attenuationDb = 125.0; // Kaiser design target (P-38)", "    double attenuationDb = 70.0; // Kaiser design target (P-38)")]

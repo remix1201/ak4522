@@ -25,6 +25,15 @@ uv run python -m unittest discover -s tests -t .
 
 The tests compare against independent calculations (analytic responses, exact delays, and a dense FFT instead of the direct DTFT). CTest runs them under the `tools` label (about 70 s).
 
+## Published responses
+
+`publish_responses.py` measures the core and the wrapper and writes `docs/responses.md`. It needs a release build with the tools enabled:
+
+```sh
+cmake --preset release && cmake --build --preset release
+cd tools && uv run python publish_responses.py ../build/release
+```
+
 ## Other tools
 
 `check_docs.py` checks the engineering records for consistency and runs in CTest under the `docs` label. It uses only the standard library, so CTest runs it with any Python 3.9 or later; `test_check_docs.py` tests the checker itself.

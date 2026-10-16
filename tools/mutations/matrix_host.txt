@@ -1,0 +1,4 @@
+[
+ ("prefill margin removed", "                           / static_cast<double>(os)))\n        + 2;", "                           / static_cast<double>(os)))\n        - 4;"),
+ ("no alignment offset", "    out.startOffset = h.outputOffset;", "    out.startOffset = 0.0;"),
+]

@@ -11,6 +11,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 option(AK4522_BUILD_TESTS "Build the test suite" ${PROJECT_IS_TOP_LEVEL})
+option(AK4522_BUILD_EXAMPLES "Build the example programs" ${PROJECT_IS_TOP_LEVEL})
 option(AK4522_SANITIZE "Build with address and undefined-behavior sanitizers" OFF)
 option(AK4522_WARNINGS_AS_ERRORS "Treat compiler warnings as errors" OFF)
 
@@ -59,8 +60,18 @@ target_link_libraries(ak4522 PRIVATE ak4522_options)
 target_compile_definitions(ak4522 PRIVATE
     AK4522_VERSION_STRING="${PROJECT_VERSION}")
 
+if(AK4522_BUILD_EXAMPLES)
+    add_executable(ak4522_host_processor_example examples/host_processor_example.cpp)
+    target_link_libraries(ak4522_host_processor_example PRIVATE ak4522::ak4522 ak4522_options)
+endif()
+
 if(AK4522_BUILD_TESTS)
     enable_testing()
+    if(AK4522_BUILD_EXAMPLES)
+        add_test(NAME examples.host_processor COMMAND ak4522_host_processor_example)
+        set_tests_properties(examples.host_processor PROPERTIES
+            LABELS "unit;examples" PASS_REGULAR_EXPRESSION "after mute:  silent")
+    endif()
     add_subdirectory(tests)
 
     # Documentation consistency checks (standard-library Python only).
@@ -84,6 +95,11 @@ if(AK4522_BUILD_TESTS)
             COMMAND ${AK4522_UV} run --directory ${PROJECT_SOURCE_DIR}/tools
                 python -m unittest discover -s tests -t .)
         set_tests_properties(tools.analysis PROPERTIES LABELS "tools" TIMEOUT 600)
+
+        # Wrapper response measurement for docs/responses.md.
+        add_executable(ak4522_host_response tools/cpp/host_response.cpp)
+        target_include_directories(ak4522_host_response PRIVATE ${PROJECT_SOURCE_DIR}/tests)
+        target_link_libraries(ak4522_host_response PRIVATE ak4522 ak4522_options)
 
         # Measure the C++ implementation's impulse response against the gates.
         add_executable(ak4522_impulse_dump tools/cpp/impulse_dump.cpp)

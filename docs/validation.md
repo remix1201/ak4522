@@ -226,6 +226,39 @@ Development note: the first level test expected only the tone in the output at e
 
 The project owner decided the response reference is 1 kHz as stated in [DS] p.6 note 10, not scaled with fs (I-F07 withdrawn). Because the filter table's conditions fix fs = 44.1 kHz, the datasheet gates are now evaluated at 44.1 kHz against 1 kHz only. The 32 and 48 kHz response measurements recorded above were made against a scaled reference and are superseded; at those rates the datasheet makes no ripple or edge claim. Regenerating the interpolator and reconstruction designs reproduced bit-identical coefficients; only report labels changed. `analyze_response.py` now marks results at other rates as informational.
 
+### 2026-10-16: host-rate matrix, branch `m3-verify`
+
+| Check | Method | Result |
+| ----- | ------ | ------ |
+| Alignment, 30 pairs | phase fits at three passband frequencies | within 0.01 frame |
+| Long runs, 30 pairs | 4 s in random blocks of 0 to 1500 frames | no underruns; phase change below 1e-6 rad between the first and last windows |
+| Alias containment, 30 pairs | six stimuli per pair near both Nyquist frequencies, including a two-tone pair; multi-sine fit removing intended components | residual below -110 dBFS (P-34) |
+| Block invariance, allocations | random partitions; allocation counter | pass |
+| Matrix tests detect faults | converter stopband weakened to 70 dB; prefill reduced; alignment offset removed | all detected |
+| Example program | CTest `examples.host_processor` | pass |
+| Published responses | `docs/responses.md` | core and wrapper published separately |
+
+Development note: the first long-run test also required the start and end amplitude estimates to agree within 1e-6 dB; they differ by a few 1e-6 dB from 20-bit quantization noise (about -125 dBFS), so that tolerance is now 1e-4 dB. Drift is detected by the phase check.
+
+## M3 gate status
+
+AGENTS.md section 16, M3: "Deliver SRC, all supported rate pairs, event mapping, latency alignment, and public examples. Gate: alias/count/block-invariance tests and real-time allocation checks pass. Publish core versus wrapper response separately."
+
+| Gate item | Evidence | Status |
+| --------- | -------- | ------ |
+| SRC | `detail::Resampler`; 14-pair quality tests (0.005 dB, -110 dBFS, -120 dB) | pass |
+| All supported rate pairs | 30-pair matrix: 6 host rates x 5 DAC rates | pass |
+| Event mapping | exact grid-point mapping test; partition invariance with events; pending queue across reset | pass |
+| Latency alignment | 0.01-frame alignment at every pair; integer report | pass |
+| Public examples | `examples/host_processor_example.cpp`, run by CTest | pass |
+| Alias tests | intended-component fits near both Nyquist frequencies, two-tone | pass |
+| Count tests | exact converter counts over 3 million inputs; no underruns over 4 s at every pair | pass |
+| Block-invariance tests | converter, host processor, and every matrix pair | pass |
+| Real-time allocation checks | every component and every matrix pair | pass |
+| Core versus wrapper response | [responses.md](responses.md) | published |
+
+Awaiting project-owner review.
+
 ## M2 gate status
 
 AGENTS.md section 16, M2: "Deliver reproducible coefficient generation, interpolation/reconstruction, three de-emphasis modes, and core delay accounting. Gate: frequency, stopband-image, delay, stability, and streaming tests pass. If filter fit and delay cannot simultaneously meet targets, document the conflict and revise before claiming completion."

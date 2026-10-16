@@ -14,7 +14,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import check_docs  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
-COPIED = ["README.md", "AGENTS.md", "LICENSE", "docs", "include", "tests", "src",
+COPIED = ["README.md", "AGENTS.md", "LICENSE", "docs", "include", "tests", "src", "examples",
           "reference/README.md", "tools/README.md"]
 
 
