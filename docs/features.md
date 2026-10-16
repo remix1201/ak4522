@@ -2,7 +2,7 @@
 
 What exists in this branch, as distinct from what AGENTS.md specifies. Implementation, validation, approval, and availability are tracked separately: a feature can be implemented without being approved or released (REQ-DOC-01, REQ-DOC-02).
 
-Last substantive update: 2026-10-16. M0 to M5 were merged into `main` and approved by the project owner on 2026-10-16; the approved states are tagged `m0-approved` to `m5-approved`. The M5 approval includes the CPU reference machine (P-93).
+Last substantive update: 2026-10-16. M0 to M5 were merged into `main` and approved by the project owner on 2026-10-16; the approved states are tagged `m0-approved` to `m5-approved`. M7 (the ADC section) was approved on 2026-10-16 and tagged `m7-approved`; M6 needs hardware. The M5 approval includes the CPU reference machine (P-93).
 
 ## Summary
 
@@ -39,7 +39,7 @@ Last substantive update: 2026-10-16. M0 to M5 were merged into `main` and approv
 | CPU benchmark                   | REQ-PERF-01                           | implemented    | budget met on the reference machine (see below) | approved 2026-10-16 (`m5-approved`) | merged into `main`    |
 | Demo plugin (VST3, AU), separate project | REQ-VST-01, REQ-VST-02, REQ-LAT-03 | planned (after M5) | none                     | none                              | none                  |
 | Measured profile                | AGENTS.md s.14                        | planned (M6, conditional on hardware) | none | none                         | none                  |
-| ADC section and loopback        | REQ-SCOPE-04, REQ-ADC-01 to REQ-ADC-07 | implemented (M7) | passing (see below)      | not yet approved                  | merged into `main`    |
+| ADC section and loopback        | REQ-SCOPE-04, REQ-ADC-01 to REQ-ADC-07 | implemented (M7) | passing (see below)      | approved 2026-10-16 (`m7-approved`)                  | merged into `main`    |
 
 Available on `main`: `DacCore` (DAC-rate PCM in, 8x the DAC rate out), `HostProcessor` (host-rate audio in and out, through the DAC, the DAC into the ADC, or the ADC), `DacStream` (a source at its own exact DAC rate, pull or push), `AdcCore` (the ADC section) with the SDTO encoder, the opt-in extended rate range to 50.4 kHz, a C API, CMake packaging with an integration guide and examples, the CPU benchmark, the optional Fig.11 example output circuit, the Specification profile, and the optional NominalAnalog profile for both converters. A demo plugin follows in a separate project.
 
