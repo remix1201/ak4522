@@ -401,6 +401,10 @@ The shared dither generator (`src/core/dither.hpp`) leaves `HostProcessor` outpu
 | C API | C99 test; C/C++ equivalence | pass |
 | Mutation check | 8 deliberate faults in `src/analog/example_output_circuit.cpp` | 8 detected |
 
+### 2026-10-16: ADC evidence entries, M7 (branch `m7-evidence`)
+
+Every ADC value in AGENTS.md section 17 was checked against the [DS] text layer, with table columns confirmed from word coordinates (`pdftotext -bbox`) on p.5, p.6, and p.7. All values match their stated columns. Findings: tPDV (516 / fs) is printed in the typ column while p.12 states 516 cycles without qualification (recorded in AD-10); Fig.1 shows SDTO truncated to bits 19 to 4 at 32fs in mode 0 as well as mode 3 (DISC-10); p.1 calls the signal inputs single-ended while p.3 and p.15 describe differential inputs (DISC-09). Inferences: the HPF points fit a first-order section (I-AD03); the passband edge equals fs minus the stopband edge (I-AD02). The documentation checker now validates AD and I-AD IDs (it had not recognized them), with a self-test.
+
 ## M5 gate status
 
 M5 approved by the project owner on 2026-10-16 (tag `m5-approved`).
