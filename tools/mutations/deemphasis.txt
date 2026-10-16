@@ -1,9 +1,6 @@
 [('32 and 48 kHz sets swapped', '    case DeemphasisSelect::fs32000: return designedSet(0);', '    case DeemphasisSelect::fs32000: return designedSet(2);'),
- ('new section keeps old state', '    current_ = makeSection(set);\n}', '    {\n        Section s = makeSection(set);\n        s.stateLeft = current_.stateLeft;\n        s.stateRight = current_.stateRight;\n        current_ = s;\n    }\n}'),
- ('same set resets state', '    if (set == current_.set) {\n        return;\n    }', ''),
- ('fade gain off by one', '            const double g = static_cast<double>(fadeLength_ - fadeRemaining_ + 1)', '            const double g = static_cast<double>(fadeLength_ - fadeRemaining_)'),
- ('fade length truncated', '    return static_cast<std::size_t>(std::lround(0.005 * dacRate));', '    return static_cast<std::size_t>(0.005 * dacRate);'),
- ('fade ignores allow flag', '    const bool fade = allowCrossfade && switching_ == DeemphasisSwitching::hostCrossfade', '    const bool fade = switching_ == DeemphasisSwitching::hostCrossfade'),
- ('reset keeps fade', '    previous_.clear();\n    fadeRemaining_ = 0;', '    previous_.clear();'),
  ('flush threshold too high', 'constexpr double flushThreshold = 1e-15;', 'constexpr double flushThreshold = 1e-6;'),
- ('old section not advanced in fade', '            const double oldL = previous_.tick(xl, previous_.stateLeft);', '            const double oldL = xl;')]
+ ('new section keeps old state', '    c_ = coefficients(pins);\n    reset();', '    c_ = coefficients(pins);'),
+ ('same set resets state', '    if (pins == set_) {\n        return;\n    }', '    if (pins == set_) {\n        reset();\n        return;\n    }'),
+ ('reset keeps right state', '    stateLeft_ = 0.0;\n    stateRight_ = 0.0;', '    stateLeft_ = 0.0;'),
+ ('right channel uses left state', '        right[i] = tick(c_, right[i], stateRight_);', '        right[i] = tick(c_, right[i], stateLeft_);')]

@@ -20,13 +20,6 @@ using detail::Deemphasis;
 
 namespace {
 
-Deemphasis prepared(double rate, DeemphasisSwitching switching = DeemphasisSwitching::resetSection)
-{
-    Deemphasis d;
-    d.prepare(rate, switching);
-    return d;
-}
-
 std::vector<double> runMono(Deemphasis& d, std::vector<double> x)
 {
     std::vector<double> right = x;
@@ -55,8 +48,8 @@ std::vector<double> impulse(std::size_t length)
 
 TEST_CASE("OFF is an exact bypass", "[unit][deemph]")
 {
-    Deemphasis d = prepared(44100.0);
-    d.select(DeemphasisSelect::off, false);
+    Deemphasis d;
+    d.select(DeemphasisSelect::off);
     std::mt19937_64 rng(15);
     std::uniform_real_distribution<double> dist(-1.0, 1.0);
     std::vector<double> x(1000);
@@ -71,8 +64,8 @@ TEST_CASE("Each selection's impulse response matches its closed form", "[unit][d
     const DeemphasisSelect set = GENERATE(DeemphasisSelect::fs32000, DeemphasisSelect::fs44100,
                                           DeemphasisSelect::fs48000);
     CAPTURE(static_cast<int>(set));
-    Deemphasis d = prepared(44100.0);
-    d.select(set, false);
+    Deemphasis d;
+    d.select(set);
     const auto c = Deemphasis::coefficients(set);
     const auto h = runMono(d, impulse(60));
     for (std::size_t n = 0; n < h.size(); ++n) {
@@ -91,16 +84,16 @@ TEST_CASE("Sections have unity DC gain and their closed-form Nyquist gain", "[un
     CHECK(std::abs(c.a1) < 1.0); // stable
 
     // A step settles to the DC gain of exactly 1.
-    Deemphasis d = prepared(44100.0);
-    d.select(set, false);
+    Deemphasis d;
+    d.select(set);
     const auto y = runMono(d, std::vector<double>(400, 1.0));
     CHECK(std::abs(y.back() - 1.0) < 1e-12);
 
     // Alternating input settles to the closed-form gain at the DAC Nyquist
     // frequency, |b0 - b1| / |1 - a1|. (The fit band ends below Nyquist, so
     // this gain is not constrained to the analog shelf; see the Python fit test.)
-    Deemphasis alt = prepared(44100.0);
-    alt.select(set, false);
+    Deemphasis alt;
+    alt.select(set);
     std::vector<double> x(400);
     for (std::size_t i = 0; i < x.size(); ++i) {
         x[i] = (i % 2 == 0) ? 1.0 : -1.0;
@@ -136,8 +129,8 @@ TEST_CASE("Each selection matches the 50/15 us curve at its own rate", "[unit][d
 TEST_CASE("A selection keeps its set at other DAC rates", "[unit][deemph]")
 {
     // P-62: the 44.1 kHz set runs unchanged at 32 kHz.
-    Deemphasis d = prepared(32000.0);
-    d.select(DeemphasisSelect::fs44100, false);
+    Deemphasis d;
+    d.select(DeemphasisSelect::fs44100);
     CHECK(d.active() == DeemphasisSelect::fs44100);
     const auto h = runMono(d, impulse(4));
     CHECK(h[0] == Deemphasis::coefficients(DeemphasisSelect::fs44100).b0);
@@ -151,94 +144,42 @@ TEST_CASE("Switching resets the new section's state", "[unit][deemph]")
     for (double& v : x) {
         v = dist(rng);
     }
-    Deemphasis d = prepared(44100.0);
-    d.select(DeemphasisSelect::fs44100, false);
+    Deemphasis d;
+    d.select(DeemphasisSelect::fs44100);
     std::vector<double> head(x.begin(), x.begin() + 300);
     static_cast<void>(runMono(d, head));
-    d.select(DeemphasisSelect::fs48000, false);
+    d.select(DeemphasisSelect::fs48000);
     std::vector<double> tail(x.begin() + 300, x.end());
     const auto switched = runMono(d, tail);
 
-    Deemphasis fresh = prepared(44100.0);
-    fresh.select(DeemphasisSelect::fs48000, false);
+    Deemphasis fresh;
+    fresh.select(DeemphasisSelect::fs48000);
     CHECK(switched == runMono(fresh, tail));
 }
 
 TEST_CASE("Selecting the set already in use keeps its state", "[unit][deemph]")
 {
-    Deemphasis d = prepared(44100.0);
-    d.select(DeemphasisSelect::fs44100, false);
+    Deemphasis d;
+    d.select(DeemphasisSelect::fs44100);
     static_cast<void>(runMono(d, std::vector<double>(50, 1.0)));
-    d.select(DeemphasisSelect::fs44100, false); // no change: no reset
+    d.select(DeemphasisSelect::fs44100); // no change: no reset
     const auto y = runMono(d, std::vector<double>(1, 1.0));
     CHECK(std::abs(y[0] - 1.0) < 1e-6); // still settled at DC
 }
 
-TEST_CASE("Crossfade length is 5 ms", "[unit][deemph]")
+TEST_CASE("Reset clears state and keeps the selection", "[unit][deemph]")
 {
-    CHECK(Deemphasis::crossfadeFrames(32000.0) == 160);
-    CHECK(Deemphasis::crossfadeFrames(44100.0) == 221); // 220.5 rounds away from zero
-    CHECK(Deemphasis::crossfadeFrames(48000.0) == 240);
-}
-
-TEST_CASE("Host crossfade blends old and new sections linearly", "[unit][deemph]")
-{
-    const double rate = 32000.0;
-    const std::size_t n = Deemphasis::crossfadeFrames(rate);
-    std::mt19937_64 rng(17);
-    std::uniform_real_distribution<double> dist(-1.0, 1.0);
-    std::vector<double> x(400 + n + 50);
-    for (double& v : x) {
-        v = dist(rng);
-    }
-    const std::vector<double> head(x.begin(), x.begin() + 400);
-    const std::vector<double> tail(x.begin() + 400, x.end());
-
-    Deemphasis faded = prepared(rate, DeemphasisSwitching::hostCrossfade);
-    faded.select(DeemphasisSelect::fs44100, false);
-    static_cast<void>(runMono(faded, head));
-    faded.select(DeemphasisSelect::off, true);
-    REQUIRE(faded.crossfading());
-    const auto y = runMono(faded, tail);
-    CHECK_FALSE(faded.crossfading());
-
-    // Old path: the 44.1 kHz section continuing from its state.
-    Deemphasis old = prepared(rate);
-    old.select(DeemphasisSelect::fs44100, false);
-    static_cast<void>(runMono(old, head));
-    const auto oldOut = runMono(old, tail);
-
-    for (std::size_t i = 0; i < tail.size(); ++i) {
-        const double g = i < n ? static_cast<double>(i + 1) / static_cast<double>(n) : 1.0;
-        const double expected = g * tail[i] + (1.0 - g) * oldOut[i]; // new section is OFF
-        REQUIRE(std::abs(y[i] - expected) < 1e-15);
-    }
-    CHECK(y[n - 1] == tail[n - 1]); // fully the new section at the last fade frame
-}
-
-TEST_CASE("Crossfade is suppressed when not allowed or in reset mode", "[unit][deemph]")
-{
-    Deemphasis hostMode = prepared(44100.0, DeemphasisSwitching::hostCrossfade);
-    hostMode.select(DeemphasisSelect::fs44100, false);
-    CHECK_FALSE(hostMode.crossfading());
-
-    Deemphasis chipMode = prepared(44100.0);
-    chipMode.select(DeemphasisSelect::fs44100, true);
-    CHECK_FALSE(chipMode.crossfading());
-}
-
-TEST_CASE("Reset clears state and ends a crossfade", "[unit][deemph]")
-{
-    Deemphasis d = prepared(48000.0, DeemphasisSwitching::hostCrossfade);
-    d.select(DeemphasisSelect::fs48000, false);
+    Deemphasis d;
+    d.select(DeemphasisSelect::fs48000);
     static_cast<void>(runMono(d, std::vector<double>(100, 0.8)));
-    d.select(DeemphasisSelect::fs32000, true);
     d.reset();
-    CHECK_FALSE(d.crossfading());
-    CHECK(d.active() == DeemphasisSelect::fs32000);
-    const auto y = runMono(d, std::vector<double>(20, 0.0));
-    for (const double v : y) {
-        CHECK(v == 0.0);
+    CHECK(d.active() == DeemphasisSelect::fs48000);
+    std::vector<double> left(20, 0.0);
+    std::vector<double> right(20, 0.0);
+    d.process(left, right);
+    for (std::size_t i = 0; i < left.size(); ++i) {
+        CHECK(left[i] == 0.0);
+        CHECK(right[i] == 0.0);
     }
 }
 
@@ -250,13 +191,13 @@ TEST_CASE("De-emphasis is independent of block partitioning", "[unit][deemph][st
     for (double& v : x) {
         v = dist(rng);
     }
-    // Selection changes at fixed frames, with a crossfade spanning blocks.
+    // Selection changes at fixed frames.
     const std::vector<std::pair<std::size_t, DeemphasisSelect>> changes{
         {0, DeemphasisSelect::fs44100}, {700, DeemphasisSelect::off},
         {800, DeemphasisSelect::fs32000}, {2000, DeemphasisSelect::fs48000}};
 
     auto run = [&](const std::vector<std::size_t>& sizes) {
-        Deemphasis d = prepared(44100.0, DeemphasisSwitching::hostCrossfade);
+        Deemphasis d;
         std::vector<double> left = x;
         std::vector<double> right = x;
         std::size_t at = 0;
@@ -264,7 +205,7 @@ TEST_CASE("De-emphasis is independent of block partitioning", "[unit][deemph][st
         std::size_t block = 0;
         while (at < x.size()) {
             while (next < changes.size() && changes[next].first == at) {
-                d.select(changes[next++].second, at != 0);
+                d.select(changes[next++].second);
             }
             std::size_t len = std::min(sizes[block++ % sizes.size()], x.size() - at);
             if (next < changes.size() && changes[next].first < at + len) {
@@ -282,14 +223,14 @@ TEST_CASE("De-emphasis is independent of block partitioning", "[unit][deemph][st
 
 TEST_CASE("De-emphasis does not allocate and keeps channels separate", "[unit][deemph][rt]")
 {
-    Deemphasis d = prepared(44100.0, DeemphasisSwitching::hostCrossfade);
-    d.select(DeemphasisSelect::fs44100, false);
+    Deemphasis d;
+    d.select(DeemphasisSelect::fs44100);
     std::vector<double> left(512, 0.0);
     std::vector<double> right(512, 0.0);
     left[0] = 1.0;
     ak4522::test::AllocationCounter counter;
     d.process(left, right);
-    d.select(DeemphasisSelect::fs48000, true);
+    d.select(DeemphasisSelect::fs48000);
     d.process(left, right);
     d.reset();
     CHECK(counter.allocations() == 0);

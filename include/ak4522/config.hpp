@@ -46,12 +46,6 @@ enum class DeemphasisSelect : std::uint8_t {
     return static_cast<DeemphasisSelect>((dem1 ? 0b10u : 0u) | (dem0 ? 0b01u : 0u));
 }
 
-// What happens to filter state when the de-emphasis selection changes.
-enum class DeemphasisSwitching : std::uint8_t {
-    resetSection,  // chip baseline: reset the new section at the event (P-64)
-    hostCrossfade, // host behavior: 5 ms crossfade between prepared sections (P-64)
-};
-
 enum class ModelProfile : std::uint8_t {
     specification, // deterministic, datasheet-constrained linear model
     nominalAnalog, // synthetic noise and imperfections at typical targets
@@ -77,7 +71,6 @@ struct DacConfig {
     std::optional<double> masterClockHz;      // validated against CMODE when set
     ModelProfile profile = ModelProfile::specification;
     AnalogOptions analog{};
-    DeemphasisSwitching deemphasisSwitching = DeemphasisSwitching::resetSection;
 
     // Pin states latched when reset is released (P-72).
     DeemphasisSelect initialDeemphasis = DeemphasisSelect::off;

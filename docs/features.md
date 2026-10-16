@@ -177,14 +177,14 @@ None of the emulator's signal processing is usable yet. PCM conversion exists as
 ## De-emphasis
 
 - **Purpose:** the DEM-selected 50/15 us de-emphasis at the DAC rate.
-- **Requirements:** REQ-DEEM-01 to REQ-DEEM-03; evidence D-E01 to D-E03, I-E01; policies P-60 to P-62, P-64; API decision O-07.
+- **Requirements:** REQ-DEEM-01 to REQ-DEEM-03; evidence D-E01 to D-E03, I-E01; policies P-60 to P-62, P-64; API decisions O-07, O-08.
 - **Design:** `tools/design_deemphasis.py` writes `src/dsp/deemphasis_coefficients.inc` and `src/dsp/deemphasis_design.json`. One first-order section per selection, exact unity DC gain, fitted to the analog reference from 20 Hz to the lesser of 20 kHz and 0.45 fs. Magnitude error 0.093 / 0.073 / 0.048 dB at 32 / 44.1 / 48 kHz (limit 0.1); phase error up to 19.0 / 15.0 / 12.6 degrees. Fitted, not AKM's coefficients.
 - **Implementation:** internal `detail::Deemphasis` in `src/dsp/deemphasis.hpp`.
 - **Behavior:**
   - DEM1, DEM0 = 00: 44.1 kHz set; 01: OFF, an exact bypass; 10: 48 kHz set; 11: 32 kHz set.
   - The DEM pins alone choose the set, which runs unchanged at any DAC rate, as on the chip. There is no automatic selection by DAC rate in the core; the plugin adapter may offer one by setting the DEM parameter.
-  - A change of set resets the new section's state. With host crossfade, the output fades linearly from the old section to the new over 5 ms (160 / 221 / 240 frames).
-- **Validation:** 13 C++ test cases: OFF bypass, closed-form impulse responses, unity DC and Nyquist gain, each selection within 0.1 dB of the analog curve at its own rate, a selection kept at another DAC rate, switching reset, crossfade blend against an independent old-section run, crossfade suppression, reset, block partitioning through a crossfade, no allocations. `tools/tests/test_generated_files.py` evaluates the committed sets against the analog reference independently. Nine deliberate mutations detected (two follow-mode mutations retired with the feature). Passes in `dev` and `asan`.
+  - A change of set resets the new section's state; re-selecting the current set changes nothing. There is no crossfade in the core: any smoothing would be host behavior in the plugin adapter.
+- **Validation:** 11 C++ test cases: OFF bypass, closed-form impulse responses, unity DC and Nyquist gain, each selection within 0.1 dB of the analog curve at its own rate, a selection kept at another DAC rate, switching reset, re-selection keeps state, reset of both channels, block partitioning across selection changes, and no allocations. `tools/tests/test_generated_files.py` evaluates the committed sets against the analog reference independently. Six deliberate mutations detected. Passes in `dev` and `asan`.
 - **Limitations:** de-emphasis is not yet connected to `DacCore`; that happens in `m2-core`. The chip's switching transient and coefficients are unknown (U-07).
 - **Updated:** 2026-10-16.
 

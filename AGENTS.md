@@ -209,7 +209,7 @@ The DAC uses an IIR de-emphasis filter with 50/15 microsecond time constants [DS
 
 **REQ-DEEM-03:** The DEM pins alone select the coefficient set, as on the chip [DS p.11]. Selecting 44.1 kHz while running at another DAC rate retains the 44.1 kHz coefficient set evaluated at the actual DAC rate. This models fixed coefficients as P because detailed mismatch behavior is not supplied. The core has no automatic selection by DAC rate. The plugin adapter MAY offer one as host behavior that sets the DEM pin parameter when the rate changes, the way a system controller would. Do not silently design a new hardware mode.
 
-De-emphasis switching transient behavior and state retention are undocumented. Baseline policy resets the newly selected section at the event boundary; a separate plugin smoothing option may crossfade prepared sections over 5 ms. Label that option as host behavior. Test both paths and keep latency consistent.
+De-emphasis switching transient behavior and state retention are undocumented. Baseline policy resets the newly selected section at the event boundary. The core implements only this chip behavior; any smoothing of DEM changes is host behavior and belongs to the plugin adapter, outside the core.
 
 ## 9. Soft mute and control timing
 
