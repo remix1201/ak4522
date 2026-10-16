@@ -460,6 +460,8 @@ Development note: the first startup and PD tests expected silence up to the repo
 
 ## M7 gate status
 
+M7 approved by the project owner on 2026-10-16 (tag `m7-approved`).
+
 AGENTS.md section 16, M7: "Deliver the ADC evidence entries, `AdcCore`, SDTO serial encoder, ADC reset and initialization behavior, and the optional DAC-to-ADC loopback chain, exposed through the integration modes and C API. Gate: decimation response, high-pass response, initialization timing, serial output framing, and streaming tests pass under the same rules as the DAC; ADC and DAC results are reported separately."
 
 | Gate item | Evidence | Status |
