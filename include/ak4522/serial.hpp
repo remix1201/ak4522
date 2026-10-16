@@ -90,6 +90,7 @@ enum class TimingViolation : std::uint8_t {
     mclkPulseWidth,            // high or low below 27, 20, or 15 ns for 256, 384, 512fs
     mclkNotSynchronized,       // MCLK rises per LRCK period differ from the CMODE ratio (D-C05)
     pdPulseWidth,              // PD low pulse < 150 ns (D-R03)
+    clockStopped,              // MCLK, SCLK, or LRCK silent > 62.5 us while PD is high (D-C07, P-31)
     count_,
 };
 
@@ -103,6 +104,9 @@ public:
     [[nodiscard]] Status prepare(CmodePin cmode);
     void reset() noexcept;
     void observe(const PinEdge& edge) noexcept;
+    // Advances time without an edge, so clocks that stop for good are
+    // reported; for example at the end of a capture. Earlier times are ignored.
+    void advanceTo(double timeNs) noexcept;
     [[nodiscard]] std::uint64_t violations(TimingViolation kind) const noexcept;
     [[nodiscard]] std::uint64_t totalViolations() const noexcept;
 
@@ -115,6 +119,7 @@ private:
     void onSdti(double t) noexcept;
     void onMclk(double t, bool rising) noexcept;
     void onPd(double t, bool rising) noexcept;
+    void checkClocks(double t) noexcept;
 
     std::array<std::uint64_t, static_cast<std::size_t>(TimingViolation::count_)> counts_{};
     CmodePin cmode_ = CmodePin::low;
@@ -130,6 +135,8 @@ private:
     double sdtiEdge_ = unseen_;
     double mclkRise_ = unseen_, mclkFall_ = unseen_;
     double pdFall_ = unseen_;
+    double pdRise_ = unseen_;
+    std::array<bool, pinCount> stopped_{}; // reported as stopped, until its next edge
     std::uint32_t mclkRisesThisLrck_ = 0;
     bool mclkCounting_ = false; // the current LRCK period started with MCLK running
 };
