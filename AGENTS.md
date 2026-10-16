@@ -14,7 +14,7 @@
 
 ## 1. Mission and working rules
 
-Build an independent, reusable C++20 stereo DAC emulation library suitable for a VST3 audio effect. Model the DAC section of the AKM AK4522VF, not the ADC or a complete sound card. Keep the library independent of JUCE, VST SDK headers, GUI frameworks, and host APIs. A thin optional plugin adapter may use JUCE or the VST3 SDK.
+Build an independent, reusable C++20 stereo DAC emulation library suitable for a VST3 audio effect. Model the DAC section of the AKM AK4522VF first. The ADC section follows as a separate core in milestone M7 (section 17); a complete sound card is out of scope. Keep the library independent of JUCE, VST SDK headers, GUI frameworks, and host APIs. A thin optional plugin adapter may use JUCE or the VST3 SDK.
 
 The mandatory baseline is a documented, specification-constrained behavioral model. Hardware-characterized fidelity is a later, separately identified profile. Do not describe either an invented delta-sigma modulator or a filter fitted to a few limits as a bit-exact reconstruction of AKM silicon.
 
@@ -53,7 +53,9 @@ Maintain `docs/evidence.md`, `docs/assumptions.md`, and `docs/validation.md`. Tr
 
 A separately selectable `NominalAnalog` profile may target typical noise, distortion, channel behavior, and voltage scaling. Label it synthetic until measurements support it. A later `Measured` profile must identify its particular chip and surrounding circuit. An experimental explicit modulator must never be necessary for the baseline.
 
-Do not add the ADC's 0.9 Hz high-pass filter, ADC 29.3-frame delay, ADC 80 dB stopband rejection, or ADC 516-frame initialization interval to the DAC path [DS pp.6,10,12]. External board buffers, AC coupling, clock jitter, and supply contamination are separate optional models.
+**REQ-SCOPE-04:** Model the ADC section as a separate `AdcCore` after the DAC baseline (M7, section 17). ADC behavior belongs only to that core.
+
+Do not add the ADC's 0.9 Hz high-pass filter, ADC 29.3-frame delay, ADC 80 dB stopband rejection, or ADC 516-frame initialization interval to the DAC path [DS pp.6,10,12]. The ADC does not affect DAC operation [DS p.12]. External board buffers, AC coupling, clock jitter, and supply contamination are separate optional models.
 
 ## 4. Documented DAC facts
 
@@ -358,4 +360,64 @@ Deliver stereo plugin, documented parameters and versioned state, automation, co
 
 Deliver calibrated captures, fitted profile, residual-error plots, held-out validation, and updated uncertainty ledger. Gate: claims identify device/circuit and measurement limits. This milestone requires hardware data and is not a prerequisite for shipping a clearly labeled specification-based model.
 
+### M7: ADC section and loopback
+
+Deliver the ADC evidence entries, `AdcCore`, SDTO serial encoder, ADC reset and initialization behavior, the optional DAC-to-ADC loopback chain, and plugin integration. Gate: decimation response, high-pass response, initialization timing, serial output framing, and streaming tests pass under the same rules as the DAC; ADC and DAC results are reported separately. M7 depends on M3 and on M5 for plugin integration; it does not depend on M6.
+
 For each milestone, report changes, tests run, measured results, known deviations, and the next unmet gate. Completion means reproducible builds, passing applicable gates, documented assumptions, an up-to-date feature record and README, no hidden real-time violations, and an honest fidelity statement. Never represent an unmeasured approximation as the recovered AKM implementation.
+
+## 17. ADC section (planned, M7)
+
+The ADC converts analog input to 20-bit PCM on SDTO. It shares clocks, serial format pins, and PD with the DAC, but its signal path is independent [DS pp.1,12]. Everything in this section applies to `AdcCore` only. Verify every value below against [DS] text, not page images, when building the M7 evidence entries.
+
+### 17.1 Documented ADC facts
+
+| ID     | Documented behavior                                                                                      | Source        |
+| ------ | -------------------------------------------------------------------------------------------------------- | ------------- |
+| AD-01  | Stereo 20-bit delta-sigma ADC, 64x oversampling, 16 to 48 kHz                                            | p.1           |
+| AD-02  | Differential inputs, internally biased to VA/2 with 30 kohm typical; single-ended use is possible        | p.15          |
+| AD-03  | Decimation passband: -0.005 dB at 19.76 kHz, -0.02 dB at 20.02 kHz, -0.06 dB at 20.20 kHz, -6.0 dB at 22.05 kHz (max column) | p.6 |
+| AD-04  | Decimation stopband from 24.34 kHz; ripple +/-0.005 dB max; attenuation 80 dB min                        | p.6           |
+| AD-05  | Group delay 29.3 / fs typical; group delay distortion 0 us                                               | p.6, note 11  |
+| AD-06  | Digital HPF: -3 dB at 0.9 Hz, -0.5 dB at 2.7 Hz, -0.1 dB at 6.0 Hz, at 44.1 kHz; scales with fs          | p.6; p.10     |
+| AD-07  | Frequencies scale with fs; response reference is 1 kHz                                                   | p.6 note 10   |
+| AD-08  | Samples at 64fs; the digital filter does not reject noise near multiples of 64fs                         | p.15          |
+| AD-09  | Over-range input clips to 7FFFFh or 80000h; ideal code with no input is 00000h; DC offset removed by HPF | p.15          |
+| AD-10  | After PD release, an analog initialization cycle runs; SDTO is valid after 516 LRCK cycles; output is "0" during reset and initialization; a small click occurs at the end of initialization | p.7 note 14; p.12 Fig.6 |
+| AD-11  | SDTO is 20-bit MSB justified in modes 0 to 2 and I2S in mode 3; SDTO changes on SCLK falling edges; at 32fs in mode 3 the low bits are truncated | p.9 Table 2; pp.9-10 Figs.1-4 |
+| AD-12  | SDTO timing: LRCK to SDTO MSB 40 ns max; SCLK falling to SDTO 50 ns max                                  | p.7           |
+
+### 17.2 ADC analog characteristics
+
+Conditions as section 4.3, with differential inputs and 470 ohm source impedance [DS p.5].
+
+| ID     | ADC quantity                              | Minimum  | Typical         | Maximum  |
+| ------ | ----------------------------------------- | -------: | --------------: | -------: |
+| AD-A01 | S/(N+D), -0.5 dB input                    | 84 dB    | 92 dB           |          |
+| AD-A02 | Dynamic range, -60 dB input, A-weighted   | 94 dB    | 100 dB          |          |
+| AD-A03 | S/N, A-weighted                           | 94 dB    | 100 dB          |          |
+| AD-A04 | Interchannel isolation                    | 90 dB    | 110 dB          |          |
+| AD-A05 | Interchannel gain mismatch                |          | 0.1 dB          | 0.3 dB   |
+| AD-A06 | Gain drift                                |          | 20 ppm/degree C |          |
+| AD-A07 | Input voltage (AIN = 0.6 x VREFH)         | 2.85 Vpp | 3.0 Vpp         | 3.15 Vpp |
+| AD-A08 | Input resistance                          | 20 kohm  | 30 kohm         |          |
+| AD-A09 | Power-supply rejection                    |          | 50 dB           |          |
+
+Footnotes [DS p.5]: single-ended input S/(N+D) is 80 dB typical (note 4); 16-bit ADC DR and S/N are 98 dB (note 5); CCIR-ARM S/N is 96 dB per converter and 94 dB for ADC-to-DAC loopback (note 6); full-scale input per AIN pin is 1.5 Vpp in differential mode (note 7). Single-ended range is nominally 0.6 x VREFH Vpp from one input and differential range 0.3 x VREFH Vpp per input [DS p.15].
+
+### 17.3 Requirements
+
+**REQ-ADC-01:** Provide `AdcCore` as a separate framework-independent core: normalized analog input at a declared input rate in, 20-bit stereo PCM at the ADC rate out. It follows the same real-time, streaming, determinism, and evidence rules as `DacCore`. It shares `CmodePin`, `SerialFormat`, and PD semantics but no signal state with the DAC.
+
+**REQ-ADC-02:** Model the decimation response (AD-03 to AD-05) and the HPF (AD-06) as fitted, documented filters, under the same rules as REQ-FILTER-01: record design scripts, coefficients, and measured response, and do not claim recovered AKM coefficients. Preserve DC removal; the ADC path is not DC-coupled.
+
+**REQ-ADC-03:** Model reset and initialization: SDTO outputs zero while PD is low and for 516 LRCK cycles after release (AD-10). The end-of-initialization click is undocumented in shape; do not synthesize it without captures.
+
+**REQ-ADC-04:** Provide an SDTO serial encoder for all four modes, including I2S at 32fs with truncated low bits (AD-11), as the counterpart of `SerialDecoder`. Test it against Figures 1 to 4 and by round trip through `SerialDecoder` where the formats correspond.
+
+**REQ-ADC-05:** Model input range and clipping (AD-09, AD-A07) with differential and single-ended input options. The single-ended option is a separately labeled configuration because its distortion differs (note 4).
+
+**REQ-ADC-06:** Optional loopback: DAC output, an optional declared analog chain, then ADC input. Report the loopback separately from either converter; the 94 dB CCIR-ARM loopback S/N (note 6) is a NominalAnalog target, not a property of either converter alone.
+
+**REQ-ADC-07:** Noise, distortion, mismatch, and crosstalk options follow the DAC rules in section 11, calibrated to the ADC values in 17.2.
+

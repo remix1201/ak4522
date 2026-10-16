@@ -41,7 +41,7 @@ The AK4522 is a stereo ADC/DAC device. This project focuses on its **20-bit DAC 
 
 The emulated DAC operates from 16 to 48 kHz. Planned host-rate support includes 44.1, 48, 88.2, 96, 176.4, and 192 kHz through sample-rate conversion. A higher host rate does not change the hardware's documented operating range.
 
-The ADC, its high-pass filter, and its startup initialization delay are outside the scope of the DAC model. External output amplifiers and coupling circuits are separate optional models.
+The ADC section is planned as a separate core in milestone M7, including its decimation filter, high-pass filter, initialization delay, serial output, and an optional DAC-to-ADC loopback. ADC behavior never enters the DAC model. External output amplifiers and coupling circuits are separate optional models.
 
 ## Fidelity and limitations
 
@@ -103,6 +103,7 @@ The intended toolchain is C++20 with CMake and CTest. The plugin adapter may use
 | M4        | Optional calibrated nominal analog profile                                              |
 | M5        | VST3 adapter, automation, state handling, bypass, and host validation                   |
 | M6        | Hardware-characterized refinement when suitable measurements are available              |
+| M7        | ADC section, SDTO serial output, and optional DAC-to-ADC loopback                       |
 
 Detailed requirements and acceptance gates are maintained in [AGENTS.md](AGENTS.md).
 

@@ -21,6 +21,7 @@ Last substantive update: 2026-10-16. M0 was merged into `main` and approved by t
 | NominalAnalog profile           | REQ-NOISE-01, REQ-NOISE-02, REQ-DIST-01, REQ-CHANNEL-01 | planned (M4) | none     | none                              | none                  |
 | VST3 plugin adapter             | REQ-VST-01, REQ-VST-02, REQ-LAT-03    | planned (M5)   | none                     | none                              | none                  |
 | Measured profile                | AGENTS.md s.14                        | planned (M6, conditional on hardware) | none | none                         | none                  |
+| ADC section and loopback        | REQ-SCOPE-04, REQ-ADC-01 to REQ-ADC-07 | planned (M7)  | none                     | none                              | none                  |
 
 None of the emulator's signal processing is usable yet. PCM conversion exists as a library function but is not yet connected to any processing path.
 

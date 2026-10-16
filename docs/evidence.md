@@ -196,7 +196,7 @@ D-A16 is a figure annotation, not a table value. It agrees with D-A12 and suppor
 
 ## 11. ADC behavior excluded from the DAC path
 
-These facts are documented but belong to the ADC. They MUST NOT appear in the DAC model [AGENTS.md section 3].
+These facts are documented but belong to the ADC. They MUST NOT appear in the DAC model [AGENTS.md section 3]. They will be modeled in `AdcCore` (M7, AGENTS.md section 17); full ADC evidence entries are created at the start of M7.
 
 | ID    | ADC fact                                                     | Source           |
 | ----- | ------------------------------------------------------------ | ---------------- |
