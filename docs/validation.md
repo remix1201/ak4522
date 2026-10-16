@@ -389,7 +389,7 @@ The 24 ledger rows still marked *planned* were checked against the tests. 11 are
 
 The shared dither generator (`src/core/dither.hpp`) leaves `HostProcessor` output unchanged; the golden lock passes.
 
-### 2026-10-16: example output circuit, Fig.11 (branch `fig11-circuit`)
+### 2026-10-16: example output circuit, Fig.11 (branch `fig11-circuit`, merged into `main`)
 
 | Check | Method | Result |
 | ----- | ------ | ------ |

@@ -34,14 +34,14 @@ Last substantive update: 2026-10-16. M0 to M5 were merged into `main` and approv
 | DacStream (pull and push, fractional DAC rates) | REQ-API-01, REQ-RATE-02 | implemented | passing (see below) | approved 2026-10-16 (`m5-approved`)              | merged into `main`    |
 | Extended DAC-rate range (opt-in, up to 50.4 kHz) | REQ-CLOCK-02          | implemented    | passing (see below)      | approved 2026-10-16 (`m5-approved`)                  | merged into `main`    |
 | C API                           | REQ-API-02                            | implemented    | passing (see below)      | approved 2026-10-16 (`m5-approved`)                  | merged into `main`    |
-| Example output circuit (Fig.11), optional | REQ-ANALOG-02                 | implemented    | passing (see below)      | not yet approved                  | branch `fig11-circuit` |
+| Example output circuit (Fig.11), optional | REQ-ANALOG-02                 | implemented    | passing (see below)      | not yet approved                  | merged into `main`    |
 | Packaging, integration guide, examples | REQ-API-03                     | implemented    | passing (see below)      | approved 2026-10-16 (`m5-approved`)                  | merged into `main`    |
 | CPU benchmark                   | REQ-PERF-01                           | implemented    | budget met on the reference machine (see below) | approved 2026-10-16 (`m5-approved`) | merged into `main`    |
 | Demo plugin (VST3, AU), separate project | REQ-VST-01, REQ-VST-02, REQ-LAT-03 | planned (after M5) | none                     | none                              | none                  |
 | Measured profile                | AGENTS.md s.14                        | planned (M6, conditional on hardware) | none | none                         | none                  |
 | ADC section and loopback        | REQ-SCOPE-04, REQ-ADC-01 to REQ-ADC-07 | planned (M7)  | none                     | none                              | none                  |
 
-Available on `main`: `DacCore` (DAC-rate PCM in, 8x the DAC rate out), `HostProcessor` (host-rate audio in and out), `DacStream` (a source at its own exact DAC rate, pull or push), the opt-in extended rate range to 50.4 kHz, a C API, CMake packaging with an integration guide and examples, the CPU benchmark, the Specification profile, and the optional NominalAnalog profile. A demo plugin follows in a separate project.
+Available on `main`: `DacCore` (DAC-rate PCM in, 8x the DAC rate out), `HostProcessor` (host-rate audio in and out), `DacStream` (a source at its own exact DAC rate, pull or push), the opt-in extended rate range to 50.4 kHz, a C API, CMake packaging with an integration guide and examples, the CPU benchmark, the optional Fig.11 example output circuit, the Specification profile, and the optional NominalAnalog profile. A demo plugin follows in a separate project.
 
 ## Build and test foundation
 
@@ -370,7 +370,7 @@ Available on `main`: `DacCore` (DAC-rate PCM in, 8x the DAC rate out), `HostProc
 ## Example output circuit (Fig.11)
 
 - **Purpose:** the datasheet's example external circuit after each DAC output ([DS] p.16 Fig.11): AC coupling and an inverting op-amp stage, for hearing or measuring the DAC as that board would present it (REQ-ANALOG-02). Board behavior, not chip behavior; `DacCore` never applies it.
-- **Status:** implemented on branch `fig11-circuit`; not yet approved.
+- **Status:** implemented and merged into `main`; not yet approved. Verified on macOS, Windows ARM64 and x64, and Linux.
 - **Usage:** set `exampleOutputCircuit = true` in `HostConfig` or `DacStreamConfig` (options in `exampleCircuit`), or run `ExampleOutputCircuit` yourself, for example after `DacCore`, at any rate. In C: `example_output_circuit` and `example_circuit` in the configs, or `ak4522_circuit_*`.
 - **Behavior** (P-104): 27 uF into 10 kohm and 10 uF into 27 kohm, both 0.589 Hz high-pass corners (I-O03), around a gain of -1.8, 5.1 dB, not the labeled 6 dB (I-O02, DISC-05). DC offsets are removed, which is what the coupling is for (D-A15). Options: `includeGain` (default on; off keeps the DAC's level, avoiding the 5.1 dB rise in a host), `invert` (default on, as drawn), `loadOhms` (an external load across the 27 kohm, default none). The op-amp, bias network, and supply are ideal: no noise, no bandwidth limit, no clipping. No latency is added.
 - **Validation:** 10 test cases (`[circuit]`): corners and gains from the components; magnitude within 0.01 dB and phase within 0.5 degrees of the analog transfer function from 0.2 Hz to 40 kHz at 1, 48, and 192 kHz, with and without a load; -1.8 times the input at 1 kHz; DC removed to exactly zero; channels independent; float and double agree; invalid options rejected; unprepared input unchanged; no allocations; the `HostProcessor` and `DacStream` options equal the circuit applied to their plain output, with unchanged latency; the NominalAnalog +3 mV offset removed. C99 test and C/C++ equivalence. A mutation check detected 8 of 8 faults.
