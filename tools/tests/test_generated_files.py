@@ -71,6 +71,12 @@ class ReconstructionFilesTest(unittest.TestCase):
             radius = np.max(np.abs(np.roots([1.0, s[3], s[4]])))
             self.assertLess(radius, 1.0)
 
+    def test_cpp_latency_constant_matches_design(self):
+        source = (ROOT / "src/core/dac_core.cpp").read_text(encoding="utf-8")
+        constant = float(re.search(r"coreDelayFrames = ([0-9.]+);", source).group(1))
+        self.assertEqual(constant, self.report["target_delay_frames"])
+        self.assertAlmostEqual(self.report["measured_delay_frames"], constant, places=6)
+
     def test_committed_chain_meets_core_gates(self):
         interpolator = read_inc(ROOT / "src/dsp/interpolator_coefficients.inc")
         sos = np.array([[s[0], s[1], s[2], 1.0, s[3], s[4]] for s in self.values.reshape(-1, 5)])

@@ -39,6 +39,7 @@ endif()
 add_library(ak4522
     src/core/config_validation.cpp
     src/core/control_timeline.cpp
+    src/core/dac_core.cpp
     src/core/pcm.cpp
     src/core/soft_mute.cpp
     src/core/status.cpp
@@ -116,6 +117,23 @@ if(AK4522_BUILD_TESTS)
                     --fs-high ${high} --dac-rate ${rate} --core)
             set_tests_properties(dsp.core_linear_response_${rate} PROPERTIES
                 LABELS "dsp" FIXTURES_REQUIRED core_linear_ir TIMEOUT 300)
+        endforeach()
+
+        # Every M2 response gate on the public DacCore output: digital
+        # response, stopband images, delay, and combined response.
+        set(dac_core_ir ${CMAKE_BINARY_DIR}/dsp/dac_core_impulse.txt)
+        add_test(NAME dsp.dac_core_dump
+            COMMAND ak4522_impulse_dump dac-core ${dac_core_ir} 1000)
+        set_tests_properties(dsp.dac_core_dump PROPERTIES
+            LABELS "dsp" FIXTURES_SETUP dac_core_ir)
+        foreach(rate 32000 44100 48000)
+            math(EXPR high "8 * ${rate}")
+            add_test(NAME dsp.dac_core_response_${rate}
+                COMMAND ${AK4522_UV} run --directory ${PROJECT_SOURCE_DIR}/tools
+                    python analyze_response.py ${dac_core_ir}
+                    --fs-high ${high} --dac-rate ${rate} --combined)
+            set_tests_properties(dsp.dac_core_response_${rate} PROPERTIES
+                LABELS "dsp" FIXTURES_REQUIRED dac_core_ir TIMEOUT 300)
         endforeach()
     else()
         message(WARNING "uv not found; analysis tool tests are disabled")
