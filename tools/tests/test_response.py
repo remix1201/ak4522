@@ -97,6 +97,11 @@ class DelayTest(unittest.TestCase):
 
 
 class GateTest(unittest.TestCase):
+    def test_reference_scales_with_rate(self):
+        self.assertEqual(dac_gates.reference_hz(44100.0), 1000.0)
+        self.assertAlmostEqual(dac_gates.reference_hz(48000.0), 1088.4354, places=3)
+        self.assertAlmostEqual(dac_gates.reference_hz(32000.0), 725.6236, places=3)
+
     def test_band_edges_scale_with_rate(self):
         edges = dac_gates.band_edges(48000.0)
         self.assertAlmostEqual(edges.passband_hz, 21768.7075, places=3)

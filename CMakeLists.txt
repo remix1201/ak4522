@@ -43,6 +43,7 @@ add_library(ak4522
     src/core/soft_mute.cpp
     src/core/status.cpp
     src/core/version.cpp
+    src/dsp/interpolator.cpp
     src/serial/serial_decoder.cpp
     src/serial/timing_validator.cpp)
 add_library(ak4522::ak4522 ALIAS ak4522)
@@ -78,6 +79,27 @@ if(AK4522_BUILD_TESTS)
             COMMAND ${AK4522_UV} run --directory ${PROJECT_SOURCE_DIR}/tools
                 python -m unittest discover -s tests -t .)
         set_tests_properties(tools.analysis PROPERTIES LABELS "tools" TIMEOUT 600)
+
+        # Measure the C++ implementation's impulse response against the gates.
+        add_executable(ak4522_impulse_dump tools/cpp/impulse_dump.cpp)
+        target_include_directories(ak4522_impulse_dump PRIVATE ${PROJECT_SOURCE_DIR}/src)
+        target_link_libraries(ak4522_impulse_dump PRIVATE ak4522 ak4522_options)
+
+        set(interpolator_ir ${CMAKE_BINARY_DIR}/dsp/interpolator_impulse.txt)
+        file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/dsp)
+        add_test(NAME dsp.interpolator_dump
+            COMMAND ak4522_impulse_dump interpolator ${interpolator_ir} 64)
+        set_tests_properties(dsp.interpolator_dump PROPERTIES
+            LABELS "dsp" FIXTURES_SETUP interpolator_ir)
+        foreach(rate 32000 44100 48000)
+            math(EXPR high "8 * ${rate}")
+            add_test(NAME dsp.interpolator_response_${rate}
+                COMMAND ${AK4522_UV} run --directory ${PROJECT_SOURCE_DIR}/tools
+                    python analyze_response.py ${interpolator_ir}
+                    --fs-high ${high} --dac-rate ${rate} --no-delay)
+            set_tests_properties(dsp.interpolator_response_${rate} PROPERTIES
+                LABELS "dsp" FIXTURES_REQUIRED interpolator_ir TIMEOUT 300)
+        endforeach()
     else()
         message(WARNING "uv not found; analysis tool tests are disabled")
     endif()

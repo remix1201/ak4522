@@ -145,6 +145,23 @@ Development notes: the first version reported MCLK as unsynchronized when no MCL
 | Gates | band edges at 44.1 and 48 kHz; ripple, stopband, delay, and combined checks on filters inside, between, and outside the limits | pass |
 | Mutation check | 13 deliberate faults in `response.py` and `dac_gates.py` | 11 detected at first. Loosening the ripple limit to 0.6 dB or the stopband limit to 0 dB went unnoticed because no test filter fell between the real and loosened limits. Tests with an echo (ripple of about 0.3 dB) and a 15-tap lowpass (partial attenuation) were added, cross-checked with a dense FFT. Final: 13 of 13. |
 
+### 2026-10-16: 8x interpolator, branch `m2-interpolator`
+
+| Check | Method | Result |
+| ----- | ------ | ------ |
+| Design | LP design; shortest odd length with stopband >= 43.2 dB | 191 taps; ripple 0.05802 dB, edge -0.05800 dB, half rate -6.00000 dB, stopband 43.465 dB |
+| C++ response, 32 / 44.1 / 48 kHz | `ak4522_impulse_dump` then `analyze_response.py` | pass at all three |
+| Generated files | length, checksum, and C++ constant agree; gates on the committed coefficients | pass |
+| Time domain | exact impulse response, DC, channels, partitions, reset, bound, allocations | pass |
+| Mutation check | 7 deliberate faults | 6 detected at first; the reset test checked only the left channel. Fixed; 7 of 7. |
+
+Findings during design:
+
+- A plain equiripple (Remez) design meets the passband edge gate (-0.06 dB at 20 kHz relative to 1 kHz) at only one length in twenty, because it does not control where the ripple falls. The LP design states all four datasheet numbers as constraints instead (P-88).
+- With equal passband and stopband weighting, 0.06 dB ripple and 43 dB attenuation are the same error amplitude. The datasheet numbers are met at about 190 taps, which leaves about 2.8 frames of the 14.7-frame delay to other stages (P-87).
+- Measured against an absolute 1 kHz, the same filter shows 0.088 dB ripple at 32 kHz and 0.065 dB at 48 kHz. The reference is taken to scale with fs (I-F07).
+- A DC input does not give a constant 8x output: its images at multiples of fs, each at most -43 dB, form a repeating 8-sample pattern. The test now checks the average and an analytic bound on the pattern.
+
 ## M1 gate status
 
 AGENTS.md section 16, M1: "boundary/serial/control tests pass, including I2S short-word framing and partial mute reversal. No plugin GUI yet."
