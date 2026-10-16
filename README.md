@@ -171,7 +171,7 @@ The intended toolchain is C++20 with CMake and CTest. The library does not depen
 
 Detailed requirements and acceptance gates are maintained in [AGENTS.md](AGENTS.md).
 
-Progress: M0 (evidence ledger, build foundation, API proposal, requirement-to-test mapping) is complete and approved (tag `m0-approved`). M1 (PCM mapping, serial decoder, timing validator, clock configuration, reset, and mute state machine) is complete and approved (tag `m1-approved`). M2 (linear DAC response) is complete and approved (tag `m2-approved`). M3 (host-rate adaptation) is complete and approved (tag `m3-approved`). M4 (NominalAnalog profile) is complete and approved (tag `m4-approved`). M5 (integration API and packaging) is complete and approved (tag `m5-approved`). M7 (the ADC section) is in progress: its evidence entries and filters exist; `AdcCore` does not yet. The demo plugin follows M5 as a separate project.
+Progress: M0 (evidence ledger, build foundation, API proposal, requirement-to-test mapping) is complete and approved (tag `m0-approved`). M1 (PCM mapping, serial decoder, timing validator, clock configuration, reset, and mute state machine) is complete and approved (tag `m1-approved`). M2 (linear DAC response) is complete and approved (tag `m2-approved`). M3 (host-rate adaptation) is complete and approved (tag `m3-approved`). M4 (NominalAnalog profile) is complete and approved (tag `m4-approved`). M5 (integration API and packaging) is complete and approved (tag `m5-approved`). M7 (the ADC section) is in progress: evidence entries, filters, and `AdcCore` exist on branches; serial output, host and C integration, and the ADC analog profile are still to come. The demo plugin follows M5 as a separate project.
 
 ## Verification
 

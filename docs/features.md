@@ -39,7 +39,7 @@ Last substantive update: 2026-10-16. M0 to M5 were merged into `main` and approv
 | CPU benchmark                   | REQ-PERF-01                           | implemented    | budget met on the reference machine (see below) | approved 2026-10-16 (`m5-approved`) | merged into `main`    |
 | Demo plugin (VST3, AU), separate project | REQ-VST-01, REQ-VST-02, REQ-LAT-03 | planned (after M5) | none                     | none                              | none                  |
 | Measured profile                | AGENTS.md s.14                        | planned (M6, conditional on hardware) | none | none                         | none                  |
-| ADC section and loopback        | REQ-SCOPE-04, REQ-ADC-01 to REQ-ADC-07 | in progress (M7): evidence and filters | filters passing (see below) | none                    | filters on branch `m7-filters` |
+| ADC section and loopback        | REQ-SCOPE-04, REQ-ADC-01 to REQ-ADC-07 | in progress (M7): evidence, filters, `AdcCore` | passing so far (see below) | none                 | branch `m7-core`      |
 
 Available on `main`: `DacCore` (DAC-rate PCM in, 8x the DAC rate out), `HostProcessor` (host-rate audio in and out), `DacStream` (a source at its own exact DAC rate, pull or push), the opt-in extended rate range to 50.4 kHz, a C API, CMake packaging with an integration guide and examples, the CPU benchmark, the optional Fig.11 example output circuit, the Specification profile, and the optional NominalAnalog profile. A demo plugin follows in a separate project.
 
@@ -386,6 +386,16 @@ Available on `main`: `DacCore` (DAC-rate PCM in, 8x the DAC rate out), `HostProc
 - **High-pass** (P-107): first order, -3 dB at 0.9 Hz at 44.1 kHz, scaling with fs; -0.46 dB at 2.7 Hz against the printed -0.5 (I-AD03).
 - **Validation:** 8 C++ test cases (`[adc]`): impulse response against the coefficients and delay; symmetry and DC gain; level within 0.005 dB and delay within 0.01 frame at 1 to 19 kHz; tones from 24.4 to 176 kHz at least 80 dB down after decimation; block invariance; channel independence; reset; HPF points at 32, 44.1, and 48 kHz; DC removed to exactly zero; no allocations. Python checks that the committed coefficients match their report, checksum, and C++ constants and pass the gates. A mutation check detected 9 of 9 faults after a reset test was added.
 - **Limitations:** content near multiples of 64fs (AD-08) cannot be represented with input at 8x the rate.
+- **Updated:** 2026-10-16.
+
+## AdcCore (M7, in progress)
+
+- **Purpose:** the ADC section as a framework-independent core: normalized analog input at 8x the ADC rate in, 20-bit frames out (REQ-ADC-01, REQ-ADC-03, REQ-ADC-05).
+- **Status:** implemented on branch `m7-core`; the SDTO encoder, host adapter, C API, NominalAnalog profile, and loopback adapter are still to come.
+- **Usage:** `AdcConfig` (rate, extended range, CMODE, MCLK), `AdcCore::prepare(config, maxBlockFrames)`, then `process(input, events, output)` with `8 * n` input samples per channel for `n` output frames. `adcInputFromVolts()` converts a voltage across the inputs, or on one input against VCOM, to the normalized input. `latency()` reports the modeled 29.3125 frames, the nominal 29.3, and the 516-frame initialization.
+- **Behavior** (P-108): decimator, HPF, 20-bit quantization with saturation to 7FFFFh and 80000h (counted). PD low gives "0" output and clears the filters; after release, and after `prepare` or `reset`, the output stays "0" for 516 frames while the filters run. DEM and SMUTE events have no effect. Specification profile only.
+- **Validation:** 12 test cases (`[adc]`): configuration checks; 516 zero frames at startup, then the input with 29.3125 frames of delay within 0.01 and unity level at 1 kHz; zero input gives 00000h; over-range saturates at the full-scale codes and is counted; DC removed; PD low and release, with the restarted filters equal to a fresh core's; DAC pins ignored; block invariance with PD events; bad calls rejected; voltage conversion and latency report; `DacCore` output fed directly to `AdcCore` returns the signal after 44.0125 frames; no allocations. A mutation check detected 8 of 8 faults.
+- **Limitations:** no NominalAnalog noise or distortion for the ADC yet; content near multiples of 64fs is not represented (AD-08); no initialization click (AD-10, no captures).
 - **Updated:** 2026-10-16.
 
 ## Documentation process

@@ -46,6 +46,7 @@ add_library(ak4522
     src/analog/example_output_circuit.cpp
     src/analog/output_stage.cpp
     src/c_api/ak4522_c.cpp
+    src/core/adc_core.cpp
     src/core/config_validation.cpp
     src/core/control_timeline.cpp
     src/core/dac_core.cpp

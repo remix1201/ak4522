@@ -110,4 +110,20 @@ Status validate(const DacStreamConfig& config) noexcept
     return validate(dac);
 }
 
+Status validate(const AdcConfig& config) noexcept
+{
+    DacConfig clocks; // the rate and clock rules are shared with the DAC
+    clocks.dacRate = config.adcRate;
+    clocks.allowExtendedRate = config.allowExtendedRate;
+    clocks.cmode = config.cmode;
+    clocks.masterClockHz = config.masterClockHz;
+    if (const Status s = validate(clocks); s != Status::ok) {
+        return s;
+    }
+    if (config.profile != ModelProfile::specification) {
+        return Status::invalidConfiguration; // NominalAnalog for the ADC is not built yet
+    }
+    return Status::ok;
+}
+
 } // namespace ak4522::detail

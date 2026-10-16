@@ -220,25 +220,25 @@ Filter values at fs = 44.1 kHz; frequencies scale with fs; response reference 1 
 
 | ID    | Fact                                                                     | Class | Source              | Conf.  | Requirement | Test    | Status  |
 | ----- | ------------------------------------------------------------------------ | ----- | ------------------- | ------ | ----------- | ------- | ------- |
-| AD-01 | Stereo 20-bit delta-sigma ADC, 64x oversampling, 16 to 48 kHz            | D     | p.1 Features; p.5   | high   | REQ-ADC-01  | `[adc]` | planned |
+| AD-01 | Stereo 20-bit delta-sigma ADC, 64x oversampling, 16 to 48 kHz            | D     | p.1 Features; p.5   | high   | REQ-ADC-01  | `[adc]` | passing |
 | AD-02 | Inputs are differential (AINx+, AINx-), internally biased to the common voltage VA/2 with 30 kohm typical; a signal may be applied to either input alone (single-ended) | D | p.3 pins 2 to 5; p.15 s.3 | high | REQ-ADC-05 | `[adc]` | planned |
-| AD-03 | Decimation passband, all in the max column: -0.005 dB at 19.76 kHz, -0.02 dB at 20.02 kHz (0.454 fs), -0.06 dB at 20.20 kHz, -6.0 dB at 22.05 kHz | D | p.6; note 10 | high | REQ-ADC-02 | `[adc]` | passing (filters; `AdcCore` pending) |
-| AD-04 | Decimation stopband from 24.34 kHz (min column); passband ripple +/-0.005 dB (max); stopband attenuation 80 dB (min) | D | p.6 | high | REQ-ADC-02 | `[adc]` | passing (filters; `AdcCore` pending) |
-| AD-05 | Group delay 29.3 / fs (typ), from analog input to both channels' 20-bit data in the output register; group delay distortion 0 us (typ) | D | p.6; note 11 | high | REQ-ADC-02 | `[adc]` | passing (filters; `AdcCore` pending) |
-| AD-06 | Digital HPF for DC offset cancellation: -3 dB at 0.9 Hz, -0.5 dB at 2.7 Hz, -0.1 dB at 6.0 Hz (typ) at 44.1 kHz; the cutoff scales with fs | D | p.6; p.10; p.15 | high | REQ-ADC-02 | `[adc]` | passing (filters; `AdcCore` pending) |
-| AD-07 | Passband and stopband frequencies scale with fs; the response reference is 1 kHz | D | p.6 note 10 | high | REQ-ADC-02 | `[adc]` | passing (filters; `AdcCore` pending) |
+| AD-03 | Decimation passband, all in the max column: -0.005 dB at 19.76 kHz, -0.02 dB at 20.02 kHz (0.454 fs), -0.06 dB at 20.20 kHz, -6.0 dB at 22.05 kHz | D | p.6; note 10 | high | REQ-ADC-02 | `[adc]` | passing |
+| AD-04 | Decimation stopband from 24.34 kHz (min column); passband ripple +/-0.005 dB (max); stopband attenuation 80 dB (min) | D | p.6 | high | REQ-ADC-02 | `[adc]` | passing |
+| AD-05 | Group delay 29.3 / fs (typ), from analog input to both channels' 20-bit data in the output register; group delay distortion 0 us (typ) | D | p.6; note 11 | high | REQ-ADC-02 | `[adc]` | passing |
+| AD-06 | Digital HPF for DC offset cancellation: -3 dB at 0.9 Hz, -0.5 dB at 2.7 Hz, -0.1 dB at 6.0 Hz (typ) at 44.1 kHz; the cutoff scales with fs | D | p.6; p.10; p.15 | high | REQ-ADC-02 | `[adc]` | passing |
+| AD-07 | Passband and stopband frequencies scale with fs; the response reference is 1 kHz | D | p.6 note 10 | high | REQ-ADC-02 | `[adc]` | passing |
 | AD-08 | The inputs are sampled at 64fs; the digital filter rejects noise above the stopband except near multiples of 64fs; a simple RC filter (fc 150 kHz) may attenuate noise around 64fs | D | p.15 s.3 | high | REQ-ADC-02 | n/a | planned |
-| AD-09 | Over-range input gives 7FFFFh above positive full scale and 80000h below negative full scale; two's complement; ideal code 00000h with no input; DC offset removed by the HPF | D | p.15 s.3 | high | REQ-ADC-05 | `[adc]` | planned |
-| AD-10 | After PD is released an analog initialization cycle runs; SDTO becomes available after 516 LRCK cycles (p.12 text; tPDV 516 / fs in the typ column, counted in LRCK rising edges from PD rising); output is "0" during reset; a small click occurs at the end of initialization | D | p.7 note 14; p.12 Fig.6 notes 3, 4 | high | REQ-ADC-03 | `[adc]` | planned |
+| AD-09 | Over-range input gives 7FFFFh above positive full scale and 80000h below negative full scale; two's complement; ideal code 00000h with no input; DC offset removed by the HPF | D | p.15 s.3 | high | REQ-ADC-05 | `[adc]` | passing |
+| AD-10 | After PD is released an analog initialization cycle runs; SDTO becomes available after 516 LRCK cycles (p.12 text; tPDV 516 / fs in the typ column, counted in LRCK rising edges from PD rising); output is "0" during reset; a small click occurs at the end of initialization | D | p.7 note 14; p.12 Fig.6 notes 3, 4 | high | REQ-ADC-03 | `[adc]` | passing |
 | AD-11 | SDTO: 20-bit MSB justified in modes 0, 1, 2; I2S in mode 3; MSB first; changes on the SCLK falling edge; at 32fs the low bits are truncated (modes 0 and 3, AD-16, DISC-10) | D | p.9 Table 2; pp.9-10 Figs.1 to 4 | high | REQ-ADC-04 | `[adc]` | planned |
 | AD-12 | SDTO timing: LRCK edge to SDTO MSB at most 40 ns; SCLK falling to SDTO at most 50 ns (max column) | D | p.7 | high | REQ-ADC-04 | n/a | planned |
-| AD-13 | Block diagram order per channel: modulator, decimation filter, HPF | D     | p.1 block diagram   | high   | REQ-ADC-02  | `[adc]` | planned |
-| AD-14 | Input range: differential nominally 0.3 x VREFH Vpp on each input; single-ended nominally 0.6 x VREFH Vpp on one input; inputs accept AGND to VA | D | p.15 s.3 | high | REQ-ADC-05 | `[adc]` | planned |
+| AD-13 | Block diagram order per channel: modulator, decimation filter, HPF | D     | p.1 block diagram   | high   | REQ-ADC-02  | `[adc]` | passing |
+| AD-14 | Input range: differential nominally 0.3 x VREFH Vpp on each input; single-ended nominally 0.6 x VREFH Vpp on one input; inputs accept AGND to VA | D | p.15 s.3 | high | REQ-ADC-05 | `[adc]` | passing |
 | AD-15 | SDTO at 64fs: modes 0, 1, 2 carry bits 19 to 0 in the 20 bit clocks from the LRCK edge, then idle; mode 3 carries bit 19 in the slot after the LRCK edge through bit 0 in slot 20 | D | p.9 Fig.1; p.10 Figs.2 to 4 | medium | REQ-ADC-04 | `[adc]` | planned |
 | AD-16 | SDTO at 32fs carries bits 19 to 4: mode 0 in slots 0 to 15 (Fig.1); mode 3 from slot 1, with bit 4 in slot 0 of the next half-frame (Fig.4) | D | p.9 Fig.1; p.10 Fig.4 | medium | REQ-ADC-04 | `[adc]` | planned |
 | AD-17 | Fig.7 single-ended connection: 470 ohm and 2.2 nF on the driven input (154 kHz), the other input AC-grounded through 4.7 uF and 0.1 uF | D | p.13 Fig.7 | medium | REQ-ADC-05 | n/a | informational |
 | AD-18 | Fig.10 differential buffer example: NJM2100, 1.5 Vpp on each input, 330 ohm and 1.5 nF per input | D | p.15 Fig.10 | medium | REQ-ADC-05 | n/a | informational |
-| AD-19 | The ADC initialization does not affect DAC operation; clocks may stop while PD is low | D | p.12 | high | REQ-ADC-03, REQ-SCOPE-04 | `[adc]` | planned |
+| AD-19 | The ADC initialization does not affect DAC operation; clocks may stop while PD is low | D | p.12 | high | REQ-ADC-03, REQ-SCOPE-04 | `[adc]` | passing |
 
 | ID     | Value                                                                  | Derivation                                                          | Class |
 | ------ | ---------------------------------------------------------------------- | ------------------------------------------------------------------- | ----- |

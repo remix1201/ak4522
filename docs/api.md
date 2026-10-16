@@ -33,6 +33,7 @@ REQ-ARCH-01 names ten abstractions. Four are public types: `DacConfig`, `DacCore
 | `pcm.hpp`            | `Pcm20`, `Pcm20Frame`, conversion and quantization functions                                   |
 | `events.hpp`         | `ControlEvent` for PD, DEM, and SMUTE changes                                                  |
 | `buffers.hpp`        | `StereoView<T>`, the non-owning planar buffer view                                             |
+| `adc_core.hpp`       | `AdcCore`, `AdcConfig`, `AdcLatencyInfo`, `adcInputFromVolts()` (M7, in progress)              |
 | `dac_core.hpp`       | `DacCore`, `ProcessResult`                                                                     |
 | `host_processor.hpp` | `HostProcessor`, `HostConfig`, `InputResolution`                                               |
 | `dac_stream.hpp`     | `DacStream`, `DacStreamConfig`, `ExactRate`, `DacSampleFormat`, `DacStreamMode`, `DacPullBlock`, `DacPullCallback`, `PushResult` |

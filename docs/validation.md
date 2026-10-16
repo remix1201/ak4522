@@ -415,6 +415,17 @@ Every ADC value in AGENTS.md section 17 was checked against the [DS] text layer,
 | Generated files | Python: length, pipeline, checksum against report and C++; gates on the committed coefficients | pass |
 | Mutation check | 9 faults in `decimator.cpp` and `adc_highpass.cpp` | 8 detected at first (an HPF reset that kept its state); 9 of 9 after a reset test |
 
+### 2026-10-16: AdcCore, M7 (branch `m7-core`)
+
+| Check | Method | Result |
+| ----- | ------ | ------ |
+| Startup and timing | 1 kHz sine fit after the 516 zero frames | 29.3125 frames within 0.01; level within 0.01 dB |
+| Codes | zero input; 1.25 x full scale; 0.95 x full scale | 00000h; 7FFFFh and 80000h, clipping counted; no clipping |
+| PD | low at frame 4000, high at 5000 | zero from 4000 to 5515; afterwards identical to a fresh core fed from 5000 |
+| Streaming | random block sizes including 0 and 1, with PD events, against one block | identical |
+| Loopback | `DacCore` 8x output into `AdcCore` at 44.1 kHz, 997 Hz | 44.0125 frames within 0.02; level within 0.05 dB |
+| Mutation check | 8 faults in `src/core/adc_core.cpp` | 8 detected |
+
 ## M5 gate status
 
 M5 approved by the project owner on 2026-10-16 (tag `m5-approved`).
