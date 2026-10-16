@@ -18,3 +18,7 @@ analysis-output/
 .DS_Store
 .vscode/
 .idea/
+
+# Python tool environment
+.venv/
+__pycache__/

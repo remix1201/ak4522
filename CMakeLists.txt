@@ -1,0 +1,51 @@
+cmake_minimum_required(VERSION 3.24)
+
+project(ak4522
+    VERSION 0.0.1
+    DESCRIPTION "AKM AK4522VF DAC emulation library"
+    LANGUAGES CXX)
+
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+option(AK4522_BUILD_TESTS "Build the test suite" ${PROJECT_IS_TOP_LEVEL})
+option(AK4522_SANITIZE "Build with address and undefined-behavior sanitizers" OFF)
+option(AK4522_WARNINGS_AS_ERRORS "Treat compiler warnings as errors" OFF)
+
+# Shared compile settings for every project target.
+add_library(ak4522_options INTERFACE)
+if(MSVC)
+    target_compile_options(ak4522_options INTERFACE /W4 /permissive-)
+    if(AK4522_WARNINGS_AS_ERRORS)
+        target_compile_options(ak4522_options INTERFACE /WX)
+    endif()
+else()
+    target_compile_options(ak4522_options INTERFACE
+        -Wall -Wextra -Wpedantic -Wconversion -Wsign-conversion -Wshadow
+        -Wdouble-promotion -Wold-style-cast)
+    if(AK4522_WARNINGS_AS_ERRORS)
+        target_compile_options(ak4522_options INTERFACE -Werror)
+    endif()
+    if(AK4522_SANITIZE)
+        target_compile_options(ak4522_options INTERFACE
+            -fsanitize=address,undefined -fno-omit-frame-pointer -fno-sanitize-recover=all)
+        target_link_options(ak4522_options INTERFACE -fsanitize=address,undefined)
+    endif()
+endif()
+
+# Framework-independent core library.
+add_library(ak4522
+    src/core/version.cpp)
+add_library(ak4522::ak4522 ALIAS ak4522)
+target_include_directories(ak4522 PUBLIC
+    $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>)
+target_link_libraries(ak4522 PRIVATE ak4522_options)
+target_compile_definitions(ak4522 PRIVATE
+    AK4522_VERSION_STRING="${PROJECT_VERSION}")
+
+if(AK4522_BUILD_TESTS)
+    enable_testing()
+    add_subdirectory(tests)
+endif()
