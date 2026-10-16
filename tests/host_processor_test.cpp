@@ -321,7 +321,8 @@ TEST_CASE("Float and double processing agree", "[unit][host]")
     HostProcessor d = prepared(config(48000, 44100));
     const auto outD = run(d, in, {256});
     HostProcessor f = prepared(config(48000, 44100));
-    std::vector<float> inF(in.left.begin(), in.left.end());
+    std::vector<float> inF(in.left.size());
+    std::transform(in.left.begin(), in.left.end(), inF.begin(), [](double v) { return static_cast<float>(v); });
     std::vector<float> outL(inF.size()), outR(inF.size());
     for (std::size_t at = 0; at < inF.size(); at += 256) {
         const std::size_t n = std::min<std::size_t>(256, inF.size() - at);
