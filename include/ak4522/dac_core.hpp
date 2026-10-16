@@ -21,7 +21,9 @@ struct ProcessResult {
 
 // The chip model at the DAC rate. Input is one Pcm20Frame per LRCK cycle;
 // output is the reconstructed analog-equivalent signal at outputRate(),
-// normalized so that full scale is 1.0 and VCOM is 0.0.
+// including images above the DAC Nyquist frequency, normalized so that full
+// scale is 1.0 and VCOM is 0.0. Band-limiting to the host happens only in
+// HostProcessor's output SRC.
 //
 // Threading: prepare() and the destructor run off the audio thread and never
 // concurrently with process() or reset(). latency() is stable between

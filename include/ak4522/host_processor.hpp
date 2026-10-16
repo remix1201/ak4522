@@ -24,6 +24,7 @@ struct HostConfig {
     std::size_t maxBlockFrames = 512;
     InputResolution inputResolution = InputResolution::bits20;
     bool inputDither = false;    // TPDF before quantization; host feature (P-12)
+    std::size_t maxPendingEvents = 256; // events deferred past the block by SRC latency
     DacConfig dac{};
 };
 

@@ -6,9 +6,25 @@ The goal is to reproduce documented signal processing and control behavior, then
 
 ## Status
 
-**Alpha development specification.** The project currently has an engineering specification in [AGENTS.md](AGENTS.md). This documentation deliverable does not include an implemented DSP library, a build system, a compiled plugin, or hardware validation results.
+**Alpha, milestone M0 in progress.** The project has an engineering specification ([AGENTS.md](AGENTS.md)), a C++20 build and test foundation, a public API proposal, and evidence and assumptions ledgers. **No signal processing is implemented yet**: there is no usable DAC model, compiled plugin, or hardware validation result.
 
-APIs, parameters, presets, serialized state, and internal formats may change without backward compatibility during alpha development. Build and installation instructions will be added when an executable implementation is available.
+See [docs/features.md](docs/features.md) for the current status of each feature.
+
+APIs, parameters, presets, serialized state, and internal formats may change without backward compatibility during alpha development.
+
+## Building
+
+Requirements: CMake 3.24 or later and a C++20 compiler. The test framework (Catch2) is downloaded at configure time. Only macOS with Apple clang has been tested so far.
+
+```sh
+cmake --preset dev                # Debug, warnings as errors
+cmake --build --preset dev
+ctest --preset dev                # all tests; use --preset unit for fast tests only
+```
+
+The `asan` preset adds address and undefined-behavior sanitizers; `release` builds optimized.
+
+Offline coefficient design and analysis tools live in [tools/](tools/) and use [uv](https://docs.astral.sh/uv/) with a locked Python 3.12 environment. They are not needed to build the library.
 
 ## What this project models
 
@@ -88,7 +104,9 @@ The intended toolchain is C++20 with CMake and CTest. The plugin adapter may use
 | M5        | VST3 adapter, automation, state handling, bypass, and host validation                   |
 | M6        | Hardware-characterized refinement when suitable measurements are available              |
 
-Detailed requirements and acceptance gates are maintained in [AGENTS.md](AGENTS.md). No milestone is marked complete by this README.
+Detailed requirements and acceptance gates are maintained in [AGENTS.md](AGENTS.md).
+
+Progress: M0 deliverables are drafted on the `m0-foundation` branch and await review. No milestone is complete.
 
 ## Verification
 
@@ -124,13 +142,13 @@ The primary hardware reference is the **AK4522 datasheet, Asahi Kasei, M0020-E-0
 
 Keep the PDF and any extracted text or page images local and excluded from version control. Place a local copy at `reference/AK4522.PDF`; the repository ignores everything in `reference/` except its [README](reference/README.md), which records the expected checksum. The original project documentation, source citations, and engineering decisions belong in version control.
 
-Planned engineering records are:
+Engineering records:
 
-- `docs/evidence.md`: source-to-requirement and requirement-to-test traceability.
-- `docs/assumptions.md`: uncertainties and explicitly chosen approximation policies.
-- `docs/validation.md`: measurement methods, results, and known deviations.
-
-These paths describe intended documentation and are not claims that the files already exist.
+- [docs/evidence.md](docs/evidence.md): source-to-requirement and requirement-to-test traceability, and datasheet discrepancies.
+- [docs/assumptions.md](docs/assumptions.md): project policies and open uncertainties.
+- [docs/validation.md](docs/validation.md): measurement methods, results, and known deviations.
+- [docs/api.md](docs/api.md): public API design and decisions.
+- [docs/features.md](docs/features.md): implementation, validation, approval, and availability status of each feature.
 
 ## License and attribution
 

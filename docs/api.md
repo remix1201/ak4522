@@ -87,12 +87,14 @@ Events on the same frame apply in `ControlType` order: PD, then DEM, then SMUTE 
 
 `TimingValidator::observe(edge)` consumes timestamped pin transitions and counts violations of the limits in D-T01 to D-T08, D-C02 to D-C04, and D-R03. It reports; it does not simulate metastability (P-24).
 
-## Open questions
+## Design decisions
 
-| ID   | Question                                                                                                  | Proposal                                                                                                         |
-| ---- | --------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| O-01 | Should `DacCore` output at 8x the DAC rate or at the DAC rate?                                            | 8x. The core output then represents the analog signal including its images, and the output SRC is the only place that band-limits to the host. Reconstruction filters at 8x are cheap. Revisit if M2 profiling disagrees. |
-| O-02 | How many pending events can `HostProcessor` hold when input SRC latency defers an event past the current block? | Fixed capacity set at prepare (proposed 256), with overflow counted in diagnostics. Not yet in `HostConfig`. |
-| O-03 | Should `ModelProfile::measured` exist before any measured profile does?                                   | Keep it so the enum is stable; `prepare` returns `invalidConfiguration` until a profile is available.             |
-| O-04 | Mono buses                                                                                                | Not supported by the core. The plugin adapter rejects mono layouts or documents a mono-to-stereo policy (REQ-VST-01). |
-| O-05 | `SerialDecoder` and `TimingValidator` are value types with fixed-size state; their private members are placeholders until M1. | Accept; alpha allows the layout to change.                                                               |
+Decisions approved by the project owner on 2026-10-15 are marked *approved*.
+
+| ID   | Decision                                                                                                                                                                                                  | Status   |
+| ---- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
+| O-01 | `DacCore` outputs at 8x the DAC rate. The output represents the analog signal including its images above the DAC Nyquist frequency; `HostProcessor`'s output SRC is the only stage that band-limits to the host rate. | approved |
+| O-02 | `HostConfig::maxPendingEvents` (default 256) bounds events deferred past the current block by input SRC latency. Overflowing events are dropped and counted in `Diagnostics::droppedEvents`.               | approved |
+| O-03 | `ModelProfile::measured` stays in the enum so it is stable; `prepare` returns `invalidConfiguration` for it until a measured profile exists.                                                                | approved |
+| O-04 | The core is stereo only. The plugin adapter rejects mono layouts or documents a mono-to-stereo policy (REQ-VST-01).                                                                                       | proposed |
+| O-05 | `SerialDecoder` and `TimingValidator` are value types with fixed-size state; their private members are placeholders until M1.                                                                            | proposed |

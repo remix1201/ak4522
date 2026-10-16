@@ -49,6 +49,7 @@ static_assert(!defaultDac.analog.noise && !defaultDac.analog.distortion
               && !defaultDac.analog.dcOffset);
 static_assert(HostConfig{}.inputResolution == InputResolution::bits20);
 static_assert(!HostConfig{}.inputDither);
+static_assert(HostConfig{}.maxPendingEvents == 256);
 
 // D-02: 8x interpolation.
 static_assert(DacCore::oversampling == 8);

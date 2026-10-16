@@ -12,6 +12,7 @@ struct Diagnostics {
     std::uint64_t chunkedBlocks = 0;         // blocks above the prepared maximum, split internally
     std::uint64_t rejectedBlocks = 0;        // process calls that returned a non-ok status
     std::uint64_t ignoredEvents = 0;         // repeated same-level events (P-53)
+    std::uint64_t droppedEvents = 0;         // pending-event capacity exceeded
 };
 
 } // namespace ak4522

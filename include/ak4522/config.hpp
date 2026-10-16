@@ -61,7 +61,8 @@ enum class DeemphasisSwitching : std::uint8_t {
 enum class ModelProfile : std::uint8_t {
     specification, // deterministic, datasheet-constrained linear model
     nominalAnalog, // synthetic noise and imperfections at typical targets
-    measured,      // fitted to captures of an identified device; not yet available
+    measured,      // fitted to captures of an identified device; prepare rejects
+                   // it with invalidConfiguration until a profile exists
 };
 
 // Optional analog imperfections. Each flag is independent (REQ-SCOPE-03).
