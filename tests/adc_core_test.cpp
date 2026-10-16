@@ -4,7 +4,9 @@
 
 #include "ak4522/adc_core.hpp"
 #include "ak4522/dac_core.hpp"
+#include "analog/analog_noise.hpp"
 #include "support/allocation_counter.hpp"
+#include "support/multi_sine_fit.hpp"
 #include "support/sine_fit.hpp"
 
 #include <catch2/catch_test_macros.hpp>
@@ -117,7 +119,19 @@ TEST_CASE("ADC prepare validates rate, clocks, profile, and block size", "[unit]
     CHECK(a.prepare(c, 64) == Status::invalidMasterClock);
     c = AdcConfig{};
     c.profile = ModelProfile::nominalAnalog;
-    CHECK(a.prepare(c, 64) == Status::invalidConfiguration); // not built yet
+    c.analog = AnalogOptions::nominal();
+    CHECK(a.prepare(c, 64) == Status::ok);
+    c.analog.dcOffset = true; // the HPF removes offsets (P-110)
+    CHECK(a.prepare(c, 64) == Status::invalidConfiguration);
+    c = AdcConfig{};
+    c.analog.noise = true; // Specification has no imperfections
+    CHECK(a.prepare(c, 64) == Status::invalidConfiguration);
+    c = AdcConfig{};
+    c.inputMode = static_cast<AdcInputMode>(2);
+    CHECK(a.prepare(c, 64) == Status::invalidConfiguration);
+    c = AdcConfig{};
+    c.profile = ModelProfile::measured;
+    CHECK(a.prepare(c, 64) == Status::invalidConfiguration);
     CHECK(a.prepare(AdcConfig{}, 0) == Status::invalidBlockSize);
     CHECK_FALSE(a.isPrepared());
 }
@@ -281,4 +295,112 @@ TEST_CASE("ADC processing does not allocate", "[unit][adc][rt]")
     static_cast<void>(a.diagnostics());
     CHECK(counter.allocations() == 0);
     CHECK(r.status == Status::ok);
+}
+
+namespace {
+
+AdcCore nominal(AnalogOptions options, AdcInputMode mode = AdcInputMode::differential)
+{
+    AdcCore a;
+    AdcConfig c;
+    c.profile = ModelProfile::nominalAnalog;
+    c.analog = options;
+    c.inputMode = mode;
+    REQUIRE(a.prepare(c, 2048) == Status::ok);
+    return a;
+}
+
+} // namespace
+
+TEST_CASE("ADC channel mismatch is 0.1 dB fixed, at most 0.3 dB per instance", "[unit][adc][analog]")
+{
+    AnalogOptions o;
+    o.channelMismatch = true;
+    auto measure = [](AdcCore& a) {
+        Input in = tone(12000, 1000.0, 44100.0);
+        in.right = in.left; // the same signal on both channels
+        const auto out = run(a, in, {2048});
+        std::vector<double> l, r;
+        for (std::size_t i = 4000; i < out.size(); ++i) {
+            l.push_back(toNormalized(out[i].left));
+            r.push_back(toNormalized(out[i].right));
+        }
+        const double al = test::fitSine(l, 1000.0, 44100.0).amplitude;
+        const double ar = test::fitSine(r, 1000.0, 44100.0).amplitude;
+        return 20.0 * std::log10(al / ar);
+    };
+    AdcCore fixed = nominal(o);
+    CHECK(std::abs(measure(fixed) - 0.1) < 0.002); // AD-A05 typical
+    o.mismatchMode = MismatchMode::perInstance;
+    for (std::uint64_t seed = 1; seed <= 20; ++seed) {
+        o.noiseSeed = seed;
+        AdcCore a = nominal(o);
+        CHECK(std::abs(measure(a)) <= 0.3 + 1e-4); // AD-A05 maximum; the fit adds about 1e-7 dB
+    }
+}
+
+TEST_CASE("ADC crosstalk is -110 dB at 1 kHz in both directions", "[unit][adc][analog]")
+{
+    // With the ADC's own noise present, as when measured: it dithers the
+    // quantizer, which would otherwise distort a 1.5 LSB leak (P-110).
+    AnalogOptions o;
+    o.crosstalk = true;
+    o.noise = true;
+    for (const bool drivenLeft : {true, false}) {
+        CAPTURE(drivenLeft);
+        AdcCore a = nominal(o);
+        Input in = tone(441000, 1000.0, 44100.0, 0.9);
+        (drivenLeft ? in.right : in.left).assign(in.left.size(), 0.0);
+        const auto out = run(a, in, {2048});
+        std::vector<double> quiet;
+        for (std::size_t i = 4000; i < out.size(); ++i) {
+            // The undriven channel; the coherent fit averages the noise away.
+            quiet.push_back(toNormalized(drivenLeft ? out[i].right : out[i].left));
+        }
+        const double leak = test::fitSine(quiet, 1000.0, 44100.0).amplitude;
+        CHECK(std::abs(20.0 * std::log10(leak / 0.9) + 110.0) < 0.5); // AD-A04
+    }
+}
+
+TEST_CASE("ADC noise is seeded, reproducible, and stays after PD release", "[unit][adc][analog]")
+{
+    AnalogOptions o;
+    o.noise = true;
+    o.noiseSeed = 7;
+    Input zero{std::vector<double>(os * 3000, 0.0), std::vector<double>(os * 3000, 0.0)};
+    AdcCore a = nominal(o), b = nominal(o);
+    const auto x = run(a, zero, {2048});
+    CHECK(x == run(b, zero, {100, 7}));         // same seed, any blocks
+    CHECK_FALSE(silent(x, 516, 3000));          // noise after initialization
+    CHECK(silent(x, 0, 516));                   // still "0" during initialization
+    o.noiseSeed = 8;
+    AdcCore c = nominal(o);
+    CHECK_FALSE(x == run(c, zero, {2048}));
+}
+
+TEST_CASE("ADC distortion is calibrated at -0.5 dBFS for each input mode", "[unit][adc][analog]")
+{
+    // Distortion only: the 2nd and 3rd harmonics of a -0.5 dBFS 997 Hz tone
+    // must carry the S/(N+D) target minus the noise allowance (P-110):
+    // 92 dB differential (AD-A01), 80 dB single-ended (AD-A10).
+    struct Case {
+        AdcInputMode mode;
+        double sinadDb;
+    };
+    const Case c = GENERATE(Case{AdcInputMode::differential, 92.0}, Case{AdcInputMode::singleEnded, 80.0});
+    CAPTURE(static_cast<int>(c.mode));
+    AnalogOptions o;
+    o.distortion = true;
+    AdcCore a = nominal(o, c.mode);
+    const double amplitude = std::pow(10.0, -0.5 / 20.0);
+    const auto out = run(a, tone(44100, 997.0, 44100.0, amplitude), {2048});
+    const auto y = leftOf(out, 4000);
+    const std::vector<double> freqs{997.0, 1994.0, 2991.0};
+    const auto fit = test::fitSines(y, freqs, 44100.0);
+    const double harmonics = (fit.amplitudes[1] * fit.amplitudes[1] + fit.amplitudes[2] * fit.amplitudes[2])
+        / (fit.amplitudes[0] * fit.amplitudes[0]);
+    const double tonePower = amplitude * amplitude / 2.0;
+    const double noisePower = detail::AnalogNoise::density() * (20000.0 - 10.0);
+    const double expected = std::pow(10.0, -c.sinadDb / 10.0) - noisePower / tonePower;
+    CHECK(std::abs(10.0 * std::log10(harmonics / expected)) < 0.1);
 }

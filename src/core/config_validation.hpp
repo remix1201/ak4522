@@ -38,7 +38,7 @@ inline constexpr std::uint64_t maxRateDenominator = std::uint64_t{1} << 20;
 [[nodiscard]] Status validate(const DacStreamConfig& config) noexcept;
 
 // Checks the ADC rate and clocks with the DAC's rules (they share them,
-// AD-01, D-04) and the profile: Specification only for now.
+// AD-01, D-04), the profile, and the analog options (P-110).
 [[nodiscard]] Status validate(const AdcConfig& config) noexcept;
 
 } // namespace ak4522::detail

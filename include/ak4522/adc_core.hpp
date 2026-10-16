@@ -25,6 +25,14 @@ namespace ak4522 {
     return volts / (0.3 * vrefh);
 }
 
+// How the analog signal reaches the inputs (AD-02). Full scale is the same
+// in both (I-AD04); single-ended input distorts more near full scale, which
+// the NominalAnalog profile reflects (AD-A10, P-110).
+enum class AdcInputMode : std::uint8_t {
+    differential, // AINx+ and AINx- in antiphase (the datasheet's test condition)
+    singleEnded,  // one input driven, the other AC-grounded (Fig.7)
+};
+
 // Chip-level ADC configuration. The ADC shares the clocks and PD pin with the
 // DAC (AGENTS.md section 17); its rate limits and the extended range are the
 // DAC's (D-04, AD-01, REQ-CLOCK-02).
@@ -33,9 +41,12 @@ struct AdcConfig {
     bool allowExtendedRate = false; // up to 50400 Hz (REQ-CLOCK-02, P-103)
     CmodePin cmode = CmodePin::low;
     std::optional<double> masterClockHz; // validated against CMODE when set
-    // Specification only for now; NominalAnalog for the ADC is planned, and
-    // prepare rejects it with invalidConfiguration until it exists.
     ModelProfile profile = ModelProfile::specification;
+    // NominalAnalog only: noise, distortion, channel mismatch, and crosstalk
+    // at the ADC's typical values (REQ-ADC-07, P-110). dcOffset is not
+    // accepted: the HPF removes any offset (AD-09).
+    AnalogOptions analog{};
+    AdcInputMode inputMode = AdcInputMode::differential;
 };
 
 struct AdcLatencyInfo {
@@ -47,9 +58,9 @@ struct AdcLatencyInfo {
 };
 
 // The ADC section (REQ-ADC-01): normalized analog input at 8x the ADC rate
-// in, one 20-bit frame per LRCK cycle out. Signal path: decimation filter,
-// high-pass filter, 20-bit quantization with saturation (AD-09, AD-13,
-// P-105 to P-108). The input runs at the rate DacCore outputs, so a loopback
+// in, one 20-bit frame per LRCK cycle out. Signal path: optional
+// NominalAnalog input imperfections, decimation filter, high-pass filter,
+// 20-bit quantization with saturation (AD-09, AD-13, P-105 to P-108, P-110). The input runs at the rate DacCore outputs, so a loopback
 // needs no rate conversion.
 //
 // Events are in ADC frames. Only powerDown affects the ADC; deemphasis and

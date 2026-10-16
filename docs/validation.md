@@ -434,6 +434,18 @@ Every ADC value in AGENTS.md section 17 was checked against the [DS] text layer,
 | Round trip | 200 random frames through `SerialDecoder`, modes 2 and 3, 16 to 64 bit clocks per channel | identical; 16 clocks drop the low four bits |
 | Mutation check | 6 faults in `src/serial/serial_encoder.cpp` | 5 detected; the survivor is equivalent (the word is zero before the first edge) |
 
+### 2026-10-16: ADC NominalAnalog profile, M7 (branch `m7-analog`)
+
+| Check | Method | Result |
+| ----- | ------ | ------ |
+| Typical targets | `ak4522_adc_capture` and `measure_profile.py`, 44.1 kHz, 997 Hz | S/(N+D) 91.97 dB (-0.5 dBFS, differential), 79.93 dB (single-ended); DR 99.99 dB; S/N A-weighted 99.99 dB |
+| CCIR-ARM | zero input, ADC alone and through the DAC | 97.32 dB per converter (DISC-08, as for the DAC); loopback 94.24 dB against 94 dB typical (AD-A12) |
+| Distortion calibration | distortion only, harmonics by multi-sine fit at -0.5 dBFS | within 0.1 dB of the target for each input mode |
+| Mismatch, crosstalk | fits at 1 kHz; crosstalk with noise present to dither the quantizer | 0.1 dB fixed, at most 0.3 dB in 20 instances; -110 dB within 0.5 dB both ways |
+| Mutation check | 7 faults in the ADC's analog wiring | 6 detected at first (calibrating distortion at 0 dBFS shifted S/(N+D) inside the gate's tolerance); 7 of 7 after a direct calibration test |
+
+Development notes: the first crosstalk test, without noise, measured a 1.5 LSB leak through undithered 20-bit quantization and read 1.9 dB off; with the converter's own noise present, as in a real measurement, it reads within 0.5 dB. `OutputStage` now takes its calibration targets as parameters; the DAC's defaults are unchanged and its gates and golden lock pass.
+
 ## M5 gate status
 
 M5 approved by the project owner on 2026-10-16 (tag `m5-approved`).
