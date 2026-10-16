@@ -48,4 +48,18 @@ target_compile_definitions(ak4522 PRIVATE
 if(AK4522_BUILD_TESTS)
     enable_testing()
     add_subdirectory(tests)
+
+    # Documentation consistency checks (standard-library Python only).
+    find_package(Python3 3.9 COMPONENTS Interpreter)
+    if(Python3_Interpreter_FOUND)
+        add_test(NAME docs.consistency
+            COMMAND Python3::Interpreter ${PROJECT_SOURCE_DIR}/tools/check_docs.py
+                --root ${PROJECT_SOURCE_DIR})
+        add_test(NAME docs.checker_self_test
+            COMMAND Python3::Interpreter ${PROJECT_SOURCE_DIR}/tools/test_check_docs.py)
+        set_tests_properties(docs.consistency docs.checker_self_test
+            PROPERTIES LABELS "docs;unit")
+    else()
+        message(WARNING "Python 3.9+ not found; documentation checks are disabled")
+    endif()
 endif()

@@ -26,6 +26,15 @@ No reference CPU for REQ-PERF-01 has been named yet.
 | Unit tests, sanitizers               | `ctest --preset asan` (3 tests)         | pass   |
 | API contract (compile time)          | static_asserts in `api_contract_test.cpp` | pass |
 
+### 2026-10-16: documentation consistency checker, branch `docs-check`
+
+| Check                                | Method                                  | Result |
+| ------------------------------------ | --------------------------------------- | ------ |
+| Documentation consistency            | `ctest -L docs` runs `tools/check_docs.py` | pass after fixes below |
+| Checker self-test (13 cases)         | `tools/test_check_docs.py`: each check fails on a broken copy of the docs | pass |
+
+First run found and fixed: evidence row I-T01 had its cells shifted into the wrong columns; REQ-SCOPE-03 and REQ-PERF-01 were not cited by their policies (P-01, P-93); REQ-DOC-03 to REQ-DOC-05 were not traced. The checker confirms structure and cross-references only. It does not confirm that recorded values match the datasheet.
+
 No signal-processing measurements exist yet. DSP gates from AGENTS.md section 13.2 begin in M1 and M2.
 
 ## Known deviations

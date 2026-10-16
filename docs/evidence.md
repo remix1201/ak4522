@@ -134,7 +134,7 @@ D-A16 is a figure annotation, not a table value. It agrees with D-A12 and suppor
 | D-T06 | SDTI setup tSDS                        | >= 25 ns   | D     | p.7             | high  | REQ-SERIAL-02  | `[serial]` | planned |
 | D-T07 | LRCK duty cycle                        | 45 to 55 % | D     | p.7             | high  | REQ-SERIAL-02  | `[serial]` | planned |
 | D-T08 | *new* SCLK rising edge must not coincide with an LRCK edge | n/a | D | p.7 note 13 | high  | REQ-SERIAL-02  | `[serial]` | planned |
-| I-T01 | *new* Maximum SCLK frequency 6.25 MHz, so at most 130fs at 48 kHz; 128fs is valid at every supported rate | I | 1 / 160 ns; 128 x 48 kHz = 6.144 MHz | high | REQ-SERIAL-02 | `[serial]` | planned |
+| I-T01 | *new* Maximum SCLK frequency; 128fs is valid at every supported rate | <= 6.25 MHz (130fs at 48 kHz) | I | 1 / 160 ns; 128 x 48 kHz = 6.144 MHz | high | REQ-SERIAL-02 | `[serial]` | planned |
 
 ## 6. Clocks
 

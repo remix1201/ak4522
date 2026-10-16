@@ -51,3 +51,11 @@ None of the emulator's signal processing is usable yet.
 - **Implementation:** pin mappings, defaults, and data types are defined. All processing functions are declared only; calling them fails to link.
 - **Validation:** `tests/api_contract_test.cpp` checks pin mappings against [DS] tables, P-01 defaults, same-frame event order, and `noexcept` on every audio-thread entry point at compile time.
 - **Approval:** project owner approved decisions O-01 (8x core output), O-02 (256 pending events), and O-03 (reserve the measured profile) on 2026-10-15. The API as a whole is not yet approved.
+
+## Documentation process
+
+How this record is kept current (REQ-DOC-01 to REQ-DOC-05):
+
+- Substantial features get usage documentation under `docs/features/`, linked from the summary table (REQ-DOC-03). None exists yet because no feature is usable.
+- Each feature branch reviews and updates `README.md` so available and planned features stay separate (REQ-DOC-04).
+- Before a feature is marked complete, its implementation, tests, this record, detailed documentation, and the README must agree. `tools/check_docs.py` runs as the CTest `docs` test and checks evidence rows, ID citations, requirement tracing, the datasheet checksum, local links, and dash style. It does not check that recorded values match the datasheet; that remains a review step (REQ-DOC-05).
