@@ -150,7 +150,7 @@ AGENTS.md section 16, M1: "boundary/serial/control tests pass, including I2S sho
 | Partial mute reversal | reversals after 1, 511, 1023 frames | pass |
 | No plugin GUI | none exists | met |
 
-Awaiting project-owner review. The M1 components are not yet connected to `DacCore::process`; that happens in M2.
+Approved by the project owner on 2026-10-16; the approved state is tagged `m1-approved`. The M1 components are not yet connected to `DacCore::process`; that happens in M2.
 
 No signal-processing measurements exist yet. DSP gates from AGENTS.md section 13.2 begin in M1 and M2.
 
