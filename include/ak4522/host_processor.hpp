@@ -25,6 +25,7 @@ struct HostConfig {
     InputResolution inputResolution = InputResolution::bits20;
     bool inputDither = false;    // TPDF before quantization; host feature (P-12)
     std::size_t maxPendingEvents = 256; // events deferred past the block by SRC latency
+    std::uint64_t ditherSeed = 0x4449544845520001ull; // TPDF dither stream (P-12, P-91)
     DacConfig dac{};
 };
 

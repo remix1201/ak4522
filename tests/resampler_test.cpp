@@ -4,6 +4,7 @@
 
 #include "dsp/resampler.hpp"
 #include "support/allocation_counter.hpp"
+#include "support/sine_fit.hpp"
 
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/generators/catch_generators.hpp>
@@ -25,57 +26,13 @@ constexpr double pi = 3.14159265358979323846;
 
 struct Fit {
     double amplitude;
-    double residualRms; // after removing the fitted sine and DC
+    double residualRms;
 };
 
-// Least-squares fit of a + b cos + c sin at a known frequency.
 Fit fitSine(std::span<const double> y, double freq, double rate, double startTime)
 {
-    double s[3][3]{};
-    double t[3]{};
-    for (std::size_t n = 0; n < y.size(); ++n) {
-        const double ph = 2.0 * pi * freq * (startTime + static_cast<double>(n) / rate);
-        const double basis[3] = {1.0, std::cos(ph), std::sin(ph)};
-        for (int i = 0; i < 3; ++i) {
-            t[i] += basis[i] * y[n];
-            for (int j = 0; j < 3; ++j) {
-                s[i][j] += basis[i] * basis[j];
-            }
-        }
-    }
-    // Solve the 3x3 normal equations by Gaussian elimination.
-    double a[3][4];
-    for (int i = 0; i < 3; ++i) {
-        for (int j = 0; j < 3; ++j) {
-            a[i][j] = s[i][j];
-        }
-        a[i][3] = t[i];
-    }
-    for (int c = 0; c < 3; ++c) {
-        int pivot = c;
-        for (int r = c + 1; r < 3; ++r) {
-            if (std::abs(a[r][c]) > std::abs(a[pivot][c])) {
-                pivot = r;
-            }
-        }
-        std::swap(a[c], a[pivot]);
-        for (int r = 0; r < 3; ++r) {
-            if (r != c) {
-                const double f = a[r][c] / a[c][c];
-                for (int k = c; k < 4; ++k) {
-                    a[r][k] -= f * a[c][k];
-                }
-            }
-        }
-    }
-    const double coef[3] = {a[0][3] / a[0][0], a[1][3] / a[1][1], a[2][3] / a[2][2]};
-    double sq = 0.0;
-    for (std::size_t n = 0; n < y.size(); ++n) {
-        const double ph = 2.0 * pi * freq * (startTime + static_cast<double>(n) / rate);
-        const double e = y[n] - (coef[0] + coef[1] * std::cos(ph) + coef[2] * std::sin(ph));
-        sq += e * e;
-    }
-    return {std::hypot(coef[1], coef[2]), std::sqrt(sq / static_cast<double>(y.size()))};
+    const auto f = ak4522::test::fitSine(y, freq, rate, startTime);
+    return {f.amplitude, f.residualRms};
 }
 
 double rms(std::span<const double> y)
@@ -151,6 +108,9 @@ TEST_CASE("Prepare rejects invalid specifications", "[unit][rate]")
     CHECK(r.prepare({48000, -1}) == Status::invalidConfiguration);
     CHECK(r.prepare({48000, 44100, 23000, 22000}) == Status::invalidConfiguration);
     CHECK(r.prepare({48000, 44100, 20000, 50000}) == Status::invalidConfiguration);
+    ResamplerSpec negative{48000, 44100};
+    negative.startOffset = -0.5;
+    CHECK(r.prepare(negative) == Status::invalidConfiguration);
 }
 
 TEST_CASE("Passband error and residual meet the SRC targets", "[dsp][rate]")
@@ -254,6 +214,36 @@ TEST_CASE("Output m represents input time m P / Q exactly", "[unit][rate]")
         worst = std::max(worst, std::abs(ol[m] - std::sin(2.0 * pi * freq * t)));
     }
     CHECK(worst < 1e-5); // a one-sample shift at 1 kHz would be about 0.14
+}
+
+TEST_CASE("A start offset shifts output times exactly", "[unit][rate]")
+{
+    // Output m represents input time m P / Q + offset, for exact and
+    // interpolated phase rows, with fractional and whole-sample offsets.
+    struct Case {
+        double in, out, offset;
+    };
+    const Case c = GENERATE(Case{352800, 44100, 2.4}, Case{44100, 48000, 0.37},
+                            Case{44100, 48000, 3.9}, Case{48000, 44123, 1.25});
+    CAPTURE(c.in, c.out, c.offset);
+    Resampler s;
+    ResamplerSpec spec{c.in, c.out};
+    spec.startOffset = c.offset;
+    REQUIRE(s.prepare(spec) == Status::ok);
+    const double freq = 1000.0;
+    std::vector<double> sine(12000);
+    for (std::size_t n = 0; n < sine.size(); ++n) {
+        sine[n] = std::sin(2.0 * pi * freq * static_cast<double>(n) / c.in);
+    }
+    std::vector<double> ol(s.maxOutputsFor(sine.size())), orr(ol.size());
+    const std::size_t got = s.process(sine, sine, ol, orr);
+    const double ratio = static_cast<double>(s.ratioNumerator()) / static_cast<double>(s.ratioDenominator());
+    double worst = 0.0;
+    for (std::size_t m = s.halfWidth() * 2; m + 100 < got; ++m) {
+        const double t = (static_cast<double>(m) * ratio + c.offset) / c.in;
+        worst = std::max(worst, std::abs(ol[m] - std::sin(2.0 * pi * freq * t)));
+    }
+    CHECK(worst < 1e-5);
 }
 
 TEST_CASE("DC passes with unity gain", "[unit][rate]")

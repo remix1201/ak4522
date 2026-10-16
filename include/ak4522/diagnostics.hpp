@@ -13,6 +13,7 @@ struct Diagnostics {
     std::uint64_t rejectedBlocks = 0;        // process calls that returned a non-ok status
     std::uint64_t ignoredEvents = 0;         // repeated same-level events (P-53)
     std::uint64_t droppedEvents = 0;         // pending-event capacity exceeded
+    std::uint64_t hostUnderruns = 0;         // host output frames not yet available; always 0 by design
 };
 
 } // namespace ak4522

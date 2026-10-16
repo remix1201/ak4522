@@ -37,6 +37,11 @@ struct QuantizeCounters {
 // nearest with ties to even, saturate (REQ-PCM-03, P-10).
 [[nodiscard]] Pcm20 quantizeToPcm20(double sample, QuantizeCounters& counters) noexcept;
 
+// Quantizes normalized audio to 16 bits with the same rules (2^15 scale, ties
+// to even, saturation to [-32768, 32767]), then scales to 20-bit weight
+// (REQ-PCM-02). For host input at 16-bit resolution.
+[[nodiscard]] Pcm20 quantizeTo16Bit(double sample, QuantizeCounters& counters) noexcept;
+
 // code / 524288.0; negative full scale is exactly -1, positive is 1 - 2^-19.
 [[nodiscard]] double toNormalized(Pcm20 sample) noexcept;
 

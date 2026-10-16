@@ -6,7 +6,7 @@ The goal is to reproduce documented signal processing and control behavior, then
 
 ## Status
 
-**Alpha, milestones M0 to M2 complete.** The DAC core produces audio through the public `DacCore` API: 20-bit PCM frames and DEM, SMUTE, and PD events in, the reconstructed signal out at 8x the DAC rate, with the datasheet's filter response and 14.7-frame delay. Host sample-rate conversion (`HostProcessor`), analog imperfections, the plugin, and hardware validation do not exist yet.
+**Alpha, milestones M0 to M2 complete.** The DAC core produces audio through the public `DacCore` API: 20-bit PCM frames and DEM, SMUTE, and PD events in, the reconstructed signal out at 8x the DAC rate, with the datasheet's filter response and 14.7-frame delay. `HostProcessor` wraps it for plugin use: host audio at 44.1 to 192 kHz in and out, with exactly reported latency. Analog imperfections, the plugin, and hardware validation do not exist yet.
 
 See [docs/features.md](docs/features.md) for the current status of each feature.
 
@@ -107,7 +107,7 @@ The intended toolchain is C++20 with CMake and CTest. The plugin adapter may use
 
 Detailed requirements and acceptance gates are maintained in [AGENTS.md](AGENTS.md).
 
-Progress: M0 (evidence ledger, build foundation, API proposal, requirement-to-test mapping) is complete and approved (tag `m0-approved`). M1 (PCM mapping, serial decoder, timing validator, clock configuration, reset, and mute state machine) is complete and approved (tag `m1-approved`). M2 (linear DAC response) is complete and approved (tag `m2-approved`). M3 (host-rate adaptation) is next.
+Progress: M0 (evidence ledger, build foundation, API proposal, requirement-to-test mapping) is complete and approved (tag `m0-approved`). M1 (PCM mapping, serial decoder, timing validator, clock configuration, reset, and mute state machine) is complete and approved (tag `m1-approved`). M2 (linear DAC response) is complete and approved (tag `m2-approved`). M3 (host-rate adaptation) is in progress: the sample-rate converter and `HostProcessor` are implemented; full-matrix verification is next.
 
 ## Verification
 

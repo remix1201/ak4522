@@ -71,7 +71,8 @@ void Resampler::Channel::push(double x, std::size_t taps) noexcept
 Status Resampler::prepare(const ResamplerSpec& spec)
 {
     if (!(spec.inputRate > 0.0) || !(spec.outputRate > 0.0) || !std::isfinite(spec.inputRate)
-        || !std::isfinite(spec.outputRate) || !(spec.attenuationDb > 0.0)) {
+        || !std::isfinite(spec.outputRate) || !(spec.attenuationDb > 0.0)
+        || !(spec.startOffset >= 0.0) || !std::isfinite(spec.startOffset)) {
         return Status::invalidConfiguration;
     }
     const double lower = std::min(spec.inputRate, spec.outputRate);
@@ -100,12 +101,20 @@ Status Resampler::prepare(const ResamplerSpec& spec)
     const double i0Beta = besselI0(beta);
     const double w = static_cast<double>(halfWidth_);
 
+    offsetWhole_ = static_cast<std::int64_t>(std::floor(spec.startOffset));
+    offsetFraction_ = spec.startOffset - static_cast<double>(offsetWhole_);
+
     exact_ = static_cast<std::size_t>(q_) * taps_ <= maxExactCoefficients;
     const std::size_t rows = exact_ ? static_cast<std::size_t>(q_) : interpolatedPhases + 1;
     rows_.assign(rows * taps_, 0.0);
+    rowCarry_.assign(exact_ ? rows : 0, 0);
     for (std::size_t r = 0; r < rows; ++r) {
-        const double frac = exact_ ? static_cast<double>(r) / static_cast<double>(q_)
-                                   : static_cast<double>(r) / static_cast<double>(interpolatedPhases);
+        double frac = exact_ ? static_cast<double>(r) / static_cast<double>(q_) + offsetFraction_
+                             : static_cast<double>(r) / static_cast<double>(interpolatedPhases);
+        if (exact_ && frac >= 1.0) {
+            frac -= 1.0;
+            rowCarry_[r] = 1;
+        }
         double* row = rows_.data() + r * taps_;
         double sum = 0.0;
         for (std::size_t j = 0; j < taps_; ++j) {
@@ -131,9 +140,18 @@ void Resampler::reset() noexcept
     std::fill(right_.ring.begin(), right_.ring.end(), 0.0);
     left_.head = 0;
     right_.head = 0;
-    nextIndex_ = 0;
+    nextIndex_ = offsetWhole_;
     nextRemainder_ = 0;
     received_ = 0;
+}
+
+std::int64_t Resampler::effectiveIndex() const noexcept
+{
+    if (exact_) {
+        return nextIndex_ + rowCarry_[static_cast<std::size_t>(nextRemainder_)];
+    }
+    const double phase = static_cast<double>(nextRemainder_) / static_cast<double>(q_) + offsetFraction_;
+    return nextIndex_ + (phase >= 1.0 ? 1 : 0);
 }
 
 std::size_t Resampler::maxOutputsFor(std::size_t inputFrames) const noexcept
@@ -173,10 +191,14 @@ std::size_t Resampler::process(std::span<const double> inLeft, std::span<const d
         right_.push(inRight[n], taps_);
         ++received_;
         // Output at index i is ready once input i + W has arrived.
-        while (nextIndex_ + w + 1 <= received_ && written < capacity) {
+        while (effectiveIndex() + w + 1 <= received_ && written < capacity) {
             if (!exact_) {
-                const double phase = static_cast<double>(nextRemainder_)
-                    / static_cast<double>(q_) * static_cast<double>(interpolatedPhases);
+                double fraction = static_cast<double>(nextRemainder_) / static_cast<double>(q_)
+                    + offsetFraction_;
+                if (fraction >= 1.0) {
+                    fraction -= 1.0;
+                }
+                const double phase = fraction * static_cast<double>(interpolatedPhases);
                 const auto lower = static_cast<std::size_t>(phase);
                 const double alpha = phase - static_cast<double>(lower);
                 const double* a = rows_.data() + lower * taps_;

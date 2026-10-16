@@ -4,8 +4,9 @@
 // (REQ-RATE-01, REQ-RATE-02, REQ-RATE-04). Host behavior, not part of the chip
 // model. Internal: not part of the public API.
 //
-// Output sample m represents input time m * P / Q exactly, where P / Q is the
-// input-to-output rate ratio in lowest terms (P-37). It is a Kaiser-windowed
+// Output sample m represents input time m * P / Q + startOffset exactly,
+// where P / Q is the input-to-output rate ratio in lowest terms (P-37). The
+// offset is constant, so each phase row is still exact. It is a Kaiser-windowed
 // sinc interpolation of the 2W input samples around that time (P-38), and is
 // written as soon as the last of them has arrived, so the converter delays
 // the signal by W input samples.
@@ -27,6 +28,9 @@ struct ResamplerSpec {
     double passbandHz = 0.0;
     double stopbandHz = 0.0;
     double attenuationDb = 125.0; // Kaiser design target (P-38)
+    // Time of output 0 in input samples, >= 0. Used to align the plugin's
+    // total latency to whole host frames (P-39).
+    double startOffset = 0.0;
 };
 
 class Resampler {
@@ -84,6 +88,14 @@ private:
     // to the window oldest sample first.
     std::vector<double> rows_;
     std::vector<double> blended_; // scratch row for interpolated mode
+
+    // Integer part of the start offset; its fractional part is folded into
+    // the rows, and rowCarry_ marks phases whose fraction passed one.
+    std::int64_t offsetWhole_ = 0;
+    double offsetFraction_ = 0.0;
+    std::vector<std::uint8_t> rowCarry_; // exact mode, per row
+
+    [[nodiscard]] std::int64_t effectiveIndex() const noexcept;
 
     // Next output position: integer input index and remainder over q_.
     std::int64_t nextIndex_ = 0;
