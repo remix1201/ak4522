@@ -405,6 +405,16 @@ The shared dither generator (`src/core/dither.hpp`) leaves `HostProcessor` outpu
 
 Every ADC value in AGENTS.md section 17 was checked against the [DS] text layer, with table columns confirmed from word coordinates (`pdftotext -bbox`) on p.5, p.6, and p.7. All values match their stated columns. Findings: tPDV (516 / fs) is printed in the typ column while p.12 states 516 cycles without qualification (recorded in AD-10); Fig.1 shows SDTO truncated to bits 19 to 4 at 32fs in mode 0 as well as mode 3 (DISC-10); p.1 calls the signal inputs single-ended while p.3 and p.15 describe differential inputs (DISC-09). Inferences: the HPF points fit a first-order section (I-AD03); the passband edge equals fs minus the stopband edge (I-AD02). The documentation checker now validates AD and I-AD IDs (it had not recognized them), with a self-test.
 
+### 2026-10-16: ADC filters, M7 (branch `m7-filters`)
+
+| Check | Method | Result |
+| ----- | ------ | ------ |
+| Decimator design | `tools/design_decimator.py`, shortest even length meeting P-105 | 360 taps; ripple 0.0048 dB; points -0.0200, -0.0600, -6.0000 dB; stopband 80.55 dB; 29.3125 frames |
+| Decimator in C++ | impulse response, sine fits at 1, 5, 15, 19 kHz, aliasing tones from 24.4 to 176 kHz | exact coefficients and delay; level within 0.005 dB; delay within 0.01 frame; aliases at least 80 dB down |
+| HPF | sine fits at the 0.9, 2.7, 6.0 Hz points scaled to 32, 44.1, 48 kHz | within the P-107 tolerances; 2.7 Hz at -0.46 dB as a first-order section gives |
+| Generated files | Python: length, pipeline, checksum against report and C++; gates on the committed coefficients | pass |
+| Mutation check | 9 faults in `decimator.cpp` and `adc_highpass.cpp` | 8 detected at first (an HPF reset that kept its state); 9 of 9 after a reset test |
+
 ## M5 gate status
 
 M5 approved by the project owner on 2026-10-16 (tag `m5-approved`).

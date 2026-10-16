@@ -1,0 +1,231 @@
+{
+  "generator": "tools/design_decimator.py",
+  "method": "linear program (scipy.optimize.linprog, HiGHS): minimize stopband peak subject to passband ripple and point equality constraints; type II linear phase",
+  "parameters": {
+    "oversampling": 8,
+    "reference_rate_hz": 44100.0,
+    "ripple_hz": 19760.0,
+    "point_02_hz": 20020.0,
+    "point_06_hz": 20200.0,
+    "half_hz": 22050.0,
+    "stopband_hz": 24340.0,
+    "ripple_db": 0.0048,
+    "min_stopband_db": 80.3,
+    "passband_grid": 1000,
+    "stopband_grid": 12000
+  },
+  "length": 360,
+  "filter_delay_samples_8x": 179.5,
+  "pipeline_samples_8x": 55,
+  "total_delay_samples_8x": 234.5,
+  "total_delay_adc_frames": 29.3125,
+  "precision": "IEEE 754 double",
+  "sha256_le_f8": "f1957d46e74fc7c30df539679e748f966f8dc7aec39cd12d31bf10f0768aacfd",
+  "lengths_searched": [
+    {
+      "length": 300,
+      "feasible": true,
+      "stopband_db": 55.7976
+    },
+    {
+      "length": 302,
+      "feasible": true,
+      "stopband_db": 57.1318
+    },
+    {
+      "length": 304,
+      "feasible": true,
+      "stopband_db": 58.7095
+    },
+    {
+      "length": 306,
+      "feasible": true,
+      "stopband_db": 60.4933
+    },
+    {
+      "length": 308,
+      "feasible": true,
+      "stopband_db": 62.4563
+    },
+    {
+      "length": 310,
+      "feasible": true,
+      "stopband_db": 64.5758
+    },
+    {
+      "length": 312,
+      "feasible": true,
+      "stopband_db": 66.8244
+    },
+    {
+      "length": 314,
+      "feasible": true,
+      "stopband_db": 69.1463
+    },
+    {
+      "length": 316,
+      "feasible": true,
+      "stopband_db": 71.547
+    },
+    {
+      "length": 318,
+      "feasible": true,
+      "stopband_db": 73.7039
+    },
+    {
+      "length": 320,
+      "feasible": true,
+      "stopband_db": 73.7312
+    },
+    {
+      "length": 322,
+      "feasible": true,
+      "stopband_db": 74.1364
+    },
+    {
+      "length": 324,
+      "feasible": true,
+      "stopband_db": 74.4141
+    },
+    {
+      "length": 326,
+      "feasible": true,
+      "stopband_db": 74.7363
+    },
+    {
+      "length": 328,
+      "feasible": true,
+      "stopband_db": 75.1831
+    },
+    {
+      "length": 330,
+      "feasible": true,
+      "stopband_db": 75.7305
+    },
+    {
+      "length": 332,
+      "feasible": true,
+      "stopband_db": 76.343
+    },
+    {
+      "length": 334,
+      "feasible": true,
+      "stopband_db": 76.999
+    },
+    {
+      "length": 336,
+      "feasible": true,
+      "stopband_db": 77.2238
+    },
+    {
+      "length": 338,
+      "feasible": true,
+      "stopband_db": 77.2619
+    },
+    {
+      "length": 340,
+      "feasible": true,
+      "stopband_db": 77.3931
+    },
+    {
+      "length": 342,
+      "feasible": true,
+      "stopband_db": 77.6442
+    },
+    {
+      "length": 344,
+      "feasible": true,
+      "stopband_db": 78.013
+    },
+    {
+      "length": 346,
+      "feasible": true,
+      "stopband_db": 78.4797
+    },
+    {
+      "length": 348,
+      "feasible": true,
+      "stopband_db": 79.0178
+    },
+    {
+      "length": 350,
+      "feasible": true,
+      "stopband_db": 79.5982
+    },
+    {
+      "length": 352,
+      "feasible": true,
+      "stopband_db": 79.7831
+    },
+    {
+      "length": 354,
+      "feasible": true,
+      "stopband_db": 79.8187
+    },
+    {
+      "length": 356,
+      "feasible": true,
+      "stopband_db": 79.9481
+    },
+    {
+      "length": 358,
+      "feasible": true,
+      "stopband_db": 80.1923
+    },
+    {
+      "length": 360,
+      "feasible": true,
+      "stopband_db": 80.5517
+    }
+  ],
+  "measured": [
+    {
+      "name": "passband_ripple_db",
+      "value": 0.0048042308520076194,
+      "limit": "<= 0.005 dB from 0 to 19.76/44.1 fs, relative to 1 kHz",
+      "source": "AD-03, AD-04",
+      "passed": true
+    },
+    {
+      "name": "point_0p02_db",
+      "value": -0.01999999999998201,
+      "limit": "-0.02 +/- 0.01 dB at 0.4540 fs",
+      "source": "AD-03, P-106",
+      "passed": true
+    },
+    {
+      "name": "point_0p06_db",
+      "value": -0.060000000000011246,
+      "limit": "-0.06 +/- 0.01 dB at 0.4580 fs",
+      "source": "AD-03, P-106",
+      "passed": true
+    },
+    {
+      "name": "half_rate_db",
+      "value": -6.000000000000156,
+      "limit": "-6.0 +/- 0.1 dB at 0.5000 fs",
+      "source": "AD-03, P-106",
+      "passed": true
+    },
+    {
+      "name": "stopband_attenuation_db",
+      "value": 80.55172147596286,
+      "limit": ">= 80 dB from 24.34/44.1 fs to the input Nyquist frequency",
+      "source": "AD-04, I-AD02",
+      "passed": true
+    },
+    {
+      "name": "delay_adc_frames",
+      "value": 29.312499999999996,
+      "limit": "29.3 +/- 0.1 frames including the pipeline, passband phase fit",
+      "source": "AD-05, P-106",
+      "passed": true
+    }
+  ],
+  "versions": {
+    "python": "3.12.15",
+    "numpy": "2.5.4",
+    "scipy": "1.18.1",
+    "platform": "macOS-26.5.2-arm64-arm-64bit"
+  }
+}

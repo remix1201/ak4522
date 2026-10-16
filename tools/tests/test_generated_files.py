@@ -10,7 +10,7 @@ from pathlib import Path
 import numpy as np
 from scipy import signal
 
-from ak4522_tools import dac_gates
+from ak4522_tools import adc_gates, dac_gates
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -114,3 +114,41 @@ class DeemphasisFilesTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class DecimatorFilesTest(unittest.TestCase):
+    def setUp(self):
+        self.taps = read_inc(ROOT / "src/dsp/decimator_coefficients.inc")
+        self.report = json.loads((ROOT / "src/dsp/decimator_design.json").read_text())
+        self.header = (ROOT / "src/dsp/decimator.hpp").read_text(encoding="utf-8")
+
+    def test_length_and_pipeline_match_report_and_cpp(self):
+        cpp_taps = int(re.search(r"taps = (\d+);", self.header).group(1))
+        cpp_pipeline = int(re.search(r"pipelineSamples = (\d+);", self.header).group(1))
+        self.assertEqual(self.taps.size, self.report["length"])
+        self.assertEqual(self.taps.size, cpp_taps)
+        self.assertEqual(cpp_pipeline, self.report["pipeline_samples_8x"])
+        self.assertEqual(self.report["total_delay_samples_8x"], 234.5)
+
+    def test_checksum_matches_report_and_header_comment(self):
+        digest = hashlib.sha256(np.ascontiguousarray(self.taps, dtype="<f8").tobytes()).hexdigest()
+        self.assertEqual(digest, self.report["sha256_le_f8"])
+        inc = (ROOT / "src/dsp/decimator_coefficients.inc").read_text(encoding="utf-8")
+        self.assertIn(digest, inc)
+
+    def test_committed_coefficients_meet_the_gates(self):
+        rate = adc_gates.DATASHEET_RATE
+        pipeline = self.report["pipeline_samples_8x"] / 8
+        for check in adc_gates.decimation_checks(self.taps, 8 * rate, rate, delay_frames=pipeline):
+            with self.subTest(check=check.name):
+                self.assertTrue(check.passed, check)
+
+
+class AdcHighPassGatesTest(unittest.TestCase):
+    def test_first_order_design_meets_the_gates_at_every_rate(self):
+        source = (ROOT / "src/dsp/adc_highpass.hpp").read_text(encoding="utf-8")
+        corner = float(re.search(r"cornerAt44100 = ([0-9.]+);", source).group(1))
+        for rate in (16000.0, 32000.0, 44100.0, 48000.0):
+            for check in adc_gates.highpass_checks(corner * rate / 44100.0, rate):
+                with self.subTest(rate=rate, check=check.name):
+                    self.assertTrue(check.passed, check)

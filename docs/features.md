@@ -39,7 +39,7 @@ Last substantive update: 2026-10-16. M0 to M5 were merged into `main` and approv
 | CPU benchmark                   | REQ-PERF-01                           | implemented    | budget met on the reference machine (see below) | approved 2026-10-16 (`m5-approved`) | merged into `main`    |
 | Demo plugin (VST3, AU), separate project | REQ-VST-01, REQ-VST-02, REQ-LAT-03 | planned (after M5) | none                     | none                              | none                  |
 | Measured profile                | AGENTS.md s.14                        | planned (M6, conditional on hardware) | none | none                         | none                  |
-| ADC section and loopback        | REQ-SCOPE-04, REQ-ADC-01 to REQ-ADC-07 | planned (M7)  | none                     | none                              | none                  |
+| ADC section and loopback        | REQ-SCOPE-04, REQ-ADC-01 to REQ-ADC-07 | in progress (M7): evidence and filters | filters passing (see below) | none                    | filters on branch `m7-filters` |
 
 Available on `main`: `DacCore` (DAC-rate PCM in, 8x the DAC rate out), `HostProcessor` (host-rate audio in and out), `DacStream` (a source at its own exact DAC rate, pull or push), the opt-in extended rate range to 50.4 kHz, a C API, CMake packaging with an integration guide and examples, the CPU benchmark, the optional Fig.11 example output circuit, the Specification profile, and the optional NominalAnalog profile. A demo plugin follows in a separate project.
 
@@ -376,6 +376,16 @@ Available on `main`: `DacCore` (DAC-rate PCM in, 8x the DAC rate out), `HostProc
 - **Behavior** (P-104): 27 uF into 10 kohm and 10 uF into 27 kohm, both 0.589 Hz high-pass corners (I-O03), around a gain of -1.8, 5.1 dB, not the labeled 6 dB (I-O02, DISC-05). DC offsets are removed, which is what the coupling is for (D-A15). Options: `includeGain` (default on; off keeps the DAC's level, avoiding the 5.1 dB rise in a host), `invert` (default on, as drawn), `loadOhms` (an external load across the 27 kohm, default none). The op-amp, bias network, and supply are ideal: no noise, no bandwidth limit, no clipping. No latency is added.
 - **Validation:** 10 test cases (`[circuit]`): corners and gains from the components; magnitude within 0.01 dB and phase within 0.5 degrees of the analog transfer function from 0.2 Hz to 40 kHz at 1, 48, and 192 kHz, with and without a load; -1.8 times the input at 1 kHz; DC removed to exactly zero; channels independent; float and double agree; invalid options rejected; unprepared input unchanged; no allocations; the `HostProcessor` and `DacStream` options equal the circuit applied to their plain output, with unchanged latency; the NominalAnalog +3 mV offset removed. C99 test and C/C++ equivalence. A mutation check detected 8 of 8 faults.
 - **Limitations:** an idealized circuit; a real NJM5532 adds noise and has finite swing. Output level above 1.0 can clip in a host when the gain is kept.
+- **Updated:** 2026-10-16.
+
+## ADC filters (M7, in progress)
+
+- **Purpose:** the ADC's decimation filter and DC-blocking high-pass filter, the signal path of the coming `AdcCore` (REQ-ADC-02).
+- **Status:** implemented as internal components on branch `m7-filters`; `AdcCore` is not built yet, so nothing is usable from the public API.
+- **Decimator** (P-105): 360-tap linear-phase FIR from 8x the ADC rate to the ADC rate, designed by `tools/design_decimator.py` (coefficients and report in `src/dsp/decimator_coefficients.inc`, `decimator_design.json`). Ripple 0.0048 dB to 19.76 kHz; -0.02, -0.06, and -6.0 dB at 20.02, 20.20, and 22.05 kHz; 80.55 dB from 24.34 kHz; 29.3125 frames of delay including a 55-sample pipeline. Fitted, not AKM's coefficients.
+- **High-pass** (P-107): first order, -3 dB at 0.9 Hz at 44.1 kHz, scaling with fs; -0.46 dB at 2.7 Hz against the printed -0.5 (I-AD03).
+- **Validation:** 8 C++ test cases (`[adc]`): impulse response against the coefficients and delay; symmetry and DC gain; level within 0.005 dB and delay within 0.01 frame at 1 to 19 kHz; tones from 24.4 to 176 kHz at least 80 dB down after decimation; block invariance; channel independence; reset; HPF points at 32, 44.1, and 48 kHz; DC removed to exactly zero; no allocations. Python checks that the committed coefficients match their report, checksum, and C++ constants and pass the gates. A mutation check detected 9 of 9 faults after a reset test was added.
+- **Limitations:** content near multiples of 64fs (AD-08) cannot be represented with input at 8x the rate.
 - **Updated:** 2026-10-16.
 
 ## Documentation process
