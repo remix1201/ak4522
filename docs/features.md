@@ -39,7 +39,7 @@ Last substantive update: 2026-10-16. M0 to M5 were merged into `main` and approv
 | CPU benchmark                   | REQ-PERF-01                           | implemented    | budget met on the reference machine (see below) | approved 2026-10-16 (`m5-approved`) | merged into `main`    |
 | Demo plugin (VST3, AU), separate project | REQ-VST-01, REQ-VST-02, REQ-LAT-03 | planned (after M5) | none                     | none                              | none                  |
 | Measured profile                | AGENTS.md s.14                        | planned (M6, conditional on hardware) | none | none                         | none                  |
-| ADC section and loopback        | REQ-SCOPE-04, REQ-ADC-01 to REQ-ADC-07 | in progress (M7): evidence, filters, `AdcCore` | passing so far (see below) | none                 | branch `m7-core`      |
+| ADC section and loopback        | REQ-SCOPE-04, REQ-ADC-01 to REQ-ADC-07 | in progress (M7): evidence, filters, `AdcCore`, SDTO encoder | passing so far (see below) | none     | branch `m7-serial`    |
 
 Available on `main`: `DacCore` (DAC-rate PCM in, 8x the DAC rate out), `HostProcessor` (host-rate audio in and out), `DacStream` (a source at its own exact DAC rate, pull or push), the opt-in extended rate range to 50.4 kHz, a C API, CMake packaging with an integration guide and examples, the CPU benchmark, the optional Fig.11 example output circuit, the Specification profile, and the optional NominalAnalog profile. A demo plugin follows in a separate project.
 
@@ -396,6 +396,15 @@ Available on `main`: `DacCore` (DAC-rate PCM in, 8x the DAC rate out), `HostProc
 - **Behavior** (P-108): decimator, HPF, 20-bit quantization with saturation to 7FFFFh and 80000h (counted). PD low gives "0" output and clears the filters; after release, and after `prepare` or `reset`, the output stays "0" for 516 frames while the filters run. DEM and SMUTE events have no effect. Specification profile only.
 - **Validation:** 12 test cases (`[adc]`): configuration checks; 516 zero frames at startup, then the input with 29.3125 frames of delay within 0.01 and unity level at 1 kHz; zero input gives 00000h; over-range saturates at the full-scale codes and is counted; DC removed; PD low and release, with the restarted filters equal to a fresh core's; DAC pins ignored; block invariance with PD events; bad calls rejected; voltage conversion and latency report; `DacCore` output fed directly to `AdcCore` returns the signal after 44.0125 frames; no allocations. A mutation check detected 8 of 8 faults.
 - **Limitations:** no NominalAnalog noise or distortion for the ADC yet; content near multiples of 64fs is not represented (AD-08); no initialization click (AD-10, no captures).
+- **Updated:** 2026-10-16.
+
+## SDTO serial encoder (M7, in progress)
+
+- **Purpose:** the ADC's serial output in all four modes, the counterpart of `SerialDecoder`, for conformance tests and device-style use (REQ-ADC-04).
+- **Status:** implemented on branch `m7-serial`.
+- **Usage:** `SerialEncoder::prepare(format)`; `setFrame(frame)` before each left half-frame; `sclkFallingEdge(lrck)` once per SCLK falling edge returns the SDTO level.
+- **Behavior** (P-109): modes 0 to 2 send bits 19 to 0 from the LRCK edge, then "0"; mode 3 one bit clock later; with 16 bit clocks per channel only bits 19 to 4 fit, in modes 0 and 3 (AD-16, DISC-10). The frame is taken at the start of the left half and repeated if not replaced; "0" until the first LRCK edge.
+- **Validation:** 7 test cases (`[sdto]`): every bit slot against Figs.1 to 4 for modes 0 to 2 at 64fs, mode 0 at 32fs, and mode 3 at 64fs and 32fs (bit 4 across the edge); round trips of 200 random frames through `SerialDecoder` in modes 2 and 3 at 20, 24, 32, and 64 bit clocks per channel, and 16 with the low four bits dropped; startup, repetition, and reset; invalid format; no allocations. A mutation check detected 5 of 6 faults; the survivor counts slots before the first edge, which cannot change the output while the word is still zero.
 - **Updated:** 2026-10-16.
 
 ## Documentation process

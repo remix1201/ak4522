@@ -37,7 +37,7 @@ REQ-ARCH-01 names ten abstractions. Four are public types: `DacConfig`, `DacCore
 | `dac_core.hpp`       | `DacCore`, `ProcessResult`                                                                     |
 | `host_processor.hpp` | `HostProcessor`, `HostConfig`, `InputResolution`                                               |
 | `dac_stream.hpp`     | `DacStream`, `DacStreamConfig`, `ExactRate`, `DacSampleFormat`, `DacStreamMode`, `DacPullBlock`, `DacPullCallback`, `PushResult` |
-| `serial.hpp`         | `SerialDecoder`, `TimingValidator`, `PinEdge`                                                  |
+| `serial.hpp`         | `SerialDecoder`, `SerialEncoder` (SDTO, M7), `TimingValidator`, `PinEdge`                                                  |
 | `output_circuit.hpp` | `ExampleOutputCircuit`, `ExampleCircuitOptions` (Fig.11 board circuit, optional)                 |
 | `latency.hpp`        | `LatencyInfo`                                                                                  |
 | `diagnostics.hpp`    | `Diagnostics` counters                                                                         |

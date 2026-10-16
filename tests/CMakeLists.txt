@@ -33,6 +33,7 @@ add_executable(ak4522_tests
     reconstruction_test.cpp
     resampler_test.cpp
     serial_decoder_test.cpp
+    serial_encoder_test.cpp
     smoke_test.cpp
     soft_mute_test.cpp
     status_test.cpp

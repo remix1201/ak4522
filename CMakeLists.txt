@@ -63,6 +63,7 @@ add_library(ak4522
     src/dsp/reconstruction.cpp
     src/dsp/resampler.cpp
     src/serial/serial_decoder.cpp
+    src/serial/serial_encoder.cpp
     src/serial/timing_validator.cpp)
 add_library(ak4522::ak4522 ALIAS ak4522)
 include(GNUInstallDirs)

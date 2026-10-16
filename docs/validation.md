@@ -426,6 +426,14 @@ Every ADC value in AGENTS.md section 17 was checked against the [DS] text layer,
 | Loopback | `DacCore` 8x output into `AdcCore` at 44.1 kHz, 997 Hz | 44.0125 frames within 0.02; level within 0.05 dB |
 | Mutation check | 8 faults in `src/core/adc_core.cpp` | 8 detected |
 
+### 2026-10-16: SDTO encoder, M7 (branch `m7-serial`)
+
+| Check | Method | Result |
+| ----- | ------ | ------ |
+| Bit slots | every slot of two frames against Figs.1 to 4: modes 0 to 2 at 64fs, mode 0 at 32fs, mode 3 at 64fs and 32fs | match |
+| Round trip | 200 random frames through `SerialDecoder`, modes 2 and 3, 16 to 64 bit clocks per channel | identical; 16 clocks drop the low four bits |
+| Mutation check | 6 faults in `src/serial/serial_encoder.cpp` | 5 detected; the survivor is equivalent (the word is zero before the first edge) |
+
 ## M5 gate status
 
 M5 approved by the project owner on 2026-10-16 (tag `m5-approved`).
