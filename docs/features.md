@@ -34,12 +34,12 @@ Last substantive update: 2026-10-16. M0 to M4 were merged into `main` and approv
 | DacStream (pull and push, fractional DAC rates) | REQ-API-01, REQ-RATE-02 | implemented | passing (see below) | not yet approved              | branch `m5-stream`    |
 | Extended DAC-rate range (opt-in, up to 50.4 kHz) | REQ-CLOCK-02          | implemented    | passing (see below)      | not yet approved                  | branch `m5-extended-rate` |
 | C API                           | REQ-API-02                            | implemented    | passing (see below)      | not yet approved                  | branch `m5-c-api`     |
-| Packaging, integration guide, examples | REQ-API-03                     | planned (M5)   | none                     | none                              | none                  |
+| Packaging, integration guide, examples | REQ-API-03                     | implemented    | passing (see below)      | not yet approved                  | branch `m5-package`   |
 | Demo plugin (VST3, AU), separate project | REQ-VST-01, REQ-VST-02, REQ-LAT-03 | planned (after M5) | none                     | none                              | none                  |
 | Measured profile                | AGENTS.md s.14                        | planned (M6, conditional on hardware) | none | none                         | none                  |
 | ADC section and loopback        | REQ-SCOPE-04, REQ-ADC-01 to REQ-ADC-07 | planned (M7)  | none                     | none                              | none                  |
 
-Available on `main`: `DacCore` (DAC-rate PCM in, 8x the DAC rate out), `HostProcessor` (host-rate audio in and out), the Specification profile, and the optional NominalAnalog profile. On branch `m5-extended-rate` (stacked on `m5-stream`): `DacStream` for sources at their own DAC rate and the opt-in extended rate range; on `m5-c-api`, the C API. Planned for M5: packaging. A demo plugin follows in a separate project.
+Available on `main`: `DacCore` (DAC-rate PCM in, 8x the DAC rate out), `HostProcessor` (host-rate audio in and out), the Specification profile, and the optional NominalAnalog profile. On branch `m5-extended-rate` (stacked on `m5-stream`): `DacStream` for sources at their own DAC rate and the opt-in extended rate range; on `m5-c-api`, the C API; on `m5-package`, packaging, the integration guide, and examples for every mode. A demo plugin follows in a separate project.
 
 ## Build and test foundation
 
@@ -340,6 +340,16 @@ Available on `main`: `DacCore` (DAC-rate PCM in, 8x the DAC rate out), `HostProc
 - **Supported:** everything the C++ `HostProcessor` and `DacStream` offer, including every profile and analog option, exact and extended rates, all stream formats, push and pull, events, latency, and diagnostics.
 - **Validation:** `tests/c_api/c_api_test.c`, compiled as C99 with warnings as errors, calls every function from C: NULL handling, status strings, host processing with a soft mute to exact silence, a C pull source at 112 MHz / 2304 with the extended range and an event, push with underrun and overrun accounting, format mismatch. `tests/c_api_equivalence_test.cpp` compares C and C++ output bit for bit in 14 configurations, each setting one field, and for a pull stream with events; checks defaults, master-clock and CMODE validation, dropped malformed events, and that processing does not allocate. A mutation check detected 14 of 14 faults in the wrapper after one test was added (swapped underrun and overrun counters first survived).
 - **Limitations:** no ABI stability during alpha; the serial decoder and timing validator are not exposed.
+- **Updated:** 2026-10-16.
+
+## Packaging, integration guide, and examples
+
+- **Purpose:** let other projects use the library as it is, without this repository's build (REQ-API-03).
+- **Status:** implemented on branch `m5-package`; not yet approved.
+- **Usage:** [docs/integration.md](integration.md). `cmake --install` installs the library, headers, and a `find_package(ak4522)` config with the target `ak4522::ak4522`; `add_subdirectory` and FetchContent also work. Static by default; `BUILD_SHARED_LIBS=ON` builds a shared library. Alpha compatibility: the same minor version only.
+- **Examples** (each built and run by CTest, label `examples`): `host_processor_example.cpp` (effect), `dac_stream_example.cpp` (pull source at 112 MHz / 2304 with the extended range and a mute event), `dac_stream_push_example.cpp` (producer thread), `dac_core_example.cpp` (chip model alone, impulse delay), `c_api_example.c` (C).
+- **Validation:** CTest label `package` builds `tests/package/consumer`, a separate project with a C++ and a C program, three ways: against this build installed to a prefix, through `add_subdirectory`, and against a shared library built and installed for the test; each program runs and checks its result. The shared case was confirmed to link the shared library.
+- **Limitations:** no pkg-config file; no binary packages.
 - **Updated:** 2026-10-16.
 
 ## Documentation process

@@ -6,7 +6,7 @@ The goal is to reproduce documented signal processing and control behavior, then
 
 ## Status
 
-**Alpha, milestones M0 to M4 complete.** The DAC core produces audio through the public `DacCore` API: 20-bit PCM frames and DEM, SMUTE, and PD events in, the reconstructed signal out at 8x the DAC rate, with the datasheet's filter response and 14.7-frame delay. `HostProcessor` wraps it for plugin use: host audio at 44.1 to 192 kHz in and out, with exactly reported latency. On branch `m5-c-api`, `DacStream` plays sources that run at their own DAC rate, an opt-in range reaches 50.4 kHz, and a C API exposes both entry points (M5, in progress). An optional NominalAnalog profile adds synthetic noise, distortion, channel mismatch, crosstalk, and DC offset calibrated to the datasheet's typical values ([docs/analog_profile.md](docs/analog_profile.md)); the clean Specification profile remains the default. The plugin and hardware validation do not exist yet.
+**Alpha, milestones M0 to M4 complete.** The DAC core produces audio through the public `DacCore` API: 20-bit PCM frames and DEM, SMUTE, and PD events in, the reconstructed signal out at 8x the DAC rate, with the datasheet's filter response and 14.7-frame delay. `HostProcessor` wraps it for plugin use: host audio at 44.1 to 192 kHz in and out, with exactly reported latency. On branch `m5-c-api`, `DacStream` plays sources that run at their own DAC rate, an opt-in range reaches 50.4 kHz, and a C API exposes both entry points, and the library installs as a CMake package (M5, in progress). An optional NominalAnalog profile adds synthetic noise, distortion, channel mismatch, crosstalk, and DC offset calibrated to the datasheet's typical values ([docs/analog_profile.md](docs/analog_profile.md)); the clean Specification profile remains the default. The plugin and hardware validation do not exist yet.
 
 See [docs/features.md](docs/features.md) for the current status of each feature.
 
@@ -53,11 +53,15 @@ ctest --preset dev-x64 -LE matrix
 
 In a virtual machine, clone into a local folder rather than building from a shared host folder; shared folders are slow and can report file times that confuse incremental builds.
 
+### Using it in another project
+
+`cmake --install build/release --prefix <prefix>` installs the library and a CMake package; then `find_package(ak4522)` and link `ak4522::ak4522`. `add_subdirectory` and FetchContent work too, and `BUILD_SHARED_LIBS=ON` builds a shared library. See the [integration guide](docs/integration.md).
+
 Continuous integration (`.github/workflows/ci.yml`) defines the same steps for macOS, Windows, and Linux; it has not run yet because the repository is not on GitHub.
 
 ## Using the library
 
-`HostProcessor` is the plugin-facing entry point. A complete program is in [examples/host_processor_example.cpp](examples/host_processor_example.cpp):
+Start with the [integration guide](docs/integration.md). `HostProcessor` is the entry point for effects. A complete program is in [examples/host_processor_example.cpp](examples/host_processor_example.cpp):
 
 ```cpp
 ak4522::HostConfig config;                // host and DAC rates, block size

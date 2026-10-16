@@ -14,6 +14,7 @@ option(AK4522_BUILD_TESTS "Build the test suite" ${PROJECT_IS_TOP_LEVEL})
 option(AK4522_BUILD_EXAMPLES "Build the example programs" ${PROJECT_IS_TOP_LEVEL})
 option(AK4522_SANITIZE "Build with address and undefined-behavior sanitizers" OFF)
 option(AK4522_WARNINGS_AS_ERRORS "Treat compiler warnings as errors" OFF)
+option(AK4522_INSTALL "Generate install rules and the find_package config" ${PROJECT_IS_TOP_LEVEL})
 
 # Shared compile settings for every project target.
 add_library(ak4522_options INTERFACE)
@@ -60,16 +61,59 @@ add_library(ak4522
     src/serial/serial_decoder.cpp
     src/serial/timing_validator.cpp)
 add_library(ak4522::ak4522 ALIAS ak4522)
+include(GNUInstallDirs)
 target_include_directories(ak4522
     PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
+           $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
     PRIVATE ${PROJECT_SOURCE_DIR}/src)
-target_link_libraries(ak4522 PRIVATE ak4522_options)
+target_compile_features(ak4522 PUBLIC cxx_std_20)
+# Warning flags are for this project's own build only.
+target_link_libraries(ak4522 PRIVATE $<BUILD_INTERFACE:ak4522_options>)
+# Static by default; BUILD_SHARED_LIBS=ON builds a shared library, for
+# example for foreign-function use of the C API.
+set_target_properties(ak4522 PROPERTIES
+    VERSION ${PROJECT_VERSION}
+    SOVERSION ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}
+    WINDOWS_EXPORT_ALL_SYMBOLS ON)
 target_compile_definitions(ak4522 PRIVATE
     AK4522_VERSION_STRING="${PROJECT_VERSION}")
+
+if(AK4522_INSTALL)
+    include(CMakePackageConfigHelpers)
+    set(AK4522_CMAKE_DIR ${CMAKE_INSTALL_LIBDIR}/cmake/ak4522)
+    install(TARGETS ak4522 EXPORT ak4522Targets
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+    install(DIRECTORY include/ak4522 DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+    install(EXPORT ak4522Targets NAMESPACE ak4522:: DESTINATION ${AK4522_CMAKE_DIR})
+    configure_package_config_file(cmake/ak4522Config.cmake.in
+        ${PROJECT_BINARY_DIR}/ak4522Config.cmake INSTALL_DESTINATION ${AK4522_CMAKE_DIR})
+    # Alpha: only the same minor version is compatible.
+    write_basic_package_version_file(${PROJECT_BINARY_DIR}/ak4522ConfigVersion.cmake
+        COMPATIBILITY SameMinorVersion)
+    install(FILES ${PROJECT_BINARY_DIR}/ak4522Config.cmake ${PROJECT_BINARY_DIR}/ak4522ConfigVersion.cmake
+        DESTINATION ${AK4522_CMAKE_DIR})
+    install(FILES LICENSE README.md DESTINATION ${CMAKE_INSTALL_DOCDIR})
+endif()
 
 if(AK4522_BUILD_EXAMPLES)
     add_executable(ak4522_host_processor_example examples/host_processor_example.cpp)
     target_link_libraries(ak4522_host_processor_example PRIVATE ak4522::ak4522 ak4522_options)
+    add_executable(ak4522_dac_core_example examples/dac_core_example.cpp)
+    target_link_libraries(ak4522_dac_core_example PRIVATE ak4522::ak4522 ak4522_options)
+    add_executable(ak4522_dac_stream_example examples/dac_stream_example.cpp)
+    target_link_libraries(ak4522_dac_stream_example PRIVATE ak4522::ak4522 ak4522_options)
+    find_package(Threads REQUIRED)
+    add_executable(ak4522_dac_stream_push_example examples/dac_stream_push_example.cpp)
+    target_link_libraries(ak4522_dac_stream_push_example PRIVATE ak4522::ak4522 ak4522_options Threads::Threads)
+    enable_language(C)
+    add_executable(ak4522_c_api_example examples/c_api_example.c)
+    set_target_properties(ak4522_c_api_example PROPERTIES C_STANDARD 99 LINKER_LANGUAGE CXX)
+    target_link_libraries(ak4522_c_api_example PRIVATE ak4522::ak4522)
+    if(UNIX AND NOT APPLE)
+        target_link_libraries(ak4522_c_api_example PRIVATE m)
+    endif()
 endif()
 
 if(AK4522_BUILD_TESTS)
@@ -78,6 +122,15 @@ if(AK4522_BUILD_TESTS)
         add_test(NAME examples.host_processor COMMAND ak4522_host_processor_example)
         set_tests_properties(examples.host_processor PROPERTIES
             LABELS "unit;examples" PASS_REGULAR_EXPRESSION "after mute:  silent")
+        add_test(NAME examples.dac_stream COMMAND ak4522_dac_stream_example)
+        set_tests_properties(examples.dac_stream PROPERTIES
+            LABELS "unit;examples" PASS_REGULAR_EXPRESSION "after mute:  silent")
+        add_test(NAME examples.dac_core COMMAND ak4522_dac_core_example)
+        add_test(NAME examples.dac_stream_push COMMAND ak4522_dac_stream_push_example)
+        set_tests_properties(examples.dac_core examples.dac_stream_push PROPERTIES LABELS "unit;examples")
+        add_test(NAME examples.c_api COMMAND ak4522_c_api_example)
+        set_tests_properties(examples.c_api PROPERTIES
+            LABELS "unit;examples" PASS_REGULAR_EXPRESSION "output peak 0\\.[45]")
     endif()
     add_subdirectory(tests)
 

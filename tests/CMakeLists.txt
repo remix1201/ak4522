@@ -95,3 +95,17 @@ if(UNIX AND NOT APPLE)
 endif()
 add_test(NAME capi.c_test COMMAND ak4522_c_api_test)
 set_tests_properties(capi.c_test PROPERTIES LABELS "unit;capi")
+
+# Package consumers (REQ-API-03): a separate project built against the
+# installed library, through add_subdirectory, and as a shared library.
+if(AK4522_INSTALL)
+    foreach(mode install subdirectory shared)
+        add_test(NAME package.${mode}
+            COMMAND ${CMAKE_COMMAND} -DMODE=${mode} -DSOURCE_DIR=${PROJECT_SOURCE_DIR}
+                -DBUILD_DIR=${PROJECT_BINARY_DIR} -DWORK_DIR=${CMAKE_CURRENT_BINARY_DIR}/package-${mode}
+                -DCONFIG=$<CONFIG> -DGENERATOR=${CMAKE_GENERATOR} -DPLATFORM=${CMAKE_GENERATOR_PLATFORM}
+                -P ${CMAKE_CURRENT_SOURCE_DIR}/package/run_consumer.cmake)
+        set_tests_properties(package.${mode} PROPERTIES LABELS "package" TIMEOUT 900)
+    endforeach()
+    # The install test reads this build's files, so it runs after the build.
+endif()

@@ -347,6 +347,17 @@ Above 48 kHz these are consistency checks of the unchanged model; the datasheet'
 | Real-time safety | allocation counter around host processing, push, render, diagnostics | no allocations |
 | Mutation check | 14 deliberate faults in `src/c_api/ak4522_c.cpp` | 13 detected at first; swapped underrun and overrun counters survived because no test produced both. A C test of push accounting now does: 14 of 14 |
 
+### 2026-10-16: packaging, integration guide, examples (branch `m5-package`)
+
+| Check | Method | Result |
+| ----- | ------ | ------ |
+| Installed package | `tests/package/consumer` (C++ and C programs) configured with `find_package(ak4522)` against this build installed to a prefix | builds and runs |
+| Subproject | the same consumer with `add_subdirectory` of the source tree | builds and runs |
+| Shared library | library built with `BUILD_SHARED_LIBS=ON`, installed, consumer built against it; linkage confirmed with `otool -L` on macOS | builds and runs |
+| Examples | five programs, one per entry point and the C API, run by CTest with checked output | pass |
+
+Development note: the push example first rendered as fast as the CPU allowed, which could outrun the producer on a slow machine; it now paces renders like a host callback.
+
 ## M4 gate status
 
 AGENTS.md section 16, M4: "Deliver calibrated noise, optional distortion/mismatch/crosstalk/voltage diagnostics, and profile metadata. Gate: weighted measurement methods are validated; synthetic assumptions are explicit; typical-target reports pass within project tolerances. Hardware fidelity claims remain limited."
