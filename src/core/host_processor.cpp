@@ -4,6 +4,7 @@
 #include "ak4522/pcm.hpp"
 #include "core/config_validation.hpp"
 #include "core/control_timeline.hpp"
+#include "core/host_alignment.hpp"
 #include "core/wide_math.hpp"
 #include "dsp/resampler.hpp"
 
@@ -16,9 +17,7 @@ namespace ak4522 {
 
 namespace {
 
-constexpr double coreDelayFrames = 14.7;     // D-F06; see DacCore
-constexpr std::int64_t coreDelayNum = 147;   // 14.7 = 147 / 10
-constexpr std::int64_t coreDelayDen = 10;
+using detail::coreDelayFrames;
 constexpr std::size_t os = DacCore::oversampling;
 
 // splitmix64, used to seed and to step the dither generators (P-91).
@@ -34,41 +33,6 @@ double uniform(std::uint64_t& state) noexcept
 {
     return static_cast<double>(splitmix(state) >> 11) * 0x1.0p-53; // [0, 1)
 }
-
-// Fixed-capacity stereo FIFO for host-rate output.
-struct Fifo {
-    std::vector<double> left;
-    std::vector<double> right;
-    std::size_t read = 0;
-    std::size_t count = 0;
-
-    void allocate(std::size_t capacity)
-    {
-        left.assign(capacity, 0.0);
-        right.assign(capacity, 0.0);
-        clear();
-    }
-    void clear() noexcept
-    {
-        read = 0;
-        count = 0;
-    }
-    [[nodiscard]] std::size_t capacity() const noexcept { return left.size(); }
-    void push(double l, double r) noexcept
-    {
-        const std::size_t at = (read + count) % capacity();
-        left[at] = l;
-        right[at] = r;
-        ++count;
-    }
-    void pop(double& l, double& r) noexcept
-    {
-        l = left[read];
-        r = right[read];
-        read = (read + 1) % capacity();
-        --count;
-    }
-};
 
 struct Pending {
     std::int64_t dacFrame;
@@ -100,7 +64,7 @@ struct HostProcessor::Impl {
     std::vector<double> hiL, hiR;
     std::vector<double> outL, outR;
     std::vector<ControlEvent> chunkEvents;
-    Fifo fifo;
+    detail::StereoFifo fifo;
 
     std::vector<Pending> pending; // ring of capacity maxPendingEvents
     std::size_t pendingRead = 0;
@@ -317,15 +281,11 @@ Status HostProcessor::prepare(const HostConfig& config)
     // Latency alignment (P-39): the core delays by 14.7 DAC frames, which is
     // 14.7 * P1 / Q1 host frames. K is its whole part; the output converter
     // starts phi 8x samples late so the remaining fraction cancels exactly.
-    h.latencyWhole = static_cast<std::int64_t>(
-        detail::mulDivFloor(static_cast<std::uint64_t>(coreDelayNum), static_cast<std::uint64_t>(h.hostPerDacNum),
-                            static_cast<std::uint64_t>(coreDelayDen * h.hostPerDacDen)));
+    const detail::OutputAlignment align = detail::alignOutput(
+        static_cast<std::uint64_t>(h.hostPerDacNum), static_cast<std::uint64_t>(h.hostPerDacDen), os);
+    h.latencyWhole = align.latencyWhole;
+    h.outputOffset = align.outputOffset;
     const double hostPerDac = static_cast<double>(h.hostPerDacNum) / static_cast<double>(h.hostPerDacDen);
-    h.outputOffset = static_cast<double>(os)
-        * (coreDelayFrames - static_cast<double>(h.latencyWhole) / hostPerDac);
-    if (h.outputOffset < 0.0) {
-        h.outputOffset = 0.0; // rounding guard; at most a few ulp
-    }
 
     // Output side: 8x DAC rate to host rate, never bypassed so the alignment
     // offset always applies. Passband up to 20/44.1 of the host rate.
@@ -335,15 +295,9 @@ Status HostProcessor::prepare(const HostConfig& config)
         return s;
     }
 
-    // Prefill D: enough queued output that every host block can be served.
-    // Output m needs 8x input floor(m R2 + phi) + W2, which needs DAC frame
-    // ceil of that over 8, which needs host input floor(j R1) + W1 (P-39).
     const double w1 = h.inputBypass ? 0.0 : static_cast<double>(h.inputSrc.halfWidth());
     const double w2 = static_cast<double>(h.outputSrc.halfWidth());
-    h.prefill = static_cast<std::size_t>(
-        std::ceil(w1 + (h.outputOffset + w2 + 2.0 * static_cast<double>(os)) * hostPerDac
-                           / static_cast<double>(os)))
-        + 2;
+    h.prefill = detail::outputPrefill(w1, w2, h.outputOffset, hostPerDac, os);
 
     const std::size_t maxBlock = config.maxBlockFrames;
     h.inL.assign(maxBlock, 0.0);
@@ -407,6 +361,7 @@ LatencyInfo HostProcessor::latency() const noexcept
     const double hostPerDac = static_cast<double>(h.hostPerDacNum) / static_cast<double>(h.hostPerDacDen);
     info.dacRate = h.config.dac.dacRate;
     info.hostRate = h.config.hostRate;
+    info.outsideDocumentedRate = !withinDocumentedDacRange(info.dacRate);
     // Both converters are symmetric about the times their outputs represent,
     // so they add no group delay; their look-ahead is in the buffering.
     info.inputSrcHostFrames = 0.0;

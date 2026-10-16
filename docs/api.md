@@ -11,6 +11,7 @@ Plugin adapter (JUCE or VST3 SDK, later)
         |
         v
 HostProcessor        host rate: input SRC, quantization, latency alignment, output SRC
+DacStream            a source at its own DAC rate: pull or push, latency alignment, output SRC
         |
         v
 DacCore              DAC rate in, 8x DAC rate out: de-emphasis, soft mute,
@@ -34,11 +35,13 @@ REQ-ARCH-01 names ten abstractions. Four are public types: `DacConfig`, `DacCore
 | `buffers.hpp`        | `StereoView<T>`, the non-owning planar buffer view                                             |
 | `dac_core.hpp`       | `DacCore`, `ProcessResult`                                                                     |
 | `host_processor.hpp` | `HostProcessor`, `HostConfig`, `InputResolution`                                               |
+| `dac_stream.hpp`     | `DacStream`, `DacStreamConfig`, `ExactRate`, `DacSampleFormat`, `DacStreamMode`, `DacPullBlock`, `DacPullCallback`, `PushResult` |
 | `serial.hpp`         | `SerialDecoder`, `TimingValidator`, `PinEdge`                                                  |
 | `latency.hpp`        | `LatencyInfo`                                                                                  |
 | `diagnostics.hpp`    | `Diagnostics` counters                                                                         |
 | `status.hpp`         | `Status`                                                                                       |
 | `ak4522.hpp`         | Umbrella include                                                                               |
+| `ak4522.h`           | C API (REQ-API-02); see below                                                                  |
 
 ## Lifecycle
 
@@ -62,6 +65,8 @@ In-place processing is supported when the input and output views refer to exactl
 | ----------------------- | ---------------------- | ---------------------------------- | -------------- |
 | `DacCore::process`      | N `Pcm20Frame`         | 8N frames at `outputRate()`        | DAC frames     |
 | `HostProcessor::process`| N host frames          | N host frames                      | host frames    |
+| `DacStream::render`     | (from the source)      | N host frames                      | host frames    |
+| `DacStream::push`       | N DAC frames           | (queued)                           | DAC frames     |
 
 Any N is valid, including 0 and 1. Blocks larger than the prepared maximum are processed in bounded internal chunks and counted in `Diagnostics::chunkedBlocks`.
 
@@ -74,6 +79,30 @@ Any N is valid, including 0 and 1. Blocks larger than the prepared maximum are p
 Events on the same frame apply in `ControlType` order: PD, then DEM, then SMUTE (P-42). An SMUTE event at frame n changes direction before that frame's ramp update (P-52). Repeating the current level is accepted and ignored (P-53).
 
 `HostProcessor` maps each host event to the first DAC frame at or after its input-stream time, including input SRC latency (P-41). The PD pin is emulated only through `ControlType::powerDown`; `reset()` is a host lifecycle operation and does not emulate PD (P-74).
+
+## DacStream
+
+`DacStream` plays a source that runs at its own DAC rate, such as an instrument or an emulated system, at a host rate (REQ-API-01). There is no input converter; the source's samples go straight to `DacCore`, then the output converter and the same latency alignment as `HostProcessor` (P-39).
+
+- **Rate.** `ExactRate{numerator, denominator}` in Hz, for example `{112000000, 2304}`. It must lie in the DAC range (above 48 kHz only with `dac.allowExtendedRate`, P-103) and the denominator may be at most 2^20 (P-100). Position is kept in exact integers, so long runs do not drift.
+- **Formats.** `int16` (scaled by 16), `int20`, `int24` (top 20 bits kept, I-P03), `float32`, and `float64` (quantized per REQ-PCM-03). Integer values outside the format's range saturate and count as clipped.
+- **Pull mode.** `render(output)` asks `DacPullCallback` for exactly the DAC frames the host frames need: after T host frames, ceil(T fs / H) in total (P-101). The callback runs on the audio thread and fills the view matching the format; it may add events with DAC-frame offsets. The same source sequence gives the same output for any render block sizes.
+- **Push mode.** A producer thread calls `push(frames, events)`; the audio thread calls `render(output)`. The queue is single-producer, single-consumer, wait-free, and bounded. Missing frames play as zeros and count as `sourceUnderrunFrames`; frames that do not fit are dropped and count as `sourceOverrunFrames` (P-102). `dacFramesFor(n)` tells a producer how many frames the next n host frames will consume, and `queuedFrames()` and `freeFrames()` report the queue.
+- **Events** are in DAC frames relative to the frames they accompany, in both modes. Invalid events from a pull source are dropped and counted.
+- **Latency.** DAC frame j is presented at host time j H / fs and appears `latency().reportedHostFrames` host frames later.
+
+`prepare()`, `reset()`, and destruction run off the audio thread and never concurrently with `render()` or `push()`. `render()` and `push()` may run on two different threads.
+
+## C API
+
+`include/ak4522/ak4522.h` exposes `HostProcessor` and `DacStream` to C99 and later and to any language with a C foreign function interface (REQ-API-02). It adds no behavior; results are identical to the C++ classes.
+
+- **Handles.** `ak4522_host_create` and `ak4522_stream_create` return opaque handles (NULL when out of memory); `*_destroy` frees them and ignores NULL. Create, prepare, and destroy off the audio thread.
+- **Configuration.** Plain structs mirroring the C++ ones. Fill them with `ak4522_dac_config_default`, `ak4522_host_config_default`, or `ak4522_stream_config_default`, then change fields. Enum fields take the `AK4522_*` constants; out-of-range values are rejected by `prepare`. `master_clock_hz` 0 means not given. The stream's exact rate is `dac_rate_numerator / dac_rate_denominator`; its `dac.dac_rate` is ignored.
+- **Status.** Every fallible call returns `ak4522_status`: the C++ `Status` values, plus `AK4522_INVALID_ARGUMENT` (a required pointer was NULL, or an event's type or value is out of range) and `AK4522_TOO_MANY_EVENTS`. `ak4522_status_string` describes any value.
+- **Buffers and events.** Planar channel pointers and a frame count, owned by the caller. Events are `ak4522_event` arrays; each call accepts at most `max_events_per_call` of them (default 256), converted into preallocated storage so the call stays allocation-free.
+- **Pull sources.** `ak4522_pull_fn` receives an `ak4522_pull_block` whose pointers for the configured format are set and the others NULL. Events written beyond `event_capacity`, or with an invalid type or value, cause the block's events to be dropped and counted.
+- **Threads.** As the C++ classes: `ak4522_stream_push_*` may run on a producer thread while `ak4522_stream_render_*` runs on the audio thread; diagnostics and queue queries from any thread.
 
 ## Latency and diagnostics
 

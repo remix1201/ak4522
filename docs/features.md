@@ -31,15 +31,16 @@ Last substantive update: 2026-10-16. M0 to M4 were merged into `main` and approv
 | NominalAnalog noise             | REQ-NOISE-01, REQ-NOISE-02            | implemented    | passing (see below)      | approved 2026-10-16 (`m4-approved`)                  | merged into `main`    |
 | NominalAnalog profile report    | REQ-NOISE-01, REQ-DIST-01             | implemented    | passing (see below)      | approved 2026-10-16 (`m4-approved`)                  | merged into `main`    |
 | NominalAnalog output stage      | REQ-DIST-01, REQ-CHANNEL-01, REQ-ANALOG-01, REQ-ANALOG-02 | implemented | passing (see below) | approved 2026-10-16 (`m4-approved`)          | merged into `main`    |
-| DacStream (pull and push, fractional DAC rates) | REQ-API-01, REQ-RATE-02 | planned (M5) | none            | none                              | none                  |
-| Extended DAC-rate range (opt-in, up to 50.4 kHz) | REQ-CLOCK-02          | planned (M5)   | none                     | none                              | none                  |
-| C API                           | REQ-API-02                            | planned (M5)   | none                     | none                              | none                  |
-| Packaging, integration guide, examples | REQ-API-03                     | planned (M5)   | none                     | none                              | none                  |
+| DacStream (pull and push, fractional DAC rates) | REQ-API-01, REQ-RATE-02 | implemented | passing (see below) | not yet approved              | merged into `main`    |
+| Extended DAC-rate range (opt-in, up to 50.4 kHz) | REQ-CLOCK-02          | implemented    | passing (see below)      | not yet approved                  | merged into `main`    |
+| C API                           | REQ-API-02                            | implemented    | passing (see below)      | not yet approved                  | merged into `main`    |
+| Packaging, integration guide, examples | REQ-API-03                     | implemented    | passing (see below)      | not yet approved                  | merged into `main`    |
+| CPU benchmark                   | REQ-PERF-01                           | implemented    | budget met on the reference machine (see below) | not yet approved | merged into `main`    |
 | Demo plugin (VST3, AU), separate project | REQ-VST-01, REQ-VST-02, REQ-LAT-03 | planned (after M5) | none                     | none                              | none                  |
 | Measured profile                | AGENTS.md s.14                        | planned (M6, conditional on hardware) | none | none                         | none                  |
 | ADC section and loopback        | REQ-SCOPE-04, REQ-ADC-01 to REQ-ADC-07 | planned (M7)  | none                     | none                              | none                  |
 
-Available on `main`: `DacCore` (DAC-rate PCM in, 8x the DAC rate out), `HostProcessor` (host-rate audio in and out), the Specification profile, and the optional NominalAnalog profile. Planned for M5: `DacStream` for sources at their own DAC rate, the opt-in extended rate range, a C API, and packaging. A demo plugin follows in a separate project.
+Available on `main`: `DacCore` (DAC-rate PCM in, 8x the DAC rate out), `HostProcessor` (host-rate audio in and out), `DacStream` (a source at its own exact DAC rate, pull or push), the opt-in extended rate range to 50.4 kHz, a C API, CMake packaging with an integration guide and examples, the CPU benchmark, the Specification profile, and the optional NominalAnalog profile. A demo plugin follows in a separate project.
 
 ## Build and test foundation
 
@@ -47,7 +48,7 @@ Available on `main`: `DacCore` (DAC-rate PCM in, 8x the DAC rate out), `HostProc
 - **Contents:** CMake library target `ak4522::ak4522`; Catch2 v3.16.0 pinned by commit; CTest labels from test tags (`unit`, `dsp`, `soak`); JUnit XML output in `build/<preset>/test-results/`; presets `dev` (warnings as errors), `asan` (address and undefined-behavior sanitizers), `release`; uv-locked Python 3.12 environment in `tools/` with numpy, scipy, matplotlib.
 - **Validation:** `dev` and `asan` presets build without warnings and pass all tests. See [validation.md](validation.md).
 - **Real-time checks:** `tests/support/allocation_counter.hpp` replaces global `operator new` and `delete` in the test executable and counts allocations per thread while armed (REQ-RT-01). Its own tests confirm it detects plain, array-backed, and over-aligned allocations.
-- **Limitations:** tested only on macOS with Apple clang. No CI yet. The CPU benchmark harness (REQ-PERF-01) is not written yet.
+- **Limitations:** CI is defined but has not run. Platform results are under Platform support.
 - **Usage:**
 
   ```sh
@@ -89,7 +90,7 @@ Available on `main`: `DacCore` (DAC-rate PCM in, 8x the DAC rate out), `HostProc
 - **Requirements:** REQ-CLOCK-01, REQ-RATE-03; evidence D-04, D-05, D-C01 to D-C05, I-C01, I-C02; policies P-32, P-35; decision O-03.
 - **Implementation:** internal `detail::validate` in `src/core/config_validation.hpp`, for `DacConfig` and `HostConfig`. `DacCore::prepare` and `HostProcessor::prepare` will call it when they are implemented (M2, M3); it is not callable through the public API yet.
 - **Rules:**
-  - DAC rate in [16000, 48000] Hz, inclusive; NaN and infinity rejected (`invalidDacRate`).
+  - DAC rate in [16000, 48000] Hz, inclusive; NaN and infinity rejected (`invalidDacRate`). With `allowExtendedRate`, up to 50 400 Hz (P-103).
   - When `masterClockHz` is set, it must be finite and equal the CMODE ratio (256, 384, or 512) times the DAC rate within 1e-9 relative (`invalidMasterClock`). This implies the datasheet MCLK range, so there is no separate range check.
   - `ModelProfile::measured` and out-of-range enum values are rejected (`invalidConfiguration`).
   - Host rate must be exactly 44.1, 48, 88.2, 96, 176.4, or 192 kHz (`unsupportedHostRate`); `maxBlockFrames` and `maxPendingEvents` must be non-zero.
@@ -310,6 +311,56 @@ Available on `main`: `DacCore` (DAC-rate PCM in, 8x the DAC rate out), `HostProc
 - **Status:** verified at commit `4e41845` on macOS (Apple Silicon, AppleClang), Windows 11 ARM64 (MSVC 14.51, Build Tools 2026) for both ARM64 and x64 (x64 runs under emulation), and CentOS Stream 9 aarch64 (GCC 11.5). Not yet verified on macOS x86_64, on native x64 Windows hardware, or with Clang on Windows or Linux. 32-bit x86 is not supported.
 - **Changes for portability:** exact 128-bit multiply-divide in portable C++ (`src/core/wide_math.hpp`) replacing `__int128`, which MSVC lacks (its `_udiv128` is also unavailable on ARM64); `_aligned_malloc` and `_aligned_free` in the test allocation counter under MSVC; configurations in every CMake build and test preset for multi-configuration generators; tool lookup in the Python report scripts that finds `.exe` files and configuration folders; `.gitattributes` keeping coefficient and golden data files byte-stable; `--config` in `tools/mutation_check.py`; `_CRT_SECURE_NO_WARNINGS` and an explicit float conversion for MSVC warnings; an `__extension__` typedef for GCC's pedantic check of the test-only `__int128`; an allocation-counter self-test that no longer depends on the standard library's internal allocations (MSVC debug containers allocate a proxy); `dev-x64` and `release-x64` presets on Windows; `.github/workflows/ci.yml` running the suite on macOS, Windows, and Linux (defined but not yet run).
 - **Validation:** `tests/wide_math_test.cpp` checks the multiply-divide against hand-computed values and, where the compiler has 128-bit integers, against 200 000 random cases. The golden lock (1e-12) passes on every platform, so `HostProcessor` output agrees across them. Full suite: 214 tests on macOS and Linux, 213 on Windows (the 128-bit random comparison is compiled out under MSVC); host-rate matrix 5 of 5 on all four builds. Details in [validation.md](validation.md).
+- **Updated:** 2026-10-16.
+
+## DacStream
+
+- **Purpose:** play a source that runs at its own DAC rate, such as an instrument or an emulated system, at a host rate: DAC frames in, the chip model, output SRC, host frames out (REQ-API-01).
+- **Status:** implemented and merged into `main`; not yet approved.
+- **Usage:** [docs/api.md](api.md#dacstream). Configure `DacStreamConfig` with the host rate, an `ExactRate` DAC rate such as `{112000000, 2304}`, a sample format, and a mode. In pull mode, `render()` calls your `DacPullCallback` for the DAC frames it needs; in push mode, a producer thread calls `push()` and the audio thread calls `render()`.
+- **Supported:** host rates of P-32; DAC rates as exact fractions inside 16 to 48 kHz, or to 50.4 kHz with the extended range, denominator up to 2^20 (P-100); 16-, 20-, and 24-bit integer and 32- and 64-bit float input; float and double output; every profile and analog option of `DacConfig`; DEM, SMUTE, and PD events in DAC frames.
+- **Behavior:** after T host frames exactly ceil(T fs / H) DAC frames are consumed (P-101); latency alignment as `HostProcessor` without the input converter (P-39); push underruns play zeros and overruns drop frames, both counted (P-102). 24-bit input keeps its top 20 bits (I-P03).
+- **Validation:** 13 test cases (`[stream]`): exact consumption at a 44 100 000 / 1001 Hz rate against four host rates over 400 random blocks; block-size invariance with events (gate 8); phase-delay timing within 0.01 frame of the reported latency and level within the response tolerance, at fractional and whole rates (gate 3); format equivalences (16-bit times 16, 24-bit floor over 16, exact float); saturation counts; invalid callback events; push and pull identical, also with the producer on another thread; underrun and overrun accounting; mismatched calls; reset; no allocations. Passes under the address and undefined-behavior sanitizers, and the push tests under ThreadSanitizer. A mutation check detected 14 of 14 deliberate faults.
+- **Limitations:** no input dither for float sources (`HostProcessor` offers it).
+- **Updated:** 2026-10-16.
+
+## Extended DAC-rate range
+
+- **Purpose:** run sources slightly above the datasheet's 48 kHz, such as an emulated system at 112 MHz / 2304 = 48 611.1 Hz (REQ-CLOCK-02).
+- **Status:** implemented and merged into `main`; not yet approved.
+- **Usage:** set `DacConfig::allowExtendedRate = true` (in `HostConfig::dac` or `DacStreamConfig::dac`). Rates up to 50 400 Hz are then accepted; without it they are rejected with `invalidDacRate`. `latency().outsideDocumentedRate` is true for any rate above 48 kHz.
+- **Behavior:** not documented chip behavior (P-103). The model is unchanged: filters keep their normalized frequencies, so the response scales with the rate; de-emphasis keeps the selected set; soft mute still takes 1024 frames (20.3 ms at 50.4 kHz). The lower limit stays 16 kHz. `TimingValidator` still reports LRCK above 48 kHz.
+- **Validation:** 6 test cases (`[extended]`): opt-in required; rejection above 50.4 kHz and below 16 kHz; latency flag in `DacCore` and `HostProcessor`; identical core output at 50.4 and 44.1 kHz; `HostProcessor` at 48 and 96 kHz hosts with a 50.4 kHz DAC, level within the response tolerance and timing within 0.01 frame; `DacStream` at 112 MHz / 2304 with exact frame consumption, level, and timing. A mutation check detected 4 of 4 faults. Documented-range gates are not claimed above 48 kHz.
+- **Updated:** 2026-10-16.
+
+## C API
+
+- **Purpose:** use the library from C and from any language with a C foreign function interface (REQ-API-02).
+- **Status:** implemented and merged into `main`; not yet approved.
+- **Usage:** `#include "ak4522/ak4522.h"`; see [docs/api.md](api.md#c-api). Handles for the host processor and the stream; plain configuration structs filled by `*_default` functions; status codes; caller-owned planar buffers; C pull callbacks.
+- **Supported:** everything the C++ `HostProcessor` and `DacStream` offer, including every profile and analog option, exact and extended rates, all stream formats, push and pull, events, latency, and diagnostics.
+- **Validation:** `tests/c_api/c_api_test.c`, compiled as C99 with warnings as errors, calls every function from C: NULL handling, status strings, host processing with a soft mute to exact silence, a C pull source at 112 MHz / 2304 with the extended range and an event, push with underrun and overrun accounting, format mismatch. `tests/c_api_equivalence_test.cpp` compares C and C++ output bit for bit in 14 configurations, each setting one field, and for a pull stream with events; checks defaults, master-clock and CMODE validation, dropped malformed events, and that processing does not allocate. A mutation check detected 14 of 14 faults in the wrapper after one test was added (swapped underrun and overrun counters first survived).
+- **Limitations:** no ABI stability during alpha; the serial decoder and timing validator are not exposed.
+- **Updated:** 2026-10-16.
+
+## Packaging, integration guide, and examples
+
+- **Purpose:** let other projects use the library as it is, without this repository's build (REQ-API-03).
+- **Status:** implemented and merged into `main`; not yet approved.
+- **Usage:** [docs/integration.md](integration.md). `cmake --install` installs the library, headers, and a `find_package(ak4522)` config with the target `ak4522::ak4522`; `add_subdirectory` and FetchContent also work. Static by default; `BUILD_SHARED_LIBS=ON` builds a shared library. Alpha compatibility: the same minor version only.
+- **Examples** (each built and run by CTest, label `examples`): `host_processor_example.cpp` (effect), `dac_stream_example.cpp` (pull source at 112 MHz / 2304 with the extended range and a mute event), `dac_stream_push_example.cpp` (producer thread), `dac_core_example.cpp` (chip model alone, impulse delay), `c_api_example.c` (C).
+- **Validation:** CTest label `package` builds `tests/package/consumer`, a separate project with a C++ and a C program, three ways: against this build installed to a prefix, through `add_subdirectory`, and against a shared library built and installed for the test; each program runs and checks its result. The shared case was confirmed to link the shared library.
+- **Limitations:** no pkg-config file; no binary packages.
+- **Updated:** 2026-10-16.
+
+## CPU benchmark
+
+- **Purpose:** measure the cost of one stereo instance against the budget of REQ-PERF-01 (P-93): a clean `HostProcessor` at 48 kHz host and 44.1 kHz DAC under 10% of the callback period at the 99.9th percentile for blocks of 64 frames or more.
+- **Status:** implemented and merged into `main`; the reference machine is proposed, not yet approved.
+- **Usage:** `cmake --preset release && cmake --build --preset release`, then `build/release/ak4522_benchmark [--check] [--seconds S]` on an otherwise idle machine. It times every callback after a warm-up and prints the median, 99.9th percentile, and maximum as a share of the period, and the callbacks that took longer than the period, for the budget case at 64 to 512 frames and for the nominal profile, a 192 kHz host, and `DacStream` at 48.611 kHz.
+- **Reference machine (proposed):** Apple M1 Max, macOS 26.5.2, Apple clang 21.0.0, `release` preset, one instance, ordinary thread priority.
+- **Result** (60 s of audio per case): budget case p99.9 3.4% at 64 frames and 2.5 to 2.9% at 128 to 512 frames; median 2.1%; no callback over the period. Maximums up to 10% are single callbacks interrupted by the operating system; the benchmark does not run at real-time priority.
+- **Optimization:** the first run measured a median of 6.2% and p99.9 of 9.2% at 64 frames, just inside the budget. The output converter's kernel (about 640 taps at 8x the DAC rate) dominated; it now computes both channels in one pass with four partial sums each, which tripled throughput. Only the rounding of the sums changed: the golden lock (1e-12), the matrix, and every response gate pass. A new test checks that both channels are converted identically, after a mutation in the right channel's taps went unnoticed by the existing tests.
 - **Updated:** 2026-10-16.
 
 ## Documentation process

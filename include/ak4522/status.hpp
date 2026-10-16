@@ -20,6 +20,8 @@ enum class Status : std::uint8_t {
     insufficientOutputCapacity, // output view too small for the input
     eventOutOfRange,            // event offset at or beyond the block length
     eventsNotSorted,            // event offsets decrease
+    formatMismatch,             // push overload does not match the configured sample format
+    modeMismatch,               // push called on a pull-mode stream
 };
 
 [[nodiscard]] std::string_view toString(Status status) noexcept;

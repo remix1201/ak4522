@@ -6,6 +6,7 @@
 #include "ak4522/buffers.hpp"
 #include "ak4522/config.hpp"
 #include "ak4522/dac_core.hpp"
+#include "ak4522/dac_stream.hpp"
 #include "ak4522/diagnostics.hpp"
 #include "ak4522/events.hpp"
 #include "ak4522/host_processor.hpp"

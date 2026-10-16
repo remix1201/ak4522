@@ -31,6 +31,12 @@ struct ResamplerSpec {
     // Time of output 0 in input samples, >= 0. Used to align the plugin's
     // total latency to whole host frames (P-39).
     double startOffset = 0.0;
+    // Exact input-to-output ratio, input samples per output sample. When both
+    // are nonzero they replace the micro-hertz ratio of the two rates, for
+    // rates that are not whole micro-hertz (P-100). The rates above still set
+    // the kernel's band edges.
+    std::int64_t ratioNumerator = 0;
+    std::int64_t ratioDenominator = 0;
 };
 
 class Resampler {
@@ -70,8 +76,11 @@ private:
         [[nodiscard]] const double* window() const noexcept { return ring.data() + head; }
     };
 
-    [[nodiscard]] double dot(const double* row, const double* x) const noexcept;
-    [[nodiscard]] double output(const Channel& channel) const noexcept;
+    // Both channels' outputs for the current phase. One pass over the kernel
+    // row with four partial sums per channel, which the compiler can keep in
+    // vector registers; the result differs from a single running sum only by
+    // rounding.
+    void output(double& left, double& right) const noexcept;
 
     std::int64_t p_ = 1;          // input samples per output, numerator
     std::int64_t q_ = 1;          // denominator

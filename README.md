@@ -6,7 +6,7 @@ The goal is to reproduce documented signal processing and control behavior, then
 
 ## Status
 
-**Alpha, milestones M0 to M4 complete.** The DAC core produces audio through the public `DacCore` API: 20-bit PCM frames and DEM, SMUTE, and PD events in, the reconstructed signal out at 8x the DAC rate, with the datasheet's filter response and 14.7-frame delay. `HostProcessor` wraps it for plugin use: host audio at 44.1 to 192 kHz in and out, with exactly reported latency. An optional NominalAnalog profile adds synthetic noise, distortion, channel mismatch, crosstalk, and DC offset calibrated to the datasheet's typical values ([docs/analog_profile.md](docs/analog_profile.md)); the clean Specification profile remains the default. The plugin and hardware validation do not exist yet.
+**Alpha, milestones M0 to M4 complete; M5 library work merged, awaiting approval.** The DAC core produces audio through the public `DacCore` API: 20-bit PCM frames and DEM, SMUTE, and PD events in, the reconstructed signal out at 8x the DAC rate, with the datasheet's filter response and 14.7-frame delay. `HostProcessor` wraps it for plugin use: host audio at 44.1 to 192 kHz in and out, with exactly reported latency. `DacStream` plays sources that run at their own DAC rate, such as instruments and emulated systems; an opt-in range reaches 50.4 kHz; a C API exposes both entry points; and the library installs as a CMake package ([integration guide](docs/integration.md)). An optional NominalAnalog profile adds synthetic noise, distortion, channel mismatch, crosstalk, and DC offset calibrated to the datasheet's typical values ([docs/analog_profile.md](docs/analog_profile.md)); the clean Specification profile remains the default. The plugin and hardware validation do not exist yet.
 
 See [docs/features.md](docs/features.md) for the current status of each feature.
 
@@ -53,11 +53,15 @@ ctest --preset dev-x64 -LE matrix
 
 In a virtual machine, clone into a local folder rather than building from a shared host folder; shared folders are slow and can report file times that confuse incremental builds.
 
+### Using it in another project
+
+`cmake --install build/release --prefix <prefix>` installs the library and a CMake package; then `find_package(ak4522)` and link `ak4522::ak4522`. `add_subdirectory` and FetchContent work too, and `BUILD_SHARED_LIBS=ON` builds a shared library. See the [integration guide](docs/integration.md).
+
 Continuous integration (`.github/workflows/ci.yml`) defines the same steps for macOS, Windows, and Linux; it has not run yet because the repository is not on GitHub.
 
 ## Using the library
 
-`HostProcessor` is the plugin-facing entry point. A complete program is in [examples/host_processor_example.cpp](examples/host_processor_example.cpp):
+Start with the [integration guide](docs/integration.md). `HostProcessor` is the entry point for effects. A complete program is in [examples/host_processor_example.cpp](examples/host_processor_example.cpp):
 
 ```cpp
 ak4522::HostConfig config;                // host and DAC rates, block size
@@ -66,6 +70,21 @@ host.prepare(config);                     // off the audio thread
 host.process(input, output, events);      // float or double, N frames in, N out
 host.latency().reportedHostFrames;        // report to the host for compensation
 ```
+
+`DacStream` plays a source that runs at its own DAC rate, such as an instrument or an emulated system, at the host rate. The rate is an exact fraction, so clock divisions like 112 MHz / 2304 do not drift. In pull mode it asks your callback for DAC frames as the host needs them; in push mode another thread feeds a bounded queue. See [docs/api.md](docs/api.md#dacstream):
+
+```cpp
+ak4522::DacStreamConfig config;
+config.hostRate = 48000.0;
+config.dacRate = {44100000, 1001};        // Hz, as numerator / denominator
+config.format = ak4522::DacSampleFormat::int16;
+config.pull = &mySource;                  // void(void*, DacPullBlock&) noexcept
+ak4522::DacStream stream;
+stream.prepare(config);                   // off the audio thread
+stream.render(output);                    // N host frames out
+```
+
+From C or another language, include `ak4522/ak4522.h`, which exposes both with handles, plain structs, and status codes ([docs/api.md](docs/api.md#c-api)).
 
 Measured responses are in [docs/responses.md](docs/responses.md).
 
@@ -84,7 +103,7 @@ The AK4522 is a stereo ADC/DAC device. This project focuses on its **20-bit DAC 
 - Explicit conversion between the host sample rate and the emulated DAC rate.
 - Optional noise, distortion, channel mismatch, and voltage-output diagnostics.
 
-The emulated DAC operates from 16 to 48 kHz. Planned host-rate support includes 44.1, 48, 88.2, 96, 176.4, and 192 kHz through sample-rate conversion. A higher host rate does not change the hardware's documented operating range.
+The emulated DAC operates from 16 to 48 kHz, the datasheet range. An opt-in extended range (`DacConfig::allowExtendedRate`) accepts up to 50.4 kHz for sources such as emulated systems that run slightly above 48 kHz; it is not documented chip behavior, and reports flag it. Planned host-rate support includes 44.1, 48, 88.2, 96, 176.4, and 192 kHz through sample-rate conversion. A higher host rate does not change the hardware's documented operating range.
 
 The ADC section is planned as a separate core in milestone M7, including its decimation filter, high-pass filter, initialization delay, serial output, and an optional DAC-to-ADC loopback. ADC behavior never enters the DAC model. External output amplifiers and coupling circuits are separate optional models.
 
@@ -152,7 +171,7 @@ The intended toolchain is C++20 with CMake and CTest. The library does not depen
 
 Detailed requirements and acceptance gates are maintained in [AGENTS.md](AGENTS.md).
 
-Progress: M0 (evidence ledger, build foundation, API proposal, requirement-to-test mapping) is complete and approved (tag `m0-approved`). M1 (PCM mapping, serial decoder, timing validator, clock configuration, reset, and mute state machine) is complete and approved (tag `m1-approved`). M2 (linear DAC response) is complete and approved (tag `m2-approved`). M3 (host-rate adaptation) is complete and approved (tag `m3-approved`). M4 (NominalAnalog profile) is complete and approved (tag `m4-approved`). M5 (integration API and packaging) is in progress. The demo plugin follows M5 as a separate project.
+Progress: M0 (evidence ledger, build foundation, API proposal, requirement-to-test mapping) is complete and approved (tag `m0-approved`). M1 (PCM mapping, serial decoder, timing validator, clock configuration, reset, and mute state machine) is complete and approved (tag `m1-approved`). M2 (linear DAC response) is complete and approved (tag `m2-approved`). M3 (host-rate adaptation) is complete and approved (tag `m3-approved`). M4 (NominalAnalog profile) is complete and approved (tag `m4-approved`). M5 (integration API and packaging) is implemented and merged into `main`, awaiting approval. The demo plugin follows M5 as a separate project.
 
 ## Verification
 

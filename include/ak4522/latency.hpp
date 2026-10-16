@@ -9,6 +9,7 @@ namespace ak4522 {
 struct LatencyInfo {
     double dacRate = 0.0;               // Hz
     double hostRate = 0.0;              // Hz; zero for DacCore alone
+    bool outsideDocumentedRate = false; // dacRate above 48 kHz, extended range (P-103)
 
     double inputSrcHostFrames = 0.0;    // input SRC group delay
     double coreDacFrames = 0.0;         // chip model delay; nominal 14.7 (D-F06)

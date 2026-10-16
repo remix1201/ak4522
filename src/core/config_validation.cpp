@@ -38,17 +38,20 @@ double derivedMasterClockHz(CmodePin cmode, double dacRate) noexcept
 
 Status validate(const DacConfig& config) noexcept
 {
-    // Written so that NaN fails the range test.
-    if (!(config.dacRate >= minDacRate && config.dacRate <= maxDacRate)) {
+    // Written so that NaN fails the range test. The extension is upper side
+    // only (P-103).
+    const double upper = config.allowExtendedRate ? extendedMaxDacRate : maxDacRate;
+    if (!(config.dacRate >= minDacRate && config.dacRate <= upper)) {
         return Status::invalidDacRate;
     }
     if (!enumsValid(config)) {
         return Status::invalidConfiguration;
     }
     if (config.masterClockHz) {
-        // MCLK must equal ratio x fs (D-C05, P-35). With fs already inside
-        // 16 to 48 kHz, that also keeps MCLK inside the datasheet range for
-        // each ratio (D-C02 to D-C04, I-C02), so no separate range check exists.
+        // MCLK must equal ratio x fs (D-C05, P-35). With fs inside 16 to
+        // 48 kHz, that also keeps MCLK inside the datasheet range for each
+        // ratio (D-C02 to D-C04, I-C02), so no separate range check exists.
+        // In the extended range MCLK exceeds it in proportion (P-103).
         const double mclk = *config.masterClockHz;
         const double expected = derivedMasterClockHz(config.cmode, config.dacRate);
         if (!std::isfinite(mclk) || std::abs(mclk - expected) > masterClockTolerance * expected) {
@@ -61,10 +64,14 @@ Status validate(const DacConfig& config) noexcept
     return Status::ok;
 }
 
+bool hostRateSupported(double rate) noexcept
+{
+    return std::find(supportedHostRates.begin(), supportedHostRates.end(), rate) != supportedHostRates.end();
+}
+
 Status validate(const HostConfig& config) noexcept
 {
-    if (std::find(supportedHostRates.begin(), supportedHostRates.end(), config.hostRate)
-        == supportedHostRates.end()) {
+    if (!hostRateSupported(config.hostRate)) {
         return Status::unsupportedHostRate;
     }
     if (config.maxBlockFrames == 0) {
@@ -75,6 +82,32 @@ Status validate(const HostConfig& config) noexcept
         return Status::invalidConfiguration;
     }
     return validate(config.dac);
+}
+
+Status validate(const DacStreamConfig& config) noexcept
+{
+    if (!hostRateSupported(config.hostRate)) {
+        return Status::unsupportedHostRate;
+    }
+    if (config.maxBlockFrames == 0) {
+        return Status::invalidBlockSize;
+    }
+    const ExactRate rate = config.dacRate;
+    if (rate.numerator == 0 || rate.denominator == 0 || rate.denominator > maxRateDenominator) {
+        return Status::invalidDacRate;
+    }
+    if (!enumAtMost(config.format, DacSampleFormat::float64) || !enumAtMost(config.mode, DacStreamMode::push)) {
+        return Status::invalidConfiguration;
+    }
+    if (config.mode == DacStreamMode::pull && (config.pull == nullptr || config.maxEventsPerBlock == 0)) {
+        return Status::invalidConfiguration;
+    }
+    if (config.mode == DacStreamMode::push && (config.pushCapacityFrames == 0 || config.pushCapacityEvents == 0)) {
+        return Status::invalidConfiguration;
+    }
+    DacConfig dac = config.dac;
+    dac.dacRate = rate.hz();
+    return validate(dac);
 }
 
 } // namespace ak4522::detail

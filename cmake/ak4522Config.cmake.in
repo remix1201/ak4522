@@ -1,0 +1,6 @@
+@PACKAGE_INIT@
+
+# AK4522 DAC emulation library. Provides the target ak4522::ak4522, with the
+# C++ headers <ak4522/ak4522.hpp> and the C header <ak4522/ak4522.h>.
+include("${CMAKE_CURRENT_LIST_DIR}/ak4522Targets.cmake")
+check_required_components(ak4522)

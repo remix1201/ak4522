@@ -12,7 +12,7 @@ Measurement methods, results, and known deviations. Every result states the mode
 | Catch2     | v3.16.0 (commit 317ac1ed)                     |
 | Python     | 3.12.15; numpy 2.5.4, scipy 1.18.1, matplotlib 3.11.2 |
 
-No reference CPU for REQ-PERF-01 has been named yet.
+Proposed reference machine for REQ-PERF-01 (P-93): Apple M1 Max, macOS 26.5.2, Apple clang 21.0.0, `release` preset. Pending owner approval.
 
 ## Results
 
@@ -311,6 +311,84 @@ All runs at commit `4e41845`; debug builds for the full suite, release builds fo
 Windows has one test fewer: the comparison of the portable multiply-divide against 128-bit integers needs `__int128`, which MSVC lacks; the hand-computed cases still run. The x64 binaries were confirmed as x64 (PE machine 0x8664). The golden lock (tolerance 1e-12) passes on every platform. Not covered: macOS x86_64, native x64 Windows hardware, and Clang on Windows or Linux.
 
 Found during the runs and fixed: GCC `-Wpedantic` rejected `__int128` in a test; MSVC warned about `fopen` (C4996) in tools and about an implicit double-to-float conversion in a test (C4244); the allocation-counter self-test counted an extra allocation from MSVC's debug vector proxy, and now uses direct `new` and `delete`.
+
+### 2026-10-16: DacStream (branch `m5-stream`)
+
+| Check | Method | Result |
+| ----- | ------ | ------ |
+| DAC frames consumed | 44 100 000 / 1001 Hz against 44.1, 48, 96, 192 kHz hosts; 400 random render blocks; compared after every block with ceil(T N / (D H)) computed in the test | exact |
+| Block-size invariance | one block against random blocks with 0 and 1 frames, with SMUTE and DEM events | within 1e-12 (gate 8) |
+| Timing | phase delay at six passband frequencies, four rate pairs including two fractional DAC rates | each within 0.02 frame of the reported latency, mean within 0.01 (gate 3) |
+| Formats | 16-bit against 20-bit times 16; 24-bit against 20-bit floor over 16; float32 and float64 against exact codes | identical output |
+| Push against pull | same frames and events, random render sizes; also with the producer on another thread | identical output, no underruns |
+| Real-time safety | allocation counter around render, push, reset, and queries; ThreadSanitizer on the push tests | no allocations; no races reported |
+| Mutation check | 14 deliberate faults in `src/core/dac_stream.cpp` | 14 detected |
+
+Development note: the first threaded test pushed more frames than the renders would consume, so the producer waited forever on a full queue; the test now pushes exactly `dacFramesFor` of the rendered length.
+
+### 2026-10-16: extended DAC-rate range (branch `m5-extended-rate`)
+
+| Check | Method | Result |
+| ----- | ------ | ------ |
+| Opt-in and bounds | validation at 48 000.001, 48 611.111, 50 400 Hz with and without the option; 50 400.001, 52 800, 96 000, 15 999.999 Hz, 0, NaN, infinity with it | accepted only with the option and only up to 50 400 Hz |
+| Normalized response | `DacCore` output for the same input at 50.4 and 44.1 kHz | identical sample sequences |
+| Host path | 50.4 kHz DAC at 48 and 96 kHz hosts, six passband frequencies | level within the response tolerance; timing within 0.01 frame of the reported latency |
+| Stream | 112 MHz / 2304 source at 48 kHz | exact frame consumption; level and timing as above |
+| Mutation check | 4 deliberate faults in the validation | 4 detected |
+
+Above 48 kHz these are consistency checks of the unchanged model; the datasheet's gates are claimed only from 16 to 48 kHz (P-103).
+
+### 2026-10-16: C API (branch `m5-c-api`)
+
+| Check | Method | Result |
+| ----- | ------ | ------ |
+| Built and run as C | `tests/c_api/c_api_test.c`, C99, warnings as errors, every function called from C | passes |
+| Equivalence with C++ | host output in 14 configurations, one field set in each; pull stream with events; latency and diagnostics | bit-identical |
+| Real-time safety | allocation counter around host processing, push, render, diagnostics | no allocations |
+| Mutation check | 14 deliberate faults in `src/c_api/ak4522_c.cpp` | 13 detected at first; swapped underrun and overrun counters survived because no test produced both. A C test of push accounting now does: 14 of 14 |
+
+### 2026-10-16: packaging, integration guide, examples (branch `m5-package`)
+
+| Check | Method | Result |
+| ----- | ------ | ------ |
+| Installed package | `tests/package/consumer` (C++ and C programs) configured with `find_package(ak4522)` against this build installed to a prefix | builds and runs |
+| Subproject | the same consumer with `add_subdirectory` of the source tree | builds and runs |
+| Shared library | library built with `BUILD_SHARED_LIBS=ON`, installed, consumer built against it; linkage confirmed with `otool -L` on macOS | builds and runs |
+| Examples | five programs, one per entry point and the C API, run by CTest with checked output | pass |
+
+Development note: the push example first rendered as fast as the CPU allowed, which could outrun the producer on a slow machine; it now paces renders like a host callback.
+
+### 2026-10-16: CPU benchmark (branch `m5-package`)
+
+`build/release/ak4522_benchmark --check --seconds 60` on the proposed reference machine, one instance, ordinary thread priority, other virtual machines idle. Shares of the callback period:
+
+| Case | Block | Median | p99.9 | Max | Over the period |
+| ---- | ----: | -----: | ----: | --: | --------------: |
+| HostProcessor 48 / 44.1 kHz, clean (budget case) | 64 | 2.10% | 3.40% | 10.3% | 0 of 45 000 |
+| | 128 | 2.08% | 2.88% | 5.9% | 0 |
+| | 256 | 2.07% | 2.51% | 2.7% | 0 |
+| | 512 | 2.11% | 2.59% | 3.0% | 0 |
+| HostProcessor 48 / 44.1 kHz, nominal profile | 64 | 2.83% | 4.14% | 9.7% | 0 |
+| HostProcessor 192 / 48 kHz, clean | 64 | 2.64% | 5.66% | 28.4% | 0 of 180 000 |
+| DacStream 48 kHz / 48.611 kHz | 64 | 2.13% | 3.59% | 7.5% | 0 |
+
+Budget (p99.9 below 10% for blocks of 64 or more): met. Before the output converter's loop was restructured, the same case measured a median of 6.2% and p99.9 of 9.2% (and 10.1% with other virtual machines busy). The change alters only the rounding of the kernel sums; golden lock, matrix, and response gates pass. A mutation check of the new loop detected 4 of 4 faults after a channel-symmetry test was added (a wrong tap index in the right channel first survived).
+
+## M5 gate status
+
+AGENTS.md section 16, M5: "Deliver, in this order: `DacStream` ...; the opt-in extended rate range (REQ-CLOCK-02); the C API (REQ-API-02); packaging, the integration guide, and generic examples (REQ-API-03). Gate: library tests for each new API, including block-partition invariance, drift-free long runs at a fractional DAC rate, push and pull equivalence, and real-time allocation checks; a C API test built as C; a consumer project, outside the library's own build, built against the installed package and run; release benchmark meeting the stated budget."
+
+| Gate item | Evidence | Status |
+| --------- | -------- | ------ |
+| Tests for each new API | `[stream]`, `[push]`, `[extended]`, `[capi]`, `package` labels; mutation checks 14/14, 4/4, 14/14, 4/4 | pass |
+| Block-partition invariance | `DacStream` random render sizes with events, within 1e-12 | pass |
+| Drift-free fractional rate | exact DAC-frame counts at 44 100 000 / 1001 Hz and 112 MHz / 2304 against integer arithmetic | pass |
+| Push and pull equivalence | bit-identical, also with the producer on another thread; ThreadSanitizer clean | pass |
+| Real-time allocation checks | render, push, and C calls under the allocation counter | pass |
+| C API test built as C | `tests/c_api/c_api_test.c`, C99, warnings as errors | pass |
+| Consumer against the installed package | `package.install`, plus `add_subdirectory` and shared-library variants | pass |
+| Release benchmark meets the budget | p99.9 3.4% at 64 frames on the proposed reference machine (budget 10%); Linux VM 5.4% | pass, reference machine pending approval |
+| Platforms | macOS, Windows ARM64 and x64, Linux aarch64: full suite, package tests, and matrix at `a210911` | pass |
 
 ## M4 gate status
 

@@ -15,10 +15,13 @@ add_executable(ak4522_tests
     allocation_counter_test.cpp
     analog_noise_test.cpp
     api_contract_test.cpp
+    c_api_equivalence_test.cpp
     config_validation_test.cpp
     control_timeline_test.cpp
     dac_core_test.cpp
+    dac_stream_test.cpp
     deemphasis_test.cpp
+    extended_rate_test.cpp
     golden_test.cpp
     host_processor_test.cpp
     interpolator_test.cpp
@@ -38,8 +41,9 @@ target_include_directories(ak4522_tests PRIVATE
     ${PROJECT_SOURCE_DIR}/src ${CMAKE_CURRENT_SOURCE_DIR})
 target_compile_definitions(ak4522_tests PRIVATE
     AK4522_TEST_DATA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/data")
+find_package(Threads REQUIRED)
 target_link_libraries(ak4522_tests PRIVATE
-    ak4522::ak4522 ak4522_options Catch2::Catch2WithMain)
+    ak4522::ak4522 ak4522_options Catch2::Catch2WithMain Threads::Threads)
 
 file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/test-results)
 
@@ -66,3 +70,48 @@ catch_discover_tests(ak4522_matrix_tests
     REPORTER junit
     OUTPUT_DIR ${CMAKE_BINARY_DIR}/test-results
     OUTPUT_SUFFIX .xml)
+
+# The C API, built as C (REQ-API-02). Linked by the C++ linker because the
+# library is C++.
+enable_language(C)
+add_executable(ak4522_c_api_test c_api/c_api_test.c)
+set_target_properties(ak4522_c_api_test PROPERTIES
+    C_STANDARD 99 C_STANDARD_REQUIRED ON C_EXTENSIONS OFF LINKER_LANGUAGE CXX)
+target_link_libraries(ak4522_c_api_test PRIVATE ak4522::ak4522)
+if(MSVC)
+    target_compile_options(ak4522_c_api_test PRIVATE /W4)
+else()
+    target_compile_options(ak4522_c_api_test PRIVATE -Wall -Wextra -Wpedantic -Wconversion)
+    if(AK4522_SANITIZE)
+        target_compile_options(ak4522_c_api_test PRIVATE -fsanitize=address,undefined -fno-omit-frame-pointer)
+        target_link_options(ak4522_c_api_test PRIVATE -fsanitize=address,undefined)
+    endif()
+endif()
+if(AK4522_WARNINGS_AS_ERRORS)
+    target_compile_options(ak4522_c_api_test PRIVATE $<IF:$<C_COMPILER_ID:MSVC>,/WX,-Werror>)
+endif()
+if(UNIX AND NOT APPLE)
+    target_link_libraries(ak4522_c_api_test PRIVATE m)
+endif()
+add_test(NAME capi.c_test COMMAND ak4522_c_api_test)
+set_tests_properties(capi.c_test PROPERTIES LABELS "unit;capi")
+
+# Package consumers (REQ-API-03): a separate project built against the
+# installed library, through add_subdirectory, and as a shared library.
+if(AK4522_INSTALL)
+    # A sanitizer build's library needs the sanitizer runtime, so installing
+    # it for an ordinary consumer is not meaningful; the other two modes build
+    # their own library.
+    set(package_modes install subdirectory shared)
+    if(AK4522_SANITIZE)
+        list(REMOVE_ITEM package_modes install)
+    endif()
+    foreach(mode ${package_modes})
+        add_test(NAME package.${mode}
+            COMMAND ${CMAKE_COMMAND} -DMODE=${mode} -DSOURCE_DIR=${PROJECT_SOURCE_DIR}
+                -DBUILD_DIR=${PROJECT_BINARY_DIR} -DWORK_DIR=${CMAKE_CURRENT_BINARY_DIR}/package-${mode}
+                -DCONFIG=$<CONFIG> -DGENERATOR=${CMAKE_GENERATOR} -DPLATFORM=${CMAKE_GENERATOR_PLATFORM}
+                -P ${CMAKE_CURRENT_SOURCE_DIR}/package/run_consumer.cmake)
+        set_tests_properties(package.${mode} PROPERTIES LABELS "package" TIMEOUT 900)
+    endforeach()
+endif()
