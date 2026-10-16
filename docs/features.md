@@ -13,7 +13,8 @@ Last substantive update: 2026-10-16. M0 was merged into `main` and approved by t
 | Public API proposal             | REQ-ARCH-01, REQ-ARCH-02, REQ-RT-02   | in progress (declared, not implemented) | compile-time contract checks pass | approved 2026-10-16 (`m0-approved`) | merged into `main` |
 | PCM mapping and quantization    | REQ-PCM-01 to REQ-PCM-03              | implemented    | passing (see below)      | not yet approved                  | merged into `main`    |
 | Serial decoder and timing validator | REQ-SERIAL-01 to REQ-SERIAL-03    | planned (M1)   | none                     | none                              | none                  |
-| Clock configuration and reset   | REQ-CLOCK-01, REQ-RESET-01, REQ-RESET-02 | planned (M1) | none                    | none                              | none                  |
+| Configuration validation        | REQ-CLOCK-01, REQ-RATE-03             | implemented    | passing (see below)      | not yet approved                  | branch `m1-config`    |
+| Reset and control timeline      | REQ-RESET-01, REQ-RESET-02, REQ-CTRL-01 | planned (M1) | none                    | none                              | none                  |
 | Soft mute                       | REQ-MUTE-01, REQ-MUTE-02              | planned (M1)   | none                     | none                              | none                  |
 | De-emphasis                     | REQ-DEEM-01 to REQ-DEEM-03            | planned (M2)   | none                     | none                              | none                  |
 | Interpolation and reconstruction | REQ-FILTER-01, REQ-FILTER-02, REQ-LAT-02 | planned (M2) | none                   | none                              | none                  |
@@ -63,6 +64,20 @@ None of the emulator's signal processing is usable yet. PCM conversion exists as
   - `toNormalized(pcm)`: `code / 2^19`.
 - **Validation:** 12 tests in `tests/pcm_test.cpp`, including all 2^20 raw words, all 2^20 codes through normalize and quantize, all 65,536 16-bit samples, half-LSB ties on both signs and at both range ends, saturation, non-finite input, and 200,000 random and tie inputs against the C library's `std::nearbyint`. Six deliberate code mutations were each caught by the tests. Passes in the `dev` and `asan` presets.
 - **Limitations:** optional TPDF dither (P-12) and the host-side 16-bit input resolution are not implemented; they belong to `HostProcessor` (M3).
+- **Updated:** 2026-10-16.
+
+## Configuration validation
+
+- **Purpose:** reject invalid chip and host configurations before processing, with a specific `Status`.
+- **Requirements:** REQ-CLOCK-01, REQ-RATE-03; evidence D-04, D-05, D-C01 to D-C05, I-C01, I-C02; policies P-32, P-35; decision O-03.
+- **Implementation:** internal `detail::validate` in `src/core/config_validation.hpp`, for `DacConfig` and `HostConfig`. `DacCore::prepare` and `HostProcessor::prepare` will call it when they are implemented (M2, M3); it is not callable through the public API yet.
+- **Rules:**
+  - DAC rate in [16000, 48000] Hz, inclusive; NaN and infinity rejected (`invalidDacRate`).
+  - When `masterClockHz` is set, it must be finite and equal the CMODE ratio (256, 384, or 512) times the DAC rate within 1e-9 relative (`invalidMasterClock`). This implies the datasheet MCLK range, so there is no separate range check.
+  - `ModelProfile::measured` and out-of-range enum values are rejected (`invalidConfiguration`).
+  - Host rate must be exactly 44.1, 48, 88.2, 96, 176.4, or 192 kHz (`unsupportedHostRate`); `maxBlockFrames` and `maxPendingEvents` must be non-zero.
+- **Validation:** 14 test cases in `tests/config_validation_test.cpp`, including the nine p.9 Table 1 clock values, MCLK endpoints at both rate limits, the synchronization tolerance on both sides, and NaN inputs. Deliberate mutations were all caught after one redundant check was removed (see [validation.md](validation.md)).
+- **Limitations:** the host/DAC rate-pair matrix (`unsupportedRatePair`) is defined in M3 with the SRC. Clock loss while running (D-C07) is a runtime fault for the serial adapter, not a configuration check.
 - **Updated:** 2026-10-16.
 
 ## Documentation process

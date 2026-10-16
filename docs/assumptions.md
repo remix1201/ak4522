@@ -43,6 +43,7 @@ Status values: *adopted* (in force for implementation), *provisional* (adopted p
 | P-32 | Supported host rates: 44.1, 48, 88.2, 96, 176.4, 192 kHz; other rates rejected before playback                                               | Initial test matrix scope                                         | n/a             | Rates added with tests                               | `[rate]`   | adopted |
 | P-33 | SRC quality targets: added in-band ripple <= 0.005 dB, stopband rejection >= 120 dB, published transition band                              | Host conversion must not mask the DAC response                    | n/a             | Documented cost or bandwidth limitation              | `[rate]`   | adopted |
 | P-34 | Unintended in-band aliases below -110 dBFS in the clean profile                                                                               | Separates processing artifacts from intended DAC images           | I-F04           | n/a                                                  | `[rate]`   | adopted |
+| P-35 | When MCLK is given, it must be finite and equal the CMODE ratio times the DAC rate within a relative tolerance of 1e-9, which also keeps it in the CMODE range (I-C02); otherwise `prepare` reports `invalidMasterClock` | [DS] requires LRCK synchronized with MCLK; an exact ratio is the inferred meaning, and the tolerance absorbs floating-point representation of clock values | D-C02 to D-C05, I-C01 | Evidence that the chip tolerates non-integer MCLK/LRCK ratios | `[clock]` | adopted |
 
 ## 5. Signal path and control timing
 

@@ -57,6 +57,18 @@ First run found and fixed: evidence row I-T01 had its cells shifted into the wro
 | Mutation check | six deliberate faults (tie direction, sign extension, scaling, saturation bound, counter, tie boundary) in a separate non-Werror build | all six detected |
 | Sanitizers | `asan` preset, all tests | pass |
 
+### 2026-10-16: configuration validation, branch `m1-config`
+
+| Check | Method | Result |
+| ----- | ------ | ------ |
+| DAC rate limits, NaN and infinity | table-driven cases at and beside 16 and 48 kHz | pass |
+| Derived MCLK | nine values from [DS] p.9 Table 1 (exact product for the rounded 22.579 MHz entry) | pass |
+| MCLK synchronization | wrong rate, wrong ratio, tolerance at 1e-10 (accepted) and 1e-8 (rejected) | pass |
+| Host rates and capacities | six supported rates, six unsupported values, zero capacities | pass |
+| Mutation check | seven deliberate faults | six detected; one survived (widened 512fs MCLK range) |
+
+The surviving mutation showed that the explicit MCLK range check could never change a result: with the DAC rate in range and MCLK equal to ratio times rate, MCLK is always in range (I-C02). The check was removed and replaced by an explicit finite test, which the range check had been providing for NaN. Both replacement mutations were then detected.
+
 No signal-processing measurements exist yet. DSP gates from AGENTS.md section 13.2 begin in M1 and M2.
 
 ## Known deviations

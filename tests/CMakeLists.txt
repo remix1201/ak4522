@@ -13,9 +13,12 @@ include(Catch)
 
 add_executable(ak4522_tests
     api_contract_test.cpp
+    config_validation_test.cpp
     pcm_test.cpp
     smoke_test.cpp
     status_test.cpp)
+# Tests may include internal headers under src/.
+target_include_directories(ak4522_tests PRIVATE ${PROJECT_SOURCE_DIR}/src)
 target_link_libraries(ak4522_tests PRIVATE
     ak4522::ak4522 ak4522_options Catch2::Catch2WithMain)
 
