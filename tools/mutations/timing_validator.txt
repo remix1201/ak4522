@@ -1,0 +1,17 @@
+[
+ ("SCLK period 150", "constexpr double sclkPeriodMin = 160.0;", "constexpr double sclkPeriodMin = 150.0;"),
+ ("SCLK width 60", "constexpr double sclkWidthMin = 65.0;", "constexpr double sclkWidthMin = 60.0;"),
+ ("LRCK-SCLK 40", "constexpr double lrckSclkMin = 45.0;", "constexpr double lrckSclkMin = 40.0;"),
+ ("hold 35", "constexpr double sdtiHoldMin = 40.0;", "constexpr double sdtiHoldMin = 35.0;"),
+ ("setup 20", "constexpr double sdtiSetupMin = 25.0;", "constexpr double sdtiSetupMin = 20.0;"),
+ ("duty max 0.56", "constexpr double dutyMax = 0.55;", "constexpr double dutyMax = 0.56;"),
+ ("PD width 140", "constexpr double pdWidthMin = 150.0;", "constexpr double pdWidthMin = 140.0;"),
+ ("no frequency tolerance", "constexpr double frequencyTolerance = 1e-9;", "constexpr double frequencyTolerance = 0.0;"),
+ ("384fs width 27", "    case CmodePin::high: return {6.144e6, 18.432e6, 20.0};", "    case CmodePin::high: return {6.144e6, 18.432e6, 27.0};"),
+ ("512fs max 25 MHz", "    case CmodePin::open: return {8.192e6, 24.576e6, 15.0};", "    case CmodePin::open: return {8.192e6, 25.0e6, 15.0};"),
+ ("tLRS checked on every rise", "    lrckEdge_ = unseen;\n}", "}"),
+ ("coincidence counted as tLRS", "        if (sinceLrck == 0.0) {\n            count(TimingViolation::sclkRiseCoincidesWithLrck);\n        } else if", "        if"),
+ ("sync counted without MCLK", "    mclkCounting_ = seen(mclkRise_);", "    mclkCounting_ = true;"),
+ ("non-transitions processed", "    if (known_[pin] && level_[pin] == edge.level) {\n        return; // not a transition\n    }", ""),
+ ("out-of-order processed", "    if (anyEdge_ && edge.timeNs < lastTimeNs_) {", "    if (false) {"),
+]
