@@ -1,0 +1,20 @@
+# Datasheet and derived material: keep local, never commit
+reference/*
+!reference/README.md
+
+# Build output
+build/
+cmake-build-*/
+out/
+
+# Local recordings and analysis artifacts
+captures/
+*.wav
+*.aiff
+*.flac
+analysis-output/
+
+# Editors and OS
+.DS_Store
+.vscode/
+.idea/
