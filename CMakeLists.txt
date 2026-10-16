@@ -43,6 +43,7 @@ endif()
 # Framework-independent core library.
 add_library(ak4522
     src/analog/analog_noise.cpp
+    src/analog/example_output_circuit.cpp
     src/analog/output_stage.cpp
     src/c_api/ak4522_c.cpp
     src/core/config_validation.cpp
