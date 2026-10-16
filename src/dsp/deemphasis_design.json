@@ -1,0 +1,67 @@
+{
+  "generator": "tools/design_deemphasis.py",
+  "reference": "H(s) = (1 + s*15e-6) / (1 + s*50e-6)",
+  "method": "first-order section with exact unity DC gain; Nelder-Mead minimax of magnitude error in dB on a log grid, starting from the prewarped bilinear transform",
+  "limit_db": 0.1,
+  "sets": [
+    {
+      "rate_hz": 32000.0,
+      "band_hz": [
+        20.0,
+        14400.0
+      ],
+      "b0": 0.5172867403494829,
+      "b1": -0.03721161976915672,
+      "a1": -0.5199248794196739,
+      "zero": 0.07193615622935988,
+      "pole": 0.5199248794196739,
+      "dc_gain": 1.0000000000000002,
+      "max_magnitude_error_db": 0.09294987382238781,
+      "max_phase_error_deg": 18.974978192964425,
+      "phase_error_at_band_edge_deg": 18.974978192964425,
+      "bilinear_max_magnitude_error_db": 1.5946430373907536
+    },
+    {
+      "rate_hz": 44100.0,
+      "band_hz": [
+        20.0,
+        19845.0
+      ],
+      "b0": 0.4606218303931322,
+      "b1": -0.08766586162776609,
+      "a1": -0.6270440312346339,
+      "zero": 0.1903206835701749,
+      "pole": 0.6270440312346339,
+      "dc_gain": 1.0000000000000002,
+      "max_magnitude_error_db": 0.0725357347013547,
+      "max_phase_error_deg": 14.949246239552124,
+      "phase_error_at_band_edge_deg": 14.949246239552124,
+      "bilinear_max_magnitude_error_db": 0.9730494505536202
+    },
+    {
+      "rate_hz": 48000.0,
+      "band_hz": [
+        20.0,
+        20000.0
+      ],
+      "b0": 0.4484892141075064,
+      "b1": -0.10242425264351145,
+      "a1": -0.653935038536005,
+      "zero": 0.22837617811464145,
+      "pole": 0.653935038536005,
+      "dc_gain": 0.9999999999999999,
+      "max_magnitude_error_db": 0.04820007486881667,
+      "max_phase_error_deg": 12.55828201665273,
+      "phase_error_at_band_edge_deg": 12.55828201665273,
+      "bilinear_max_magnitude_error_db": 0.8485049501762086
+    }
+  ],
+  "precision": "IEEE 754 double",
+  "sha256_le_f8": "2730c8791023af51b44cf36cf8a00880c2230f0df9d87829558a4895b9be27c0",
+  "versions": {
+    "python": "3.12.15",
+    "numpy": "2.5.4",
+    "scipy": "1.18.1",
+    "platform": "macOS-26.5.2-arm64-arm-64bit"
+  }
+}

@@ -43,6 +43,7 @@ add_library(ak4522
     src/core/soft_mute.cpp
     src/core/status.cpp
     src/core/version.cpp
+    src/dsp/deemphasis.cpp
     src/dsp/interpolator.cpp
     src/dsp/reconstruction.cpp
     src/serial/serial_decoder.cpp

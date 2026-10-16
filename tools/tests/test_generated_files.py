@@ -82,5 +82,31 @@ class ReconstructionFilesTest(unittest.TestCase):
                     self.assertTrue(check.passed, check)
 
 
+class DeemphasisFilesTest(unittest.TestCase):
+    RATES = (32000.0, 44100.0, 48000.0)
+
+    def setUp(self):
+        self.values = read_inc(ROOT / "src/dsp/deemphasis_coefficients.inc").reshape(-1, 3)
+        self.report = json.loads((ROOT / "src/dsp/deemphasis_design.json").read_text())
+
+    def test_three_sets_with_matching_checksum(self):
+        self.assertEqual(self.values.shape, (3, 3))
+        digest = hashlib.sha256(np.ascontiguousarray(self.values.ravel(), dtype="<f8").tobytes()).hexdigest()
+        self.assertEqual(digest, self.report["sha256_le_f8"])
+
+    def test_fit_against_analog_reference(self):
+        # Independent evaluation: scipy freqz against the analog shelf (P-61).
+        for (b0, b1, a1), fs in zip(self.values, self.RATES):
+            with self.subTest(rate=fs):
+                f = np.geomspace(20.0, min(20000.0, 0.45 * fs), 20000)
+                _, h = signal.freqz([b0, b1], [1.0, a1], worN=f, fs=fs)
+                s = 2j * np.pi * f
+                ref = (1 + s * 15e-6) / (1 + s * 50e-6)
+                error = np.max(np.abs(20 * np.log10(np.abs(h / ref))))
+                self.assertLessEqual(error, 0.1)
+                self.assertAlmostEqual((b0 + b1) / (1 + a1), 1.0, places=12)
+                self.assertLess(abs(a1), 1.0)
+
+
 if __name__ == "__main__":
     unittest.main()
