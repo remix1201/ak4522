@@ -221,4 +221,4 @@ These facts are documented but belong to the ADC. They MUST NOT appear in the DA
 
 ## Policies referenced by this ledger
 
-Values classified P are recorded in `docs/assumptions.md` (not yet written), including the mute ramp law, mute and de-emphasis ordering, reset initialization, de-emphasis behavior at non-matching rates, float input quantization, and fitted filter parameters.
+Values classified P are recorded in [assumptions.md](assumptions.md), including the mute ramp law, mute and de-emphasis ordering, reset initialization, de-emphasis behavior at non-matching rates, float input quantization, and fitted filter parameters.
