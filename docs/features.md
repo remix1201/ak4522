@@ -285,7 +285,7 @@ The DAC core produces audio through the public `DacCore` API at the DAC rate in,
 ## NominalAnalog output stage
 
 - **Purpose:** the remaining datasheet typical imperfections, each optional and labeled synthetic, plus voltage scaling and profile metadata.
-- **Requirements:** REQ-DIST-01, REQ-CHANNEL-01, REQ-ANALOG-01, REQ-ANALOG-02; evidence D-A01, D-A04, D-A05, D-A07, D-A15; policies P-96 to P-99; API decision O-10 (proposed).
+- **Requirements:** REQ-DIST-01, REQ-CHANNEL-01, REQ-ANALOG-01, REQ-ANALOG-02; evidence D-A01, D-A04, D-A05, D-A07, D-A15; policies P-96 to P-99; API decision O-10 (approved).
 - **Usage:** with `profile = ModelProfile::nominalAnalog`, set any of `analog.distortion`, `channelMismatch`, `crosstalk`, `dcOffset` (and `noise`), or use `AnalogOptions::nominal()` for all except the DC offset. Shapes: `distortionShape` (`equal2nd3rd` default, `mostly3rd`, `mostly2nd`), `crosstalkShape` (`capacitive` default, `flat`), `mismatchMode` (`fixed` default, `perInstance`). `ak4522::outputVolts(x, vrefh)` converts a normalized sample to volts; `ak4522::describe(profile)` returns the profile's name, synthetic flag, availability, and summary.
 - **Model:** at 8x after the reconstruction sections: channel gain, distortion polynomial, crosstalk between channels, DC offset. Power-down output stays exactly VCOM.
 - **Measured** (44.1 kHz, `measure_profile.py`): S/(N+D) at 0 dBFS 90.004 / 90.006 / 90.002 dB for the three distortion shapes and 89.88 dB with the full nominal profile (target 90 +/- 1); dynamic range at -60 dBFS 99.89 dB A-weighted (100 +/- 1); isolation 110 dB at 1 kHz through the host path with noise (gate 7); fixed mismatch 0.200 dB.

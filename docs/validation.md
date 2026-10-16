@@ -314,7 +314,7 @@ AGENTS.md section 16, M4: "Deliver calibrated noise, optional distortion/mismatc
 | Clean profile unchanged | golden lock | pass |
 | Hardware fidelity claims limited | report preamble; `describe()`; README | pass |
 
-Awaiting project-owner review, and approval of API decision O-10.
+Awaiting project-owner review. API decision O-10 approved on 2026-10-16.
 
 ## M3 gate status
 
