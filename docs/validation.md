@@ -299,7 +299,7 @@ Development notes: a level-scaling test at -20 dBFS measured the harmonics of th
 
 ### 2026-10-16: platform support (branch `portability`, merged into `main`)
 
-All runs at commit `4e41845`; debug builds for the full suite, release builds for the matrix.
+All runs at commit `69693d6`; debug builds for the full suite, release builds for the matrix.
 
 | Platform | Compiler | Full suite | Host-rate matrix |
 | -------- | -------- | ---------- | ---------------- |
@@ -504,7 +504,7 @@ AGENTS.md section 16, M5: "Deliver, in this order: `DacStream` ...; the opt-in e
 | C API test built as C | `tests/c_api/c_api_test.c`, C99, warnings as errors | pass |
 | Consumer against the installed package | `package.install`, plus `add_subdirectory` and shared-library variants | pass |
 | Release benchmark meets the budget | p99.9 3.4% at 64 frames on the reference machine (budget 10%); Linux VM 5.4% | pass |
-| Platforms | macOS, Windows ARM64 and x64, Linux aarch64: full suite, package tests, and matrix at `a210911` | pass |
+| Platforms | macOS, Windows ARM64 and x64, Linux aarch64: full suite, package tests, and matrix at `fe536f5` | pass |
 
 ## M4 gate status
 
