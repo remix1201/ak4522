@@ -283,6 +283,34 @@ static void test_timing(void)
     ak4522_timing_validator_destroy(v);
 }
 
+static void test_circuit(void)
+{
+    enum { frames = 48000 };
+    static double l[frames], r[frames], x[frames];
+    ak4522_circuit_options options;
+    ak4522_circuit* c = ak4522_circuit_create();
+    double worst = 0.0;
+    size_t n;
+    ak4522_circuit_options_default(&options);
+    CHECK(options.include_gain && options.invert && options.load_ohms == 0.0);
+    CHECK(ak4522_circuit_process_f64(c, l, r, 4) == AK4522_NOT_PREPARED);
+    CHECK(ak4522_circuit_prepare(c, 48000.0, NULL) == AK4522_INVALID_ARGUMENT);
+    options.load_ohms = -1.0;
+    CHECK(ak4522_circuit_prepare(c, 48000.0, &options) == AK4522_INVALID_CONFIGURATION);
+    options.load_ohms = 0.0;
+    CHECK(ak4522_circuit_prepare(c, 48000.0, &options) == AK4522_OK);
+    for (n = 0; n < frames; ++n) {
+        x[n] = l[n] = r[n] = 0.5 * sin(2.0 * pi * 1000.0 * (double)n / 48000.0);
+    }
+    CHECK(ak4522_circuit_process_f64(c, l, r, frames) == AK4522_OK);
+    for (n = frames / 2; n < frames; ++n) {
+        worst = fmax(worst, fabs(l[n] + 1.8 * x[n])); /* gain -1.8 at 1 kHz */
+    }
+    CHECK(worst < 0.002);
+    CHECK(ak4522_circuit_reset(c) == AK4522_OK);
+    ak4522_circuit_destroy(c);
+}
+
 int main(void)
 {
     test_library();
@@ -293,6 +321,7 @@ int main(void)
     test_push_accounting();
     test_serial();
     test_timing();
+    test_circuit();
     if (failures != 0) {
         fprintf(stderr, "%d C API check(s) failed\n", failures);
         return 1;

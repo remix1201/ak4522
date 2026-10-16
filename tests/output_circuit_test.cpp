@@ -2,6 +2,8 @@
 // I-O02, I-O03, DISC-05; P-104). Expected responses come from the analog
 // transfer function of the drawn components, not from the implementation.
 
+#include "ak4522/dac_stream.hpp"
+#include "ak4522/host_processor.hpp"
 #include "ak4522/output_circuit.hpp"
 #include "support/allocation_counter.hpp"
 #include "support/sine_fit.hpp"
@@ -142,11 +144,18 @@ TEST_CASE("Channels are independent; float matches double; reset clears", "[unit
 TEST_CASE("Circuit prepare rejects invalid options", "[unit][analog][circuit]")
 {
     ExampleOutputCircuit c;
+    std::vector<double> l{0.5, 0.25}, r{0.5, 0.25};
+    c.process(StereoView<double>{l, r}); // unprepared: unchanged
+    CHECK(l == std::vector<double>{0.5, 0.25});
+    CHECK_FALSE(c.isPrepared());
     CHECK(c.prepare(0.0) == Status::invalidConfiguration);
     CHECK(c.prepare(std::nan("")) == Status::invalidConfiguration);
     CHECK(c.prepare(48000.0, {true, true, -1.0}) == Status::invalidConfiguration);
     CHECK(c.prepare(48000.0, {true, true, 0.001}) == Status::invalidConfiguration); // corner far above the band
     CHECK(c.prepare(48000.0, {true, true, 600.0}) == Status::ok);
+    CHECK(c.isPrepared());
+    CHECK(c.prepare(0.0) == Status::invalidConfiguration);
+    CHECK_FALSE(c.isPrepared());
 }
 
 TEST_CASE("The circuit does not allocate", "[unit][analog][circuit][rt]")
@@ -157,4 +166,91 @@ TEST_CASE("The circuit does not allocate", "[unit][analog][circuit][rt]")
     c.process(StereoView<float>{l, r});
     c.reset();
     CHECK(counter.allocations() == 0);
+}
+
+TEST_CASE("HostProcessor's circuit option equals the circuit after its output", "[unit][analog][circuit][host]")
+{
+    const ExampleCircuitOptions options = GENERATE(ExampleCircuitOptions{}, ExampleCircuitOptions{false, false, 10e3});
+    HostConfig cfg;
+    cfg.hostRate = 96000.0;
+    std::vector<double> in(20000);
+    for (std::size_t n = 0; n < in.size(); ++n) {
+        in[n] = 0.4 * std::sin(2.0 * pi * 300.0 * static_cast<double>(n) / cfg.hostRate);
+    }
+    HostProcessor plain;
+    REQUIRE(plain.prepare(cfg) == Status::ok);
+    std::vector<double> a(in.size()), ar(in.size());
+    REQUIRE(plain.process(StereoView<const double>{in, in}, StereoView<double>{a, ar}, {}) == Status::ok);
+    ExampleOutputCircuit circuit = prepared(cfg.hostRate, options);
+    circuit.process(StereoView<double>{a, ar});
+
+    cfg.exampleOutputCircuit = true;
+    cfg.exampleCircuit = options;
+    HostProcessor with;
+    REQUIRE(with.prepare(cfg) == Status::ok);
+    std::vector<double> b(in.size()), br(in.size());
+    REQUIRE(with.process(StereoView<const double>{in, in}, StereoView<double>{b, br}, {}) == Status::ok);
+    CHECK(a == b);
+    CHECK(ar == br);
+    CHECK(with.latency().reportedHostFrames == plain.latency().reportedHostFrames);
+
+    cfg.exampleCircuit.loadOhms = -5.0;
+    CHECK(with.prepare(cfg) == Status::invalidConfiguration);
+}
+
+TEST_CASE("DacStream's circuit option equals the circuit after its output", "[unit][analog][circuit][stream]")
+{
+    struct Source {
+        std::size_t position = 0;
+        static void pull(void* context, DacPullBlock& b) noexcept
+        {
+            auto& s = *static_cast<Source*>(context);
+            for (std::size_t j = 0; j < b.frames; ++j) {
+                b.integers.left[j] = b.integers.right[j]
+                    = static_cast<std::int32_t>(250000.0 * std::sin(0.02 * static_cast<double>(s.position + j)));
+            }
+            s.position += b.frames;
+        }
+    };
+    Source s1, s2;
+    DacStreamConfig cfg;
+    cfg.pull = &Source::pull;
+    cfg.pullContext = &s1;
+    DacStream plain;
+    REQUIRE(plain.prepare(cfg) == Status::ok);
+    std::vector<double> a(9000), ar(9000);
+    REQUIRE(plain.render(StereoView<double>{a, ar}) == Status::ok);
+    ExampleOutputCircuit circuit = prepared(cfg.hostRate);
+    circuit.process(StereoView<double>{a, ar});
+
+    cfg.pullContext = &s2;
+    cfg.exampleOutputCircuit = true;
+    DacStream with;
+    REQUIRE(with.prepare(cfg) == Status::ok);
+    std::vector<double> b(9000), br(9000);
+    REQUIRE(with.render(StereoView<double>{b, br}) == Status::ok);
+    CHECK(a == b);
+}
+
+TEST_CASE("The circuit removes the NominalAnalog DC offset", "[dsp][analog][circuit][host]")
+{
+    // The chip's offset (+3 mV, P-99) is what the coupling capacitors are for (D-A15).
+    HostConfig cfg;
+    cfg.dac.profile = ModelProfile::nominalAnalog;
+    cfg.dac.analog.dcOffset = true;
+    cfg.maxBlockFrames = 4096;
+    auto meanOfLastSecond = [&](bool circuit) {
+        cfg.exampleOutputCircuit = circuit;
+        HostProcessor p;
+        REQUIRE(p.prepare(cfg) == Status::ok);
+        std::vector<double> zero(48000 * 20, 0.0), l(zero.size()), r(zero.size());
+        REQUIRE(p.process(StereoView<const double>{zero, zero}, StereoView<double>{l, r}, {}) == Status::ok);
+        double sum = 0.0;
+        for (std::size_t n = l.size() - 48000; n < l.size(); ++n) {
+            sum += l[n];
+        }
+        return sum / 48000.0;
+    };
+    CHECK(std::abs(meanOfLastSecond(false) - 0.003 / 1.45) < 1e-6);
+    CHECK(std::abs(meanOfLastSecond(true)) < 1e-9);
 }

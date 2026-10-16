@@ -42,11 +42,13 @@ public:
     [[nodiscard]] Status prepare(double sampleRate, const ExampleCircuitOptions& options = {});
     void reset() noexcept;
 
-    // In place, any frame count.
+    // In place, any frame count. Before a successful prepare, audio passes
+    // unchanged.
     void process(StereoView<double> audio) noexcept;
     void process(StereoView<float> audio) noexcept;
     void processFrame(double& left, double& right) noexcept;
 
+    [[nodiscard]] bool isPrepared() const noexcept { return prepared_; }
     [[nodiscard]] double gain() const noexcept { return gain_; }
     [[nodiscard]] double inputCornerHz() const noexcept { return inputCornerHz_; }
     [[nodiscard]] double outputCornerHz() const noexcept { return outputCornerHz_; }
@@ -65,6 +67,7 @@ private:
 
     HighPass input_;
     HighPass output_;
+    bool prepared_ = false;
     double gain_ = -1.8;
     double inputCornerHz_ = 0.0;
     double outputCornerHz_ = 0.0;

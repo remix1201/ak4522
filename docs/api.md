@@ -37,6 +37,7 @@ REQ-ARCH-01 names ten abstractions. Four are public types: `DacConfig`, `DacCore
 | `host_processor.hpp` | `HostProcessor`, `HostConfig`, `InputResolution`                                               |
 | `dac_stream.hpp`     | `DacStream`, `DacStreamConfig`, `ExactRate`, `DacSampleFormat`, `DacStreamMode`, `DacPullBlock`, `DacPullCallback`, `PushResult` |
 | `serial.hpp`         | `SerialDecoder`, `TimingValidator`, `PinEdge`                                                  |
+| `output_circuit.hpp` | `ExampleOutputCircuit`, `ExampleCircuitOptions` (Fig.11 board circuit, optional)                 |
 | `latency.hpp`        | `LatencyInfo`                                                                                  |
 | `diagnostics.hpp`    | `Diagnostics` counters                                                                         |
 | `status.hpp`         | `Status`                                                                                       |
@@ -104,6 +105,10 @@ Events on the same frame apply in `ControlType` order: PD, then DEM, then SMUTE 
 - **Pull sources.** `ak4522_pull_fn` receives an `ak4522_pull_block` whose pointers for the configured format are set and the others NULL. Events written beyond `event_capacity`, or with an invalid type or value, cause the block's events to be dropped and counted.
 - **Conformance tools.** `ak4522_serial_decoder_*` and `ak4522_timing_validator_*` wrap `SerialDecoder` and `TimingValidator`, with `AK4522_SERIAL_*`, `AK4522_PIN_*`, and `AK4522_TIMING_*` constants.
 - **Threads.** As the C++ classes: `ak4522_stream_push_*` may run on a producer thread while `ak4522_stream_render_*` runs on the audio thread; diagnostics and queue queries from any thread.
+
+## Example output circuit
+
+`ExampleOutputCircuit` models the datasheet's Fig.11 board circuit: two 0.589 Hz high-pass sections around a gain of -1.8 (P-104). It is not part of the chip: `DacCore` never applies it. `prepare(sampleRate, options)` designs it for any rate; `process` works in place on float or double. `HostConfig` and `DacStreamConfig` apply it at the host rate when `exampleOutputCircuit` is true; reported latency is unchanged.
 
 ## Latency and diagnostics
 

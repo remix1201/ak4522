@@ -30,6 +30,7 @@ void ExampleOutputCircuit::HighPass::design(double cornerHz, double sampleRate) 
 
 Status ExampleOutputCircuit::prepare(double sampleRate, const ExampleCircuitOptions& options)
 {
+    prepared_ = false;
     if (!(sampleRate > 0.0) || !std::isfinite(sampleRate) || !(options.loadOhms >= 0.0)
         || !std::isfinite(options.loadOhms)) {
         return Status::invalidConfiguration;
@@ -49,6 +50,7 @@ Status ExampleOutputCircuit::prepare(double sampleRate, const ExampleCircuitOpti
     const double magnitude = options.includeGain ? feedbackResistance / inputResistance : 1.0;
     gain_ = options.invert ? -magnitude : magnitude;
     reset();
+    prepared_ = true;
     return Status::ok;
 }
 
@@ -72,6 +74,9 @@ double ExampleOutputCircuit::step(State& s, double x) const noexcept
 
 void ExampleOutputCircuit::processFrame(double& left, double& right) noexcept
 {
+    if (!prepared_) {
+        return;
+    }
     left = step(left_, left);
     right = step(right_, right);
 }

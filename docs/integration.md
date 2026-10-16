@@ -105,6 +105,8 @@ The emulation contains only the chip. Host conveniences, such as choosing de-emp
 
 ## Output
 
+To hear the DAC as the datasheet's example board presents it, set `exampleOutputCircuit = true`: AC coupling removes DC, and the stage inverts and adds 5.1 dB, which `exampleCircuit.includeGain = false` leaves out.
+
 Output is normalized: full scale is 1.0 and the chip's VCOM is 0.0. `outputVolts(x)` converts a sample to the nominal analog voltage for diagnostics. Nothing clips the output: reconstruction overshoot is preserved, as on the chip.
 
 ## From C and other languages

@@ -73,6 +73,10 @@ TEST_CASE("C defaults equal the C++ defaults", "[unit][capi]")
     CHECK(h.dac.dac_rate == cpp.dac.dacRate);
     CHECK(h.dac.analog.noise_seed == cpp.dac.analog.noiseSeed);
     CHECK(h.dac.master_clock_hz == 0.0);
+    CHECK_FALSE(h.example_output_circuit);
+    CHECK(h.example_circuit.include_gain == cpp.exampleCircuit.includeGain);
+    CHECK(h.example_circuit.invert == cpp.exampleCircuit.invert);
+    CHECK(h.example_circuit.load_ohms == cpp.exampleCircuit.loadOhms);
 
     ak4522_stream_config s;
     ak4522_stream_config_default(&s);
@@ -87,7 +91,7 @@ TEST_CASE("C host processing equals HostProcessor", "[unit][capi]")
 {
     // Each variant sets one field on both sides, so a field mapped to the
     // wrong C++ member changes the output.
-    const int variant = GENERATE(range(0, 14));
+    const int variant = GENERATE(range(0, 16));
     CAPTURE(variant);
     HostConfig cfg;
     ak4522_host_config c;
@@ -134,6 +138,12 @@ TEST_CASE("C host processing equals HostProcessor", "[unit][capi]")
     case 12:
         cfg.inputDither = c.input_dither = true;
         cfg.ditherSeed = c.dither_seed = 777;
+        break;
+    case 14: cfg.exampleOutputCircuit = c.example_output_circuit = true; break;
+    case 15:
+        cfg.exampleOutputCircuit = c.example_output_circuit = true;
+        cfg.exampleCircuit = {false, false, 10e3};
+        c.example_circuit = {false, false, 10e3};
         break;
     case 13:
         cfg.hostRate = c.host_rate = 96000.0;

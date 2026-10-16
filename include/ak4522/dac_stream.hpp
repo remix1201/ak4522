@@ -5,6 +5,7 @@
 #include "ak4522/diagnostics.hpp"
 #include "ak4522/events.hpp"
 #include "ak4522/latency.hpp"
+#include "ak4522/output_circuit.hpp"
 #include "ak4522/status.hpp"
 
 #include <cstddef>
@@ -80,6 +81,11 @@ struct DacStreamConfig {
     // Push mode: queue capacities.
     std::size_t pushCapacityFrames = 8192; // DAC frames
     std::size_t pushCapacityEvents = 256;
+
+    // Board behavior after the DAC, off by default: the datasheet's example
+    // output circuit (Fig.11), applied at the host rate (P-104).
+    bool exampleOutputCircuit = false;
+    ExampleCircuitOptions exampleCircuit{};
 
     DacConfig dac{}; // dac.dacRate is ignored; dacRate.hz() is used
 };

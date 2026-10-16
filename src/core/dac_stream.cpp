@@ -120,6 +120,7 @@ struct DacStream::Impl {
     std::vector<double> hiL, hiR;
     std::vector<double> outL, outR;
     detail::StereoFifo fifo;
+    ExampleOutputCircuit circuit;
 
     // Consumer position. Atomic only so dacFramesFor() may read it elsewhere.
     std::atomic<std::uint64_t> hostRendered{0};
@@ -166,6 +167,7 @@ struct DacStream::Impl {
         core.reset();
         outputSrc.reset();
         fifo.clear();
+        circuit.reset();
         for (std::size_t i = 0; i < prefill; ++i) {
             fifo.push(0.0, 0.0);
         }
@@ -284,6 +286,9 @@ struct DacStream::Impl {
             if (fifo.count > 0) {
                 fifo.pop(l, r);
             }
+            if (config.exampleOutputCircuit) {
+                circuit.processFrame(l, r);
+            }
             outLeft[i] = static_cast<Sample>(l);
             outRight[i] = static_cast<Sample>(r);
         }
@@ -399,6 +404,9 @@ Status DacStream::prepare(const DacStreamConfig& config)
 
     const std::size_t dacCapacity = static_cast<std::size_t>(detail::mulDivCeil(config.maxBlockFrames, num, den)) + 1;
     if (const Status v = s.core.prepare(s.config.dac, dacCapacity); v != Status::ok) {
+        return v;
+    }
+    if (const Status v = s.circuit.prepare(config.hostRate, config.exampleCircuit); v != Status::ok) {
         return v;
     }
 
