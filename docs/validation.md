@@ -240,6 +240,10 @@ The project owner decided the response reference is 1 kHz as stated in [DS] p.6 
 
 Development note: the first long-run test also required the start and end amplitude estimates to agree within 1e-6 dB; they differ by a few 1e-6 dB from 20-bit quantization noise (about -125 dBFS), so that tolerance is now 1e-4 dB. Drift is detected by the phase check.
 
+### 2026-10-16: Specification profile lock, branch `m4-lock`
+
+Golden outputs of `DacCore` and `HostProcessor` were recorded before any M4 change. The regression test (tolerance 1e-12) detects a one-sample pipeline change and a 1e-9 gain error.
+
 ## M3 gate status
 
 AGENTS.md section 16, M3: "Deliver SRC, all supported rate pairs, event mapping, latency alignment, and public examples. Gate: alias/count/block-invariance tests and real-time allocation checks pass. Publish core versus wrapper response separately."

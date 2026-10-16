@@ -96,6 +96,12 @@ if(AK4522_BUILD_TESTS)
                 python -m unittest discover -s tests -t .)
         set_tests_properties(tools.analysis PROPERTIES LABELS "tools" TIMEOUT 600)
 
+        # Golden Specification-profile outputs for tests/data (regenerate only
+        # on a deliberate change to the clean signal path).
+        add_executable(ak4522_golden_dump tools/cpp/golden_dump.cpp)
+        target_include_directories(ak4522_golden_dump PRIVATE ${PROJECT_SOURCE_DIR}/tests)
+        target_link_libraries(ak4522_golden_dump PRIVATE ak4522 ak4522_options)
+
         # Wrapper response measurement for docs/responses.md.
         add_executable(ak4522_host_response tools/cpp/host_response.cpp)
         target_include_directories(ak4522_host_response PRIVATE ${PROJECT_SOURCE_DIR}/tests)
