@@ -41,6 +41,16 @@ cmake --build --preset dev
 ctest --preset dev -LE matrix
 ```
 
+The default presets build for the machine's own architecture. On Windows, `dev-x64` and `release-x64` build for x64 explicitly; on Windows on ARM they cross-compile and the tests run under Windows' x64 emulation:
+
+```powershell
+cmake --preset dev-x64
+cmake --build --preset dev-x64
+ctest --preset dev-x64 -LE matrix
+```
+
+32-bit Windows (x86) is not supported (REQ-PLATFORM-01).
+
 In a virtual machine, clone into a local folder rather than building from a shared host folder; shared folders are slow and can report file times that confuse incremental builds.
 
 Continuous integration (`.github/workflows/ci.yml`) runs the same steps on macOS, Windows, and Linux.

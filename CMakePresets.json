@@ -26,6 +26,36 @@
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release"
       }
+    },
+    {
+      "name": "dev-x64",
+      "displayName": "Debug for Windows x64 (also builds on Windows on ARM, runs under emulation)",
+      "inherits": "dev",
+      "binaryDir": "${sourceDir}/build/dev-x64",
+      "architecture": {
+        "value": "x64",
+        "strategy": "set"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
+      }
+    },
+    {
+      "name": "release-x64",
+      "displayName": "Release for Windows x64",
+      "inherits": "release",
+      "binaryDir": "${sourceDir}/build/release-x64",
+      "architecture": {
+        "value": "x64",
+        "strategy": "set"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
+      }
     }
   ],
   "buildPresets": [
@@ -42,6 +72,16 @@
     {
       "name": "release",
       "configurePreset": "release",
+      "configuration": "Release"
+    },
+    {
+      "name": "dev-x64",
+      "configurePreset": "dev-x64",
+      "configuration": "Debug"
+    },
+    {
+      "name": "release-x64",
+      "configurePreset": "release-x64",
       "configuration": "Release"
     }
   ],
@@ -74,6 +114,14 @@
         "outputOnFailure": true
       },
       "configuration": "Debug"
+    },
+    {
+      "name": "dev-x64",
+      "configurePreset": "dev-x64",
+      "configuration": "Debug",
+      "output": {
+        "outputOnFailure": true
+      }
     }
   ]
 }
