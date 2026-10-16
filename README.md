@@ -6,7 +6,7 @@ The goal is to reproduce documented signal processing and control behavior, then
 
 ## Status
 
-**Alpha, milestone M0 in progress.** The project has an engineering specification ([AGENTS.md](AGENTS.md)), a C++20 build and test foundation, a public API proposal, and evidence and assumptions ledgers. **No signal processing is implemented yet**: there is no usable DAC model, compiled plugin, or hardware validation result.
+**Alpha, milestone M0 complete.** The project has an engineering specification ([AGENTS.md](AGENTS.md)), a C++20 build and test foundation, a public API proposal, and evidence and assumptions ledgers. **No signal processing is implemented yet**: there is no usable DAC model, compiled plugin, or hardware validation result.
 
 See [docs/features.md](docs/features.md) for the current status of each feature.
 
@@ -106,7 +106,7 @@ The intended toolchain is C++20 with CMake and CTest. The plugin adapter may use
 
 Detailed requirements and acceptance gates are maintained in [AGENTS.md](AGENTS.md).
 
-Progress: M0 deliverables are merged into `main`. M0 has not been formally approved as complete.
+Progress: M0 (evidence ledger, build foundation, API proposal, requirement-to-test mapping) is complete and approved (tag `m0-approved`). M1 is next.
 
 ## Verification
 

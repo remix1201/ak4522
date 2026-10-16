@@ -2,15 +2,15 @@
 
 What exists in this branch, as distinct from what AGENTS.md specifies. Implementation, validation, approval, and availability are tracked separately: a feature can be implemented without being approved or released (REQ-DOC-01, REQ-DOC-02).
 
-Last substantive update: 2026-10-16. M0 work was merged into `main` from `m0-foundation` at the project owner's request on 2026-10-16.
+Last substantive update: 2026-10-16. M0 was merged into `main` and approved by the project owner on 2026-10-16; the approved state is tagged `m0-approved`.
 
 ## Summary
 
 | Feature                         | Requirements                          | Implementation | Validation               | Approval                          | Availability          |
 | ------------------------------- | ------------------------------------- | -------------- | ------------------------ | --------------------------------- | --------------------- |
-| Build and test foundation       | AGENTS.md s.13, M0                    | implemented    | passing (see below)      | not yet approved                  | merged into `main` |
-| Evidence and assumptions ledgers | AGENTS.md s.2, M0                    | implemented    | reviewed against [DS]    | not yet approved                  | merged into `main` |
-| Public API proposal             | REQ-ARCH-01, REQ-ARCH-02, REQ-RT-02   | in progress (declared, not implemented) | compile-time contract checks pass | decisions O-01 to O-03 approved | merged into `main` |
+| Build and test foundation       | AGENTS.md s.13, M0                    | implemented    | passing (see below)      | approved 2026-10-16 (`m0-approved`) | merged into `main` |
+| Evidence and assumptions ledgers | AGENTS.md s.2, M0                    | implemented    | reviewed against [DS]    | approved 2026-10-16 (`m0-approved`) | merged into `main` |
+| Public API proposal             | REQ-ARCH-01, REQ-ARCH-02, REQ-RT-02   | in progress (declared, not implemented) | compile-time contract checks pass | approved 2026-10-16 (`m0-approved`) | merged into `main` |
 | PCM mapping and quantization    | REQ-PCM-01 to REQ-PCM-03              | planned (M1)   | none                     | none                              | none                  |
 | Serial decoder and timing validator | REQ-SERIAL-01 to REQ-SERIAL-03    | planned (M1)   | none                     | none                              | none                  |
 | Clock configuration and reset   | REQ-CLOCK-01, REQ-RESET-01, REQ-RESET-02 | planned (M1) | none                    | none                              | none                  |
@@ -50,7 +50,7 @@ None of the emulator's signal processing is usable yet.
 - **Contents:** headers in `include/ak4522/`; design and decisions in [api.md](api.md).
 - **Implementation:** pin mappings, defaults, and data types are defined. All processing functions are declared only; calling them fails to link.
 - **Validation:** `tests/api_contract_test.cpp` checks pin mappings against [DS] tables, P-01 defaults, same-frame event order, and `noexcept` on every audio-thread entry point at compile time.
-- **Approval:** project owner approved decisions O-01 (8x core output), O-02 (256 pending events), and O-03 (reserve the measured profile) on 2026-10-15. The API as a whole is not yet approved.
+- **Approval:** project owner approved decisions O-01 (8x core output), O-02 (256 pending events), and O-03 (reserve the measured profile) on 2026-10-15, and approved the API proposal as part of M0 on 2026-10-16 (tag `m0-approved`). Approval covers the proposal; implementations are approved with their milestones.
 
 ## Documentation process
 
