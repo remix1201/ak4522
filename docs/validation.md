@@ -376,7 +376,7 @@ Budget (p99.9 below 10% for blocks of 64 or more): met. Before the output conver
 
 ### 2026-10-16: evidence ledger status review (branch `ledger-review`)
 
-The 24 ledger rows still marked *planned* were checked against the tests. 13 are covered by existing passing tests and now say so with the test tag (for example D-07 and I-O01 by the voltage-scaling test, D-P03 by the zero-code mapping, D-C06 by the serial decoder's startup handling, D-R02 by the startup latch test). 8 record facts with no software counterpart: supply voltages, gain drift, load limits, power-supply rejection, modulator noise, and PD-edge clicks; they are now *not modeled*, a status defined in the ledger. D-10 (package and temperature range) is *informational*. 4 remain planned with what they wait for: D-S12 (the ADC, M7), D-C07 (a clock-stop report, P-31, not yet implemented), and D-O02 and I-O02 (the optional Fig.11 board circuit).
+The 24 ledger rows still marked *planned* were checked against the tests. 11 are covered by existing passing tests (D-01 only for its 20-bit stereo part) and now say so with the test tag (for example D-07 and I-O01 by the voltage-scaling test, D-P03 by the zero-code mapping, D-C06 by the serial decoder's startup handling, D-R02 by the startup latch test). 8 record facts with no software counterpart: supply voltages, gain drift, load limits, power-supply rejection, modulator noise, and PD-edge clicks; they are now *not modeled*, a status defined in the ledger. D-10 (package and temperature range) is *informational*. 4 remain planned with what they wait for: D-S12 (the ADC, M7), D-C07 (a clock-stop report, P-31, not yet implemented), and D-O02 and I-O02 (the optional Fig.11 board circuit).
 
 ## M5 gate status
 
