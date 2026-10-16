@@ -105,6 +105,7 @@ D-A16 is a figure annotation, not a table value. It agrees with D-A12 and suppor
 | D-P03 | 00000h ideally produces VCOM at the output                           | D     | p.16 s.4             | high  | REQ-PCM-01  | `[pcm]` | planned |
 | I-P01 | Normalized value `code / 524288.0`; +FS is `1 - 2^-19`               | I     | D-P02 with 20-bit range | high | REQ-PCM-01 | `[pcm]` | passing |
 | I-P02 | 16-bit words map to 20-bit scale by multiplication by 16             | I     | Mode 0 and 32fs I2S carry the top 16 bits; MSB weight is preserved | high | REQ-PCM-02 | `[pcm]` | passing |
+| I-P03 | 24-bit words keep their top 20 bits; the low 4 bits are dropped (floor), not rounded | I | The serial interface takes 20 bits MSB first and ignores the bits after them (D-S08, D-S11; p.9) | high | REQ-API-01 | `[stream]` | passing |
 
 ## 5. Serial interface
 

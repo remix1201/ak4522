@@ -11,6 +11,7 @@ Plugin adapter (JUCE or VST3 SDK, later)
         |
         v
 HostProcessor        host rate: input SRC, quantization, latency alignment, output SRC
+DacStream            a source at its own DAC rate: pull or push, latency alignment, output SRC
         |
         v
 DacCore              DAC rate in, 8x DAC rate out: de-emphasis, soft mute,
@@ -34,6 +35,7 @@ REQ-ARCH-01 names ten abstractions. Four are public types: `DacConfig`, `DacCore
 | `buffers.hpp`        | `StereoView<T>`, the non-owning planar buffer view                                             |
 | `dac_core.hpp`       | `DacCore`, `ProcessResult`                                                                     |
 | `host_processor.hpp` | `HostProcessor`, `HostConfig`, `InputResolution`                                               |
+| `dac_stream.hpp`     | `DacStream`, `DacStreamConfig`, `ExactRate`, `DacSampleFormat`, `DacStreamMode`, `DacPullBlock`, `DacPullCallback`, `PushResult` |
 | `serial.hpp`         | `SerialDecoder`, `TimingValidator`, `PinEdge`                                                  |
 | `latency.hpp`        | `LatencyInfo`                                                                                  |
 | `diagnostics.hpp`    | `Diagnostics` counters                                                                         |
@@ -62,6 +64,8 @@ In-place processing is supported when the input and output views refer to exactl
 | ----------------------- | ---------------------- | ---------------------------------- | -------------- |
 | `DacCore::process`      | N `Pcm20Frame`         | 8N frames at `outputRate()`        | DAC frames     |
 | `HostProcessor::process`| N host frames          | N host frames                      | host frames    |
+| `DacStream::render`     | (from the source)      | N host frames                      | host frames    |
+| `DacStream::push`       | N DAC frames           | (queued)                           | DAC frames     |
 
 Any N is valid, including 0 and 1. Blocks larger than the prepared maximum are processed in bounded internal chunks and counted in `Diagnostics::chunkedBlocks`.
 
@@ -74,6 +78,19 @@ Any N is valid, including 0 and 1. Blocks larger than the prepared maximum are p
 Events on the same frame apply in `ControlType` order: PD, then DEM, then SMUTE (P-42). An SMUTE event at frame n changes direction before that frame's ramp update (P-52). Repeating the current level is accepted and ignored (P-53).
 
 `HostProcessor` maps each host event to the first DAC frame at or after its input-stream time, including input SRC latency (P-41). The PD pin is emulated only through `ControlType::powerDown`; `reset()` is a host lifecycle operation and does not emulate PD (P-74).
+
+## DacStream
+
+`DacStream` plays a source that runs at its own DAC rate, such as an instrument or an emulated system, at a host rate (REQ-API-01). There is no input converter; the source's samples go straight to `DacCore`, then the output converter and the same latency alignment as `HostProcessor` (P-39).
+
+- **Rate.** `ExactRate{numerator, denominator}` in Hz, for example `{112000000, 2304}`. It must lie in the DAC range and the denominator may be at most 2^20 (P-100). Position is kept in exact integers, so long runs do not drift.
+- **Formats.** `int16` (scaled by 16), `int20`, `int24` (top 20 bits kept, I-P03), `float32`, and `float64` (quantized per REQ-PCM-03). Integer values outside the format's range saturate and count as clipped.
+- **Pull mode.** `render(output)` asks `DacPullCallback` for exactly the DAC frames the host frames need: after T host frames, ceil(T fs / H) in total (P-101). The callback runs on the audio thread and fills the view matching the format; it may add events with DAC-frame offsets. The same source sequence gives the same output for any render block sizes.
+- **Push mode.** A producer thread calls `push(frames, events)`; the audio thread calls `render(output)`. The queue is single-producer, single-consumer, wait-free, and bounded. Missing frames play as zeros and count as `sourceUnderrunFrames`; frames that do not fit are dropped and count as `sourceOverrunFrames` (P-102). `dacFramesFor(n)` tells a producer how many frames the next n host frames will consume, and `queuedFrames()` and `freeFrames()` report the queue.
+- **Events** are in DAC frames relative to the frames they accompany, in both modes. Invalid events from a pull source are dropped and counted.
+- **Latency.** DAC frame j is presented at host time j H / fs and appears `latency().reportedHostFrames` host frames later.
+
+`prepare()`, `reset()`, and destruction run off the audio thread and never concurrently with `render()` or `push()`. `render()` and `push()` may run on two different threads.
 
 ## Latency and diagnostics
 

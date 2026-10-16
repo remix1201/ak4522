@@ -6,7 +6,7 @@ The goal is to reproduce documented signal processing and control behavior, then
 
 ## Status
 
-**Alpha, milestones M0 to M4 complete.** The DAC core produces audio through the public `DacCore` API: 20-bit PCM frames and DEM, SMUTE, and PD events in, the reconstructed signal out at 8x the DAC rate, with the datasheet's filter response and 14.7-frame delay. `HostProcessor` wraps it for plugin use: host audio at 44.1 to 192 kHz in and out, with exactly reported latency. An optional NominalAnalog profile adds synthetic noise, distortion, channel mismatch, crosstalk, and DC offset calibrated to the datasheet's typical values ([docs/analog_profile.md](docs/analog_profile.md)); the clean Specification profile remains the default. The plugin and hardware validation do not exist yet.
+**Alpha, milestones M0 to M4 complete.** The DAC core produces audio through the public `DacCore` API: 20-bit PCM frames and DEM, SMUTE, and PD events in, the reconstructed signal out at 8x the DAC rate, with the datasheet's filter response and 14.7-frame delay. `HostProcessor` wraps it for plugin use: host audio at 44.1 to 192 kHz in and out, with exactly reported latency. On branch `m5-stream`, `DacStream` plays sources that run at their own DAC rate (M5, in progress). An optional NominalAnalog profile adds synthetic noise, distortion, channel mismatch, crosstalk, and DC offset calibrated to the datasheet's typical values ([docs/analog_profile.md](docs/analog_profile.md)); the clean Specification profile remains the default. The plugin and hardware validation do not exist yet.
 
 See [docs/features.md](docs/features.md) for the current status of each feature.
 
@@ -65,6 +65,19 @@ ak4522::HostProcessor host;
 host.prepare(config);                     // off the audio thread
 host.process(input, output, events);      // float or double, N frames in, N out
 host.latency().reportedHostFrames;        // report to the host for compensation
+```
+
+`DacStream` plays a source that runs at its own DAC rate, such as an instrument or an emulated system, at the host rate. The rate is an exact fraction, so clock divisions like 112 MHz / 2304 do not drift. In pull mode it asks your callback for DAC frames as the host needs them; in push mode another thread feeds a bounded queue. See [docs/api.md](docs/api.md#dacstream):
+
+```cpp
+ak4522::DacStreamConfig config;
+config.hostRate = 48000.0;
+config.dacRate = {44100000, 1001};        // Hz, as numerator / denominator
+config.format = ak4522::DacSampleFormat::int16;
+config.pull = &mySource;                  // void(void*, DacPullBlock&) noexcept
+ak4522::DacStream stream;
+stream.prepare(config);                   // off the audio thread
+stream.render(output);                    // N host frames out
 ```
 
 Measured responses are in [docs/responses.md](docs/responses.md).

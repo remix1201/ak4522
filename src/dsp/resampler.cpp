@@ -72,7 +72,9 @@ Status Resampler::prepare(const ResamplerSpec& spec)
 {
     if (!(spec.inputRate > 0.0) || !(spec.outputRate > 0.0) || !std::isfinite(spec.inputRate)
         || !std::isfinite(spec.outputRate) || !(spec.attenuationDb > 0.0)
-        || !(spec.startOffset >= 0.0) || !std::isfinite(spec.startOffset)) {
+        || !(spec.startOffset >= 0.0) || !std::isfinite(spec.startOffset)
+        || spec.ratioNumerator < 0 || spec.ratioDenominator < 0
+        || (spec.ratioNumerator == 0) != (spec.ratioDenominator == 0)) {
         return Status::invalidConfiguration;
     }
     const double lower = std::min(spec.inputRate, spec.outputRate);
@@ -82,8 +84,9 @@ Status Resampler::prepare(const ResamplerSpec& spec)
         return Status::invalidConfiguration;
     }
 
-    const std::int64_t in = microhertz(spec.inputRate);
-    const std::int64_t out = microhertz(spec.outputRate);
+    const bool explicitRatio = spec.ratioNumerator > 0;
+    const std::int64_t in = explicitRatio ? spec.ratioNumerator : microhertz(spec.inputRate);
+    const std::int64_t out = explicitRatio ? spec.ratioDenominator : microhertz(spec.outputRate);
     const std::int64_t g = std::gcd(in, out);
     p_ = in / g;
     q_ = out / g;

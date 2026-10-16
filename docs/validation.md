@@ -312,6 +312,20 @@ Windows has one test fewer: the comparison of the portable multiply-divide again
 
 Found during the runs and fixed: GCC `-Wpedantic` rejected `__int128` in a test; MSVC warned about `fopen` (C4996) in tools and about an implicit double-to-float conversion in a test (C4244); the allocation-counter self-test counted an extra allocation from MSVC's debug vector proxy, and now uses direct `new` and `delete`.
 
+### 2026-10-16: DacStream (branch `m5-stream`)
+
+| Check | Method | Result |
+| ----- | ------ | ------ |
+| DAC frames consumed | 44 100 000 / 1001 Hz against 44.1, 48, 96, 192 kHz hosts; 400 random render blocks; compared after every block with ceil(T N / (D H)) computed in the test | exact |
+| Block-size invariance | one block against random blocks with 0 and 1 frames, with SMUTE and DEM events | within 1e-12 (gate 8) |
+| Timing | phase delay at six passband frequencies, four rate pairs including two fractional DAC rates | each within 0.02 frame of the reported latency, mean within 0.01 (gate 3) |
+| Formats | 16-bit against 20-bit times 16; 24-bit against 20-bit floor over 16; float32 and float64 against exact codes | identical output |
+| Push against pull | same frames and events, random render sizes; also with the producer on another thread | identical output, no underruns |
+| Real-time safety | allocation counter around render, push, reset, and queries; ThreadSanitizer on the push tests | no allocations; no races reported |
+| Mutation check | 14 deliberate faults in `src/core/dac_stream.cpp` | 14 detected |
+
+Development note: the first threaded test pushed more frames than the renders would consume, so the producer waited forever on a full queue; the test now pushes exactly `dacFramesFor` of the rendered length.
+
 ## M4 gate status
 
 AGENTS.md section 16, M4: "Deliver calibrated noise, optional distortion/mismatch/crosstalk/voltage diagnostics, and profile metadata. Gate: weighted measurement methods are validated; synthetic assumptions are explicit; typical-target reports pass within project tolerances. Hardware fidelity claims remain limited."

@@ -31,6 +31,12 @@ struct ResamplerSpec {
     // Time of output 0 in input samples, >= 0. Used to align the plugin's
     // total latency to whole host frames (P-39).
     double startOffset = 0.0;
+    // Exact input-to-output ratio, input samples per output sample. When both
+    // are nonzero they replace the micro-hertz ratio of the two rates, for
+    // rates that are not whole micro-hertz (P-100). The rates above still set
+    // the kernel's band edges.
+    std::int64_t ratioNumerator = 0;
+    std::int64_t ratioDenominator = 0;
 };
 
 class Resampler {

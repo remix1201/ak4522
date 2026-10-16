@@ -61,10 +61,14 @@ Status validate(const DacConfig& config) noexcept
     return Status::ok;
 }
 
+bool hostRateSupported(double rate) noexcept
+{
+    return std::find(supportedHostRates.begin(), supportedHostRates.end(), rate) != supportedHostRates.end();
+}
+
 Status validate(const HostConfig& config) noexcept
 {
-    if (std::find(supportedHostRates.begin(), supportedHostRates.end(), config.hostRate)
-        == supportedHostRates.end()) {
+    if (!hostRateSupported(config.hostRate)) {
         return Status::unsupportedHostRate;
     }
     if (config.maxBlockFrames == 0) {
@@ -75,6 +79,32 @@ Status validate(const HostConfig& config) noexcept
         return Status::invalidConfiguration;
     }
     return validate(config.dac);
+}
+
+Status validate(const DacStreamConfig& config) noexcept
+{
+    if (!hostRateSupported(config.hostRate)) {
+        return Status::unsupportedHostRate;
+    }
+    if (config.maxBlockFrames == 0) {
+        return Status::invalidBlockSize;
+    }
+    const ExactRate rate = config.dacRate;
+    if (rate.numerator == 0 || rate.denominator == 0 || rate.denominator > maxRateDenominator) {
+        return Status::invalidDacRate;
+    }
+    if (!enumAtMost(config.format, DacSampleFormat::float64) || !enumAtMost(config.mode, DacStreamMode::push)) {
+        return Status::invalidConfiguration;
+    }
+    if (config.mode == DacStreamMode::pull && (config.pull == nullptr || config.maxEventsPerBlock == 0)) {
+        return Status::invalidConfiguration;
+    }
+    if (config.mode == DacStreamMode::push && (config.pushCapacityFrames == 0 || config.pushCapacityEvents == 0)) {
+        return Status::invalidConfiguration;
+    }
+    DacConfig dac = config.dac;
+    dac.dacRate = rate.hz();
+    return validate(dac);
 }
 
 } // namespace ak4522::detail

@@ -17,6 +17,8 @@ std::string_view toString(Status status) noexcept
     case Status::insufficientOutputCapacity: return "output buffer too small";
     case Status::eventOutOfRange: return "event offset outside the block";
     case Status::eventsNotSorted: return "event offsets are not in order";
+    case Status::formatMismatch: return "input sample type does not match the configured format";
+    case Status::modeMismatch: return "push called on a pull-mode stream";
     }
     return "unknown status";
 }

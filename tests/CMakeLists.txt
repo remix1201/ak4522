@@ -18,6 +18,7 @@ add_executable(ak4522_tests
     config_validation_test.cpp
     control_timeline_test.cpp
     dac_core_test.cpp
+    dac_stream_test.cpp
     deemphasis_test.cpp
     golden_test.cpp
     host_processor_test.cpp
@@ -38,8 +39,9 @@ target_include_directories(ak4522_tests PRIVATE
     ${PROJECT_SOURCE_DIR}/src ${CMAKE_CURRENT_SOURCE_DIR})
 target_compile_definitions(ak4522_tests PRIVATE
     AK4522_TEST_DATA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/data")
+find_package(Threads REQUIRED)
 target_link_libraries(ak4522_tests PRIVATE
-    ak4522::ak4522 ak4522_options Catch2::Catch2WithMain)
+    ak4522::ak4522 ak4522_options Catch2::Catch2WithMain Threads::Threads)
 
 file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/test-results)
 

@@ -14,6 +14,7 @@ TEST_CASE("Every status has a distinct description", "[unit]")
         Status::unsupportedHostRate, Status::unsupportedRatePair, Status::invalidBlockSize,
         Status::invalidConfiguration, Status::channelSizeMismatch,
         Status::insufficientOutputCapacity, Status::eventOutOfRange, Status::eventsNotSorted,
+        Status::formatMismatch, Status::modeMismatch,
     };
     std::set<std::string_view> seen;
     for (const Status status : all) {

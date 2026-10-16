@@ -31,7 +31,7 @@ Last substantive update: 2026-10-16. M0 to M4 were merged into `main` and approv
 | NominalAnalog noise             | REQ-NOISE-01, REQ-NOISE-02            | implemented    | passing (see below)      | approved 2026-10-16 (`m4-approved`)                  | merged into `main`    |
 | NominalAnalog profile report    | REQ-NOISE-01, REQ-DIST-01             | implemented    | passing (see below)      | approved 2026-10-16 (`m4-approved`)                  | merged into `main`    |
 | NominalAnalog output stage      | REQ-DIST-01, REQ-CHANNEL-01, REQ-ANALOG-01, REQ-ANALOG-02 | implemented | passing (see below) | approved 2026-10-16 (`m4-approved`)          | merged into `main`    |
-| DacStream (pull and push, fractional DAC rates) | REQ-API-01, REQ-RATE-02 | planned (M5) | none            | none                              | none                  |
+| DacStream (pull and push, fractional DAC rates) | REQ-API-01, REQ-RATE-02 | implemented | passing (see below) | not yet approved              | branch `m5-stream`    |
 | Extended DAC-rate range (opt-in, up to 50.4 kHz) | REQ-CLOCK-02          | planned (M5)   | none                     | none                              | none                  |
 | C API                           | REQ-API-02                            | planned (M5)   | none                     | none                              | none                  |
 | Packaging, integration guide, examples | REQ-API-03                     | planned (M5)   | none                     | none                              | none                  |
@@ -39,7 +39,7 @@ Last substantive update: 2026-10-16. M0 to M4 were merged into `main` and approv
 | Measured profile                | AGENTS.md s.14                        | planned (M6, conditional on hardware) | none | none                         | none                  |
 | ADC section and loopback        | REQ-SCOPE-04, REQ-ADC-01 to REQ-ADC-07 | planned (M7)  | none                     | none                              | none                  |
 
-Available on `main`: `DacCore` (DAC-rate PCM in, 8x the DAC rate out), `HostProcessor` (host-rate audio in and out), the Specification profile, and the optional NominalAnalog profile. Planned for M5: `DacStream` for sources at their own DAC rate, the opt-in extended rate range, a C API, and packaging. A demo plugin follows in a separate project.
+Available on `main`: `DacCore` (DAC-rate PCM in, 8x the DAC rate out), `HostProcessor` (host-rate audio in and out), the Specification profile, and the optional NominalAnalog profile. On branch `m5-stream`: `DacStream` for sources at their own DAC rate. Planned for M5: the opt-in extended rate range, a C API, and packaging. A demo plugin follows in a separate project.
 
 ## Build and test foundation
 
@@ -310,6 +310,17 @@ Available on `main`: `DacCore` (DAC-rate PCM in, 8x the DAC rate out), `HostProc
 - **Status:** verified at commit `4e41845` on macOS (Apple Silicon, AppleClang), Windows 11 ARM64 (MSVC 14.51, Build Tools 2026) for both ARM64 and x64 (x64 runs under emulation), and CentOS Stream 9 aarch64 (GCC 11.5). Not yet verified on macOS x86_64, on native x64 Windows hardware, or with Clang on Windows or Linux. 32-bit x86 is not supported.
 - **Changes for portability:** exact 128-bit multiply-divide in portable C++ (`src/core/wide_math.hpp`) replacing `__int128`, which MSVC lacks (its `_udiv128` is also unavailable on ARM64); `_aligned_malloc` and `_aligned_free` in the test allocation counter under MSVC; configurations in every CMake build and test preset for multi-configuration generators; tool lookup in the Python report scripts that finds `.exe` files and configuration folders; `.gitattributes` keeping coefficient and golden data files byte-stable; `--config` in `tools/mutation_check.py`; `_CRT_SECURE_NO_WARNINGS` and an explicit float conversion for MSVC warnings; an `__extension__` typedef for GCC's pedantic check of the test-only `__int128`; an allocation-counter self-test that no longer depends on the standard library's internal allocations (MSVC debug containers allocate a proxy); `dev-x64` and `release-x64` presets on Windows; `.github/workflows/ci.yml` running the suite on macOS, Windows, and Linux (defined but not yet run).
 - **Validation:** `tests/wide_math_test.cpp` checks the multiply-divide against hand-computed values and, where the compiler has 128-bit integers, against 200 000 random cases. The golden lock (1e-12) passes on every platform, so `HostProcessor` output agrees across them. Full suite: 214 tests on macOS and Linux, 213 on Windows (the 128-bit random comparison is compiled out under MSVC); host-rate matrix 5 of 5 on all four builds. Details in [validation.md](validation.md).
+- **Updated:** 2026-10-16.
+
+## DacStream
+
+- **Purpose:** play a source that runs at its own DAC rate, such as an instrument or an emulated system, at a host rate: DAC frames in, the chip model, output SRC, host frames out (REQ-API-01).
+- **Status:** implemented on branch `m5-stream`; not yet approved.
+- **Usage:** [docs/api.md](api.md#dacstream). Configure `DacStreamConfig` with the host rate, an `ExactRate` DAC rate such as `{112000000, 2304}`, a sample format, and a mode. In pull mode, `render()` calls your `DacPullCallback` for the DAC frames it needs; in push mode, a producer thread calls `push()` and the audio thread calls `render()`.
+- **Supported:** host rates of P-32; DAC rates as exact fractions inside 16 to 48 kHz, denominator up to 2^20 (P-100); 16-, 20-, and 24-bit integer and 32- and 64-bit float input; float and double output; every profile and analog option of `DacConfig`; DEM, SMUTE, and PD events in DAC frames.
+- **Behavior:** after T host frames exactly ceil(T fs / H) DAC frames are consumed (P-101); latency alignment as `HostProcessor` without the input converter (P-39); push underruns play zeros and overruns drop frames, both counted (P-102). 24-bit input keeps its top 20 bits (I-P03).
+- **Validation:** 13 test cases (`[stream]`): exact consumption at a 44 100 000 / 1001 Hz rate against four host rates over 400 random blocks; block-size invariance with events (gate 8); phase-delay timing within 0.01 frame of the reported latency and level within the response tolerance, at fractional and whole rates (gate 3); format equivalences (16-bit times 16, 24-bit floor over 16, exact float); saturation counts; invalid callback events; push and pull identical, also with the producer on another thread; underrun and overrun accounting; mismatched calls; reset; no allocations. Passes under the address and undefined-behavior sanitizers, and the push tests under ThreadSanitizer. A mutation check detected 14 of 14 deliberate faults.
+- **Limitations:** no input dither for float sources (`HostProcessor` offers it); rates above 48 kHz wait for the extended range (REQ-CLOCK-02).
 - **Updated:** 2026-10-16.
 
 ## Documentation process

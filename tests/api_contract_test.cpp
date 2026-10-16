@@ -69,6 +69,17 @@ static_assert(noexcept(std::declval<HostProcessor&>().process(
     std::declval<StereoView<double>>(),
     std::declval<std::span<const ControlEvent>>())));
 static_assert(noexcept(std::declval<HostProcessor&>().reset()));
+static_assert(noexcept(std::declval<DacStream&>().render(std::declval<StereoView<float>>())));
+static_assert(noexcept(std::declval<DacStream&>().render(std::declval<StereoView<double>>())));
+static_assert(noexcept(std::declval<DacStream&>().push(std::declval<StereoView<const std::int32_t>>(),
+                                                       std::declval<std::span<const ControlEvent>>())));
+static_assert(noexcept(std::declval<DacStream&>().push(std::declval<StereoView<const float>>(),
+                                                       std::declval<std::span<const ControlEvent>>())));
+static_assert(noexcept(std::declval<DacStream&>().push(std::declval<StereoView<const double>>(),
+                                                       std::declval<std::span<const ControlEvent>>())));
+static_assert(noexcept(std::declval<DacStream&>().reset()));
+static_assert(noexcept(std::declval<const DacStream&>().dacFramesFor(1)));
+static_assert(std::is_nothrow_invocable_v<DacPullCallback, void*, DacPullBlock&>);
 static_assert(noexcept(std::declval<SerialDecoder&>().sclkRisingEdge(true, false)));
 static_assert(noexcept(std::declval<TimingValidator&>().observe(PinEdge{})));
 static_assert(noexcept(quantizeToPcm20(0.0, std::declval<QuantizeCounters&>())));
@@ -78,6 +89,8 @@ static_assert(!std::is_copy_constructible_v<DacCore>);
 static_assert(std::is_nothrow_move_constructible_v<DacCore>);
 static_assert(!std::is_copy_constructible_v<HostProcessor>);
 static_assert(std::is_nothrow_move_constructible_v<HostProcessor>);
+static_assert(!std::is_copy_constructible_v<DacStream>);
+static_assert(std::is_nothrow_move_constructible_v<DacStream>);
 
 } // namespace
 
