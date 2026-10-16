@@ -244,6 +244,32 @@ Development note: the first long-run test also required the start and end amplit
 
 Golden outputs of `DacCore` and `HostProcessor` were recorded before any M4 change. The regression test (tolerance 1e-12) detects a one-sample pipeline change and a 1e-9 gain error.
 
+### 2026-10-16: weighted measurement tools, branch `m4-measure`
+
+| Check | Method | Result |
+| ----- | ------ | ------ |
+| A-weighting | IEC 61672-1 table at 13 exact band frequencies | within 0.05 dB |
+| ITU-R 468 | BS.468-4 table at 20 frequencies | within 0.15 dB |
+| CCIR-ARM | 0 dB at 2 kHz; -5.63 dB at 1 kHz | pass |
+| Metrics | white noise against the analytic integral; known harmonics; DR equal to S/N after the notch | pass |
+| Mutation check | 10 deliberate faults | 9 detected at first. A wrong full-scale reference (1.0 instead of 1/sqrt 2, a 3 dB error in every S/N and DR) went unnoticed because the test took its expected value from the same constant. Final: 10 of 10. |
+
+Development note: the IEC 61672-1 table is tabulated at exact base-ten frequencies (1000 x 10^(n/10)) under nominal labels; the first test evaluated the formula at the labels (31.5 Hz rather than 31.62 Hz) and missed by up to 0.13 dB.
+
+**CCIR-ARM versus A-weighting (DISC-08).** With white noise set to 100 dB A-weighted, CCIR-ARM gives 97.33 dB against the 96 dB typical. Checks of possible measurement causes:
+
+| Hypothesis | Test | CCIR-ARM minus A-weighted |
+| ---------- | ---- | ------------------------: |
+| Analytic, white noise, 10 Hz to 20 kHz | integral of the analog curves | -2.67 dB |
+| Band limits | 22 Hz to 22 kHz; 20 Hz to 20 kHz | -2.60; -2.67 dB |
+| 1 kHz reference instead of 2 kHz | ITU-R 468 with ARM meter | -8.26 dB (further from -4.0) |
+| Leakage without a brick wall | unlimited to 48 kHz | A-weighting gains 0.30 dB; CCIR-ARM 0.001 dB |
+| Noise statistics, 10 s windows | Gaussian; clipped at 3x RMS; uniform; MLS-like | -2.67; -2.69; -2.84; -3.03 dB |
+| Sample rate and filter warping | 44.1, 48, 96 kHz, exact curves per FFT bin | -2.67 dB at all three |
+| Level dependence | 10 dB lower | unchanged |
+
+The datasheet pair implies -4.0 dB. No measurement effect accounts for the remaining 1.3 dB.
+
 ## M3 gate status
 
 AGENTS.md section 16, M3: "Deliver SRC, all supported rate pairs, event mapping, latency alignment, and public examples. Gate: alias/count/block-invariance tests and real-time allocation checks pass. Publish core versus wrapper response separately."

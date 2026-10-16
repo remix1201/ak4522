@@ -26,6 +26,7 @@ Last substantive update: 2026-10-16. M0 to M3 were merged into `main` and approv
 | Host-rate adaptation            | REQ-RATE-01, REQ-RATE-03, REQ-CTRL-01, REQ-LAT-03 | implemented | passing (see below) | approved 2026-10-16 (`m3-approved`)           | merged into `main`    |
 | Host-rate matrix verification, example, published responses | REQ-RATE-01 to REQ-RATE-04, REQ-RT-01 | implemented | passing (see below) | approved 2026-10-16 (`m3-approved`) | merged into `main` |
 | Specification profile lock      | REQ-SCOPE-03                          | implemented    | passing (see below)      | not yet approved                  | branch `m4-lock`      |
+| Weighted measurement tools      | REQ-NOISE-01, REQ-DIST-01             | implemented    | passing (see below)      | not yet approved                  | branch `m4-measure`   |
 | NominalAnalog profile           | REQ-NOISE-01, REQ-NOISE-02, REQ-DIST-01, REQ-CHANNEL-01 | planned (M4) | none     | none                              | none                  |
 | VST3 plugin adapter             | REQ-VST-01, REQ-VST-02, REQ-LAT-03    | planned (M5)   | none                     | none                              | none                  |
 | Measured profile                | AGENTS.md s.14                        | planned (M6, conditional on hardware) | none | none                         | none                  |
@@ -258,6 +259,14 @@ The DAC core produces audio through the public `DacCore` API at the DAC rate in,
 - **Implementation:** `tests/golden_stimulus.hpp` defines a fixed stimulus (two tones and a fixed pseudo-random sequence, with DEM, SMUTE, and PD events) for `DacCore` and for `HostProcessor` at 48 / 44.1 kHz. `ak4522_golden_dump` wrote their outputs to `tests/data/golden_core.txt` and `golden_host.txt` (38 000 hexadecimal doubles) before any M4 change. `tests/golden_test.cpp` requires the current outputs to match within 1e-12, a tolerance that allows different multiply-add fusion on other compilers but no modeling change.
 - **Validation:** a one-sample pipeline change and a 1e-9 gain error are each detected.
 - **Regeneration:** only on a deliberate, reviewed change to the clean signal path: `build/dev/ak4522_golden_dump tests/data`.
+- **Updated:** 2026-10-16.
+
+## Weighted measurement tools
+
+- **Purpose:** measure noise, dynamic range, and distortion the way [DS] p.5 specifies them, independently of the C++ code, for the NominalAnalog calibration and the M4 gate.
+- **Requirements:** REQ-NOISE-01, REQ-DIST-01; evidence D-A01 to D-A03, D-A11 to D-A13; AGENTS.md section 13.2 gates 4 to 6.
+- **Location:** `tools/ak4522_tools/weighting.py` (A-weighting per IEC 61672-1; ITU-R BS.468-4; CCIR-ARM, the 468 curve renormalized to 0 dB at 2 kHz with an average-responding meter; frequency-domain weighting with a 10 Hz to 20 kHz band) and `tools/ak4522_tools/metrics.py` (A-weighted S/N, CCIR-ARM S/N, dynamic range at -60 dBFS with a least-squares tone notch, SINAD with unweighted residual). Levels are relative to a full-scale sine (RMS 1/sqrt 2).
+- **Validation:** 10 tests in `tools/tests/test_weighting.py`: A-weighting within 0.05 dB of the IEC 61672-1 table at 13 exact band frequencies from 10 Hz to 20 kHz; ITU-R 468 within 0.15 dB of the BS.468-4 table at 20 frequencies; CCIR-ARM 0 dB at 2 kHz and -5.6 dB at 1 kHz; weighting of coherent sines equal to the curve; band limiting; average-responding meter on a sine and on Gaussian noise (sqrt(pi)/2 of RMS); S/N of white noise against the analytic integral; SINAD with known harmonics; dynamic range equal to S/N after the notch.
 - **Updated:** 2026-10-16.
 
 ## Documentation process
