@@ -14,7 +14,7 @@ APIs, parameters, presets, serialized state, and internal formats may change wit
 
 ## Building
 
-Requirements: CMake 3.24 or later and a C++20 compiler (AppleClang, Clang, MSVC, or GCC). The test framework (Catch2) is downloaded at configure time. macOS is verified; Windows and Linux support is in progress (REQ-PLATFORM-01).
+Requirements: CMake 3.24 or later and a C++20 compiler (AppleClang, Clang, MSVC, or GCC). The test framework (Catch2) is downloaded at configure time. The full test suite passes on macOS (Apple Silicon), Windows ARM64 and x64 (MSVC), and Linux (GCC, aarch64); see [docs/validation.md](docs/validation.md) (REQ-PLATFORM-01).
 
 ```sh
 cmake --preset dev                # Debug, warnings as errors
@@ -53,7 +53,7 @@ ctest --preset dev-x64 -LE matrix
 
 In a virtual machine, clone into a local folder rather than building from a shared host folder; shared folders are slow and can report file times that confuse incremental builds.
 
-Continuous integration (`.github/workflows/ci.yml`) runs the same steps on macOS, Windows, and Linux.
+Continuous integration (`.github/workflows/ci.yml`) defines the same steps for macOS, Windows, and Linux; it has not run yet because the repository is not on GitHub.
 
 ## Using the library
 

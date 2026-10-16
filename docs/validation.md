@@ -297,6 +297,21 @@ Development notes: a level-scaling test at -20 dBFS measured the harmonics of th
 
 [analog_profile.md](analog_profile.md) records the measured profile against the datasheet. Notes: the full profile's A-weighted S/N (99.91 dB) is 0.1 dB below the noise alone because the fixed mismatch raises the left channel's gain, noise included. 16-bit dynamic range is 97.13 dB without dither, within 1 dB of the 98 dB typical, which most likely refers to undithered input; TPDF dither adds noise by design (94.30 dB).
 
+### 2026-10-16: platform support (branch `portability`, merged into `main`)
+
+All runs at commit `4e41845`; debug builds for the full suite, release builds for the matrix.
+
+| Platform | Compiler | Full suite | Host-rate matrix |
+| -------- | -------- | ---------- | ---------------- |
+| macOS, Apple Silicon | AppleClang | 214 of 214 | 5 of 5 |
+| Windows 11 ARM64 (VM) | MSVC 14.51 (Build Tools 2026), ARM64 | 213 of 213 | 5 of 5 |
+| Windows 11 ARM64 (VM), x64 build under emulation | MSVC 14.51, x64 (`dev-x64`, `release-x64`) | 213 of 213 | 5 of 5 |
+| CentOS Stream 9 aarch64 (VM) | GCC 11.5 | 214 of 214 | 5 of 5 |
+
+Windows has one test fewer: the comparison of the portable multiply-divide against 128-bit integers needs `__int128`, which MSVC lacks; the hand-computed cases still run. The x64 binaries were confirmed as x64 (PE machine 0x8664). The golden lock (tolerance 1e-12) passes on every platform. Not covered: macOS x86_64, native x64 Windows hardware, and Clang on Windows or Linux.
+
+Found during the runs and fixed: GCC `-Wpedantic` rejected `__int128` in a test; MSVC warned about `fopen` (C4996) in tools and about an implicit double-to-float conversion in a test (C4244); the allocation-counter self-test counted an extra allocation from MSVC's debug vector proxy, and now uses direct `new` and `delete`.
+
 ## M4 gate status
 
 AGENTS.md section 16, M4: "Deliver calibrated noise, optional distortion/mismatch/crosstalk/voltage diagnostics, and profile metadata. Gate: weighted measurement methods are validated; synthetic assumptions are explicit; typical-target reports pass within project tolerances. Hardware fidelity claims remain limited."
