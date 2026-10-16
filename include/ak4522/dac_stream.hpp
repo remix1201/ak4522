@@ -58,7 +58,9 @@ struct DacPullBlock {
     std::size_t eventCount = 0;
 };
 
-// Called on the audio thread from render(); must be real-time safe.
+// Called on the audio thread from render(); must be real-time safe. Called
+// only when at least one frame is needed: a render of a few host frames at a
+// high host rate may need none.
 using DacPullCallback = void (*)(void* context, DacPullBlock& block) noexcept;
 
 struct DacStreamConfig {

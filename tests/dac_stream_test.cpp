@@ -598,3 +598,33 @@ TEST_CASE("Dithered push and pull give the same output", "[unit][stream][push]")
     const Stereo out = render(push, 4000, {4000});
     CHECK(out.left == expected.left);
 }
+
+TEST_CASE("The source is not called when a render needs no frame", "[unit][stream]")
+{
+    // At 192 kHz with a 44.1 kHz source, a one-frame render often needs no new DAC frame.
+    struct Counting {
+        std::size_t calls = 0, zero = 0;
+        static void pull(void* c, DacPullBlock& b) noexcept
+        {
+            auto& s = *static_cast<Counting*>(c);
+            ++s.calls;
+            s.zero += b.frames == 0 ? 1 : 0;
+            for (std::size_t j = 0; j < b.frames; ++j) {
+                b.integers.left[j] = b.integers.right[j] = 0;
+            }
+        }
+    };
+    Counting src;
+    DacStreamConfig c = config(192000, {44100, 1});
+    c.pull = &Counting::pull;
+    c.pullContext = &src;
+    DacStream s;
+    REQUIRE(s.prepare(c) == Status::ok);
+    std::vector<double> l(1), r(1);
+    for (int i = 0; i < 1000; ++i) {
+        REQUIRE(s.render(StereoView<double>{l, r}) == Status::ok);
+    }
+    CHECK(src.zero == 0);
+    CHECK(src.calls > 0);
+    CHECK(src.calls < 1000); // about 230 frames were needed for 1000 host frames
+}

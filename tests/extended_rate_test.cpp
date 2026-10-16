@@ -14,6 +14,7 @@
 #include <algorithm>
 #include <cmath>
 #include <limits>
+#include <random>
 #include <vector>
 
 using namespace ak4522;
@@ -189,4 +190,48 @@ TEST_CASE("DacStream plays a 112 MHz / 2304 source with the opt-in", "[dsp][stre
     const auto fit = test::fitSine(std::span(l).subspan(skip), 1000.0, 48000.0, static_cast<double>(skip) / 48000.0);
     CHECK(std::abs(fit.amplitude - 0.5) < 0.5 * 0.03);
     CHECK(std::abs(phaseDelay(l, 1000.0, 48000.0, expected) - expected) < 0.02);
+}
+
+TEST_CASE("A 112 MHz / 2304 source plays at high host rates", "[dsp][stream][extended]")
+{
+    // The synth runs at its own clock; the DAW at 96 or 192 kHz (P-100, P-101, P-103).
+    const double host = GENERATE(96000.0, 192000.0);
+    CAPTURE(host);
+    const double fs = specialK.hz();
+    const double edge = 20.0 / 44.1 * fs; // the DAC's own band limits the output
+    for (int k = 1; k <= 4; ++k) {
+        const double freq = edge * k / 5.0;
+        CAPTURE(freq);
+        DacStreamConfig c;
+        c.hostRate = host;
+        c.dacRate = specialK;
+        c.format = DacSampleFormat::float64;
+        c.dac.allowExtendedRate = true;
+        PullSine sine{freq, fs};
+        c.pull = &PullSine::pull;
+        c.pullContext = &sine;
+        DacStream s;
+        REQUIRE(s.prepare(c) == Status::ok);
+
+        // Random render sizes, as a DAW's varying buffers.
+        std::mt19937_64 rng(static_cast<std::uint64_t>(k));
+        std::uniform_int_distribution<std::size_t> size(1, 2048);
+        const auto frames = static_cast<std::size_t>(host * 0.4);
+        std::vector<double> l(frames), r(frames);
+        for (std::size_t at = 0; at < frames;) {
+            const std::size_t n = std::min(size(rng), frames - at);
+            REQUIRE(s.render(StereoView<double>{std::span(l).subspan(at, n), std::span(r).subspan(at, n)}) == Status::ok);
+            at += n;
+        }
+        // Exactly ceil(T fs / H) DAC frames consumed, in integers.
+        const std::uint64_t num = static_cast<std::uint64_t>(frames) * 112000000ull;
+        const std::uint64_t den = 2304ull * static_cast<std::uint64_t>(host);
+        CHECK(sine.position == (num + den - 1) / den);
+
+        const double expected = s.latency().reportedHostFrames;
+        const std::size_t skip = static_cast<std::size_t>(expected) + 4000;
+        const auto fit = test::fitSine(std::span(l).subspan(skip), freq, host, static_cast<double>(skip) / host);
+        CHECK(std::abs(fit.amplitude - 0.5) < 0.5 * 0.03); // within the +/-0.2 dB response
+        CHECK(std::abs(phaseDelay(l, freq, host, expected) - expected) < 0.02 * host / fs);
+    }
 }

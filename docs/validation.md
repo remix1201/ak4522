@@ -458,6 +458,14 @@ Development notes: the first crosstalk test, without noise, measured a 1.5 LSB l
 
 Development note: the first startup and PD tests expected silence up to the reported latency plus 516 frames. The ADC's "0" frames reach the host after the buffering alone; the reported latency also includes the chip's delay to the signal, which the zeros do not carry. The tests now use the buffering.
 
+### 2026-10-16: DacStream at high host rates (branch `stream-high-rates`)
+
+| Check | Method | Result |
+| ----- | ------ | ------ |
+| 112 MHz / 2304 source at 96 and 192 kHz hosts | random render sizes from 1 to 2048; exact frame count in integers; sine fits at four passband frequencies | exact consumption; level within the response tolerance; timing within 0.02 chip frame of the reported latency |
+| Zero-frame pulls | one-frame renders at 192 kHz from a 44.1 kHz source | the source is never asked for zero frames |
+| Benchmark | `ak4522_benchmark`, `DacStream` at 48, 96, 192 kHz hosts | median 2.1% at every host rate; p99.9 4.2 to 5.1% at 64 frames, 2.9 to 4.3% at 512 |
+
 ## M7 gate status
 
 M7 approved by the project owner on 2026-10-16 (tag `m7-approved`).
