@@ -211,7 +211,7 @@ AGENTS.md section 16, M2: "Deliver reproducible coefficient generation, interpol
 | Three de-emphasis modes | 0.093 / 0.073 / 0.048 dB from the reference | pass |
 | Fit and delay conflict | Met together. The datasheet filter numbers take 11.875 frames; the remaining 2.825 frames are an explicit pipeline delay and the reconstruction delay (P-87, P-89) | resolved by owner decision |
 
-Awaiting project-owner review.
+Approved by the project owner on 2026-10-16; the approved state is tagged `m2-approved`.
 
 ## M1 gate status
 
