@@ -5,6 +5,7 @@
 
 #include "ak4522/dac_stream.hpp"
 #include "ak4522/host_processor.hpp"
+#include "ak4522/serial.hpp"
 #include "ak4522/version.hpp"
 
 #include <new>
@@ -29,6 +30,15 @@ static_assert(AK4522_RESOLUTION_16 == static_cast<int>(InputResolution::bits16))
 static_assert(AK4522_FORMAT_FLOAT64 == static_cast<int>(DacSampleFormat::float64));
 static_assert(AK4522_MODE_PUSH == static_cast<int>(DacStreamMode::push));
 static_assert(AK4522_EVENT_SOFT_MUTE == static_cast<int>(ControlType::softMute));
+static_assert(AK4522_SERIAL_MODE3_I2S == static_cast<int>(SerialFormat::mode3I2s));
+static_assert(AK4522_SERIAL_MODE0_RIGHT_JUSTIFIED_16 == static_cast<int>(SerialFormat::mode0RightJustified16));
+static_assert(AK4522_SERIAL_SCLK_RATIO_TOO_LOW == static_cast<int>(SerialEvent::sclkRatioTooLow));
+static_assert(AK4522_SERIAL_FRAME_COMPLETE == static_cast<int>(SerialEvent::frameComplete));
+static_assert(AK4522_PIN_PD == static_cast<int>(Pin::pd));
+static_assert(AK4522_PIN_LRCK == static_cast<int>(Pin::lrck));
+static_assert(AK4522_TIMING_CLOCK_STOPPED == static_cast<int>(TimingViolation::clockStopped));
+static_assert(AK4522_TIMING_MCLK_NOT_SYNCHRONIZED == static_cast<int>(TimingViolation::mclkNotSynchronized));
+static_assert(AK4522_TIMING_KINDS == static_cast<int>(TimingViolation::count_));
 
 // Out-of-range enum values become values the C++ validation rejects.
 template <typename Enum>
@@ -136,6 +146,14 @@ ak4522_status status(Status s) noexcept
 
 } // namespace
 
+struct ak4522_serial_decoder {
+    SerialDecoder decoder;
+};
+
+struct ak4522_timing_validator {
+    TimingValidator validator;
+};
+
 struct ak4522_host {
     HostProcessor processor;
     std::vector<ControlEvent> events;
@@ -241,6 +259,8 @@ void ak4522_stream_config_default(ak4522_stream_config* config)
     config->format = static_cast<int32_t>(s.format);
     config->mode = static_cast<int32_t>(s.mode);
     config->max_block_frames = s.maxBlockFrames;
+    config->input_dither = s.inputDither;
+    config->dither_seed = s.ditherSeed;
     config->max_events_per_block = s.maxEventsPerBlock;
     config->push_capacity_frames = s.pushCapacityFrames;
     config->push_capacity_events = s.pushCapacityEvents;
@@ -361,6 +381,8 @@ ak4522_status ak4522_stream_prepare(ak4522_stream* stream, const ak4522_stream_c
     s.format = toEnum<DacSampleFormat>(config->format);
     s.mode = toEnum<DacStreamMode>(config->mode);
     s.maxBlockFrames = config->max_block_frames;
+    s.inputDither = config->input_dither;
+    s.ditherSeed = config->dither_seed;
     s.maxEventsPerBlock = config->max_events_per_block;
     s.pushCapacityFrames = config->push_capacity_frames;
     s.pushCapacityEvents = config->push_capacity_events;
@@ -482,3 +504,106 @@ ak4522_status ak4522_stream_diagnostics(const ak4522_stream* stream, ak4522_diag
     return AK4522_OK;
 }
 
+ak4522_serial_decoder* ak4522_serial_decoder_create(void)
+{
+    return new (std::nothrow) ak4522_serial_decoder;
+}
+
+void ak4522_serial_decoder_destroy(ak4522_serial_decoder* decoder)
+{
+    delete decoder;
+}
+
+ak4522_status ak4522_serial_decoder_prepare(ak4522_serial_decoder* decoder, int32_t format)
+{
+    if (decoder == nullptr) {
+        return AK4522_INVALID_ARGUMENT;
+    }
+    return status(decoder->decoder.prepare(toEnum<SerialFormat>(format)));
+}
+
+ak4522_status ak4522_serial_decoder_reset(ak4522_serial_decoder* decoder)
+{
+    if (decoder == nullptr) {
+        return AK4522_INVALID_ARGUMENT;
+    }
+    decoder->decoder.reset();
+    return AK4522_OK;
+}
+
+ak4522_status ak4522_serial_decoder_sclk_rising_edge(ak4522_serial_decoder* decoder, bool lrck, bool sdti,
+                                                     int32_t* event, int32_t* left, int32_t* right)
+{
+    if (decoder == nullptr || event == nullptr) {
+        return AK4522_INVALID_ARGUMENT;
+    }
+    const SerialEdgeResult r = decoder->decoder.sclkRisingEdge(lrck, sdti);
+    *event = static_cast<int32_t>(r.event);
+    if (r.frame) {
+        if (left != nullptr) {
+            *left = r.frame->left.code;
+        }
+        if (right != nullptr) {
+            *right = r.frame->right.code;
+        }
+    }
+    return AK4522_OK;
+}
+
+ak4522_timing_validator* ak4522_timing_validator_create(void)
+{
+    return new (std::nothrow) ak4522_timing_validator;
+}
+
+void ak4522_timing_validator_destroy(ak4522_timing_validator* validator)
+{
+    delete validator;
+}
+
+ak4522_status ak4522_timing_validator_prepare(ak4522_timing_validator* validator, int32_t cmode)
+{
+    if (validator == nullptr) {
+        return AK4522_INVALID_ARGUMENT;
+    }
+    return status(validator->validator.prepare(toEnum<CmodePin>(cmode)));
+}
+
+ak4522_status ak4522_timing_validator_reset(ak4522_timing_validator* validator)
+{
+    if (validator == nullptr) {
+        return AK4522_INVALID_ARGUMENT;
+    }
+    validator->validator.reset();
+    return AK4522_OK;
+}
+
+ak4522_status ak4522_timing_validator_observe(ak4522_timing_validator* validator, const ak4522_pin_edge* edge)
+{
+    if (validator == nullptr || edge == nullptr || edge->pin < 0 || edge->pin > AK4522_PIN_PD) {
+        return AK4522_INVALID_ARGUMENT;
+    }
+    validator->validator.observe({edge->time_ns, static_cast<Pin>(edge->pin), edge->level});
+    return AK4522_OK;
+}
+
+ak4522_status ak4522_timing_validator_advance_to(ak4522_timing_validator* validator, double time_ns)
+{
+    if (validator == nullptr) {
+        return AK4522_INVALID_ARGUMENT;
+    }
+    validator->validator.advanceTo(time_ns);
+    return AK4522_OK;
+}
+
+uint64_t ak4522_timing_validator_violations(const ak4522_timing_validator* validator, int32_t kind)
+{
+    if (validator == nullptr || kind < 0 || kind >= AK4522_TIMING_KINDS) {
+        return 0;
+    }
+    return validator->validator.violations(static_cast<TimingViolation>(kind));
+}
+
+uint64_t ak4522_timing_validator_total_violations(const ak4522_timing_validator* validator)
+{
+    return validator == nullptr ? 0 : validator->validator.totalViolations();
+}

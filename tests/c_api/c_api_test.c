@@ -226,6 +226,63 @@ static void test_push_accounting(void)
     ak4522_stream_destroy(stream);
 }
 
+/* Mode 2 (left justified, 20 bits) at 64fs: each half-frame of 32 bit clocks
+ * starts with the 20-bit word, MSB first; LRCK high is left. */
+static void send_half(ak4522_serial_decoder* d, bool lrck, int32_t code, int32_t* events, int32_t* left,
+                      int32_t* right)
+{
+    int slot;
+    for (slot = 0; slot < 32; ++slot) {
+        bool bit = slot < 20 && (((uint32_t)code >> (19 - slot)) & 1u) != 0;
+        int32_t event = -1;
+        CHECK(ak4522_serial_decoder_sclk_rising_edge(d, lrck, bit, &event, left, right) == AK4522_OK);
+        if (event == AK4522_SERIAL_FRAME_COMPLETE) {
+            ++*events;
+        }
+    }
+}
+
+static void test_serial(void)
+{
+    ak4522_serial_decoder* d = ak4522_serial_decoder_create();
+    int32_t frames = 0, left = 0, right = 0, event = 0;
+    CHECK(ak4522_serial_decoder_prepare(d, 9) == AK4522_INVALID_CONFIGURATION);
+    CHECK(ak4522_serial_decoder_prepare(d, AK4522_SERIAL_MODE2_LEFT_JUSTIFIED_20) == AK4522_OK);
+    send_half(d, false, 0, &frames, &left, &right);         /* partial start, discarded */
+    send_half(d, true, 0x12345, &frames, &left, &right);    /* left */
+    send_half(d, false, -300000 & 0xFFFFF, &frames, &left, &right); /* right */
+    send_half(d, true, 0, &frames, &left, &right);          /* the edge completes the frame */
+    CHECK(frames == 1);
+    CHECK(left == 0x12345);
+    CHECK(right == -300000);
+    CHECK(ak4522_serial_decoder_sclk_rising_edge(d, true, false, NULL, NULL, NULL) == AK4522_INVALID_ARGUMENT);
+    CHECK(ak4522_serial_decoder_reset(d) == AK4522_OK);
+    CHECK(ak4522_serial_decoder_sclk_rising_edge(d, true, false, &event, NULL, NULL) == AK4522_OK);
+    CHECK(event == AK4522_SERIAL_NONE);
+    ak4522_serial_decoder_destroy(d);
+}
+
+static void test_timing(void)
+{
+    ak4522_timing_validator* v = ak4522_timing_validator_create();
+    ak4522_pin_edge edge = {0.0, AK4522_PIN_SCLK, true};
+    ak4522_pin_edge bad = {0.0, 9, true};
+    CHECK(ak4522_timing_validator_prepare(v, AK4522_CMODE_LOW) == AK4522_OK);
+    CHECK(ak4522_timing_validator_observe(v, &edge) == AK4522_OK);
+    edge.time_ns = 10.0;
+    edge.level = false;
+    CHECK(ak4522_timing_validator_observe(v, &edge) == AK4522_OK); /* 10 ns high: too short */
+    CHECK(ak4522_timing_validator_violations(v, AK4522_TIMING_SCLK_PULSE_WIDTH) == 1);
+    CHECK(ak4522_timing_validator_advance_to(v, 100000.0) == AK4522_OK); /* SCLK stopped */
+    CHECK(ak4522_timing_validator_violations(v, AK4522_TIMING_CLOCK_STOPPED) == 1);
+    CHECK(ak4522_timing_validator_total_violations(v) == 2);
+    CHECK(ak4522_timing_validator_violations(v, AK4522_TIMING_KINDS) == 0);
+    CHECK(ak4522_timing_validator_observe(v, &bad) == AK4522_INVALID_ARGUMENT);
+    CHECK(ak4522_timing_validator_reset(v) == AK4522_OK);
+    CHECK(ak4522_timing_validator_total_violations(v) == 0);
+    ak4522_timing_validator_destroy(v);
+}
+
 int main(void)
 {
     test_library();
@@ -234,6 +291,8 @@ int main(void)
     test_pull_stream();
     test_push_stream();
     test_push_accounting();
+    test_serial();
+    test_timing();
     if (failures != 0) {
         fprintf(stderr, "%d C API check(s) failed\n", failures);
         return 1;
