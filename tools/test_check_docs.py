@@ -65,6 +65,12 @@ class CheckDocsTest(unittest.TestCase):
         self.append("docs/features.md", "\nSee P-00.\n")
         self.assertFlags("cites P-00")
 
+    def test_undefined_adc_citation(self):
+        self.append("docs/features.md", "\nSee AD-99, AD-A99, and I-AD99.\n")
+        self.assertFlags("cites AD-99")
+        self.assertFlags("cites AD-A99")
+        self.assertFlags("cites I-AD99")
+
     def test_undefined_requirement_citation(self):
         self.append("docs/api.md", "\nSee REQ-FAKE-01.\n")
         self.assertFlags("cites REQ-FAKE-01")

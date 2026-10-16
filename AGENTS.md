@@ -389,7 +389,7 @@ For each milestone, report changes, tests run, measured results, known deviation
 
 ## 17. ADC section (planned, M7)
 
-The ADC converts analog input to 20-bit PCM on SDTO. It shares clocks, serial format pins, and PD with the DAC, but its signal path is independent [DS pp.1,12]. Everything in this section applies to `AdcCore` only. Verify every value below against [DS] text, not page images, when building the M7 evidence entries.
+The ADC converts analog input to 20-bit PCM on SDTO. It shares clocks, serial format pins, and PD with the DAC, but its signal path is independent [DS pp.1,12]. Everything in this section applies to `AdcCore` only. Every value below was verified against the [DS] text layer on 2026-10-16; `docs/evidence.md` section 12 holds the entries, column placements, and additional facts (AD-13 onward).
 
 ### 17.1 Documented ADC facts
 
@@ -404,8 +404,8 @@ The ADC converts analog input to 20-bit PCM on SDTO. It shares clocks, serial fo
 | AD-07  | Frequencies scale with fs; response reference is 1 kHz                                                   | p.6 note 10   |
 | AD-08  | Samples at 64fs; the digital filter does not reject noise near multiples of 64fs                         | p.15          |
 | AD-09  | Over-range input clips to 7FFFFh or 80000h; ideal code with no input is 00000h; DC offset removed by HPF | p.15          |
-| AD-10  | After PD release, an analog initialization cycle runs; SDTO is valid after 516 LRCK cycles; output is "0" during reset and initialization; a small click occurs at the end of initialization | p.7 note 14; p.12 Fig.6 |
-| AD-11  | SDTO is 20-bit MSB justified in modes 0 to 2 and I2S in mode 3; SDTO changes on SCLK falling edges; at 32fs in mode 3 the low bits are truncated | p.9 Table 2; pp.9-10 Figs.1-4 |
+| AD-10  | After PD release, an analog initialization cycle runs; SDTO is valid after 516 LRCK cycles (tPDV, typ column); output is "0" during reset and initialization; a small click occurs at the end of initialization | p.7 note 14; p.12 Fig.6 |
+| AD-11  | SDTO is 20-bit MSB justified in modes 0 to 2 and I2S in mode 3; SDTO changes on SCLK falling edges; at 32fs the low bits are truncated in mode 3 (text) and mode 0 (Fig.1), DISC-10 | p.9 Table 2; pp.9-10 Figs.1-4 |
 | AD-12  | SDTO timing: LRCK to SDTO MSB 40 ns max; SCLK falling to SDTO 50 ns max                                  | p.7           |
 
 ### 17.2 ADC analog characteristics

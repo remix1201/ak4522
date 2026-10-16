@@ -28,7 +28,8 @@ CITATION_GLOBS = ["*.md", "docs/**/*.md", "include/**/*.hpp", "src/**/*.cpp",
 # ID kinds: pattern and the file whose table rows define them.
 ID_KINDS = {
     "D": (r"D-(?:[A-Z]\d{2}|\d{2})", "docs/evidence.md"),
-    "I": (r"I-[A-Z]\d{2}", "docs/evidence.md"),
+    "I": (r"I-(?:[A-Z]\d{2}|AD\d{2})", "docs/evidence.md"),
+    "AD": (r"AD-(?:A\d{2}|\d{2})", "docs/evidence.md"),
     "X": (r"X-\d{2}", "docs/evidence.md"),
     "DISC": (r"DISC-\d{2}", "docs/evidence.md"),
     "P": (r"P-\d{2}", "docs/assumptions.md"),
