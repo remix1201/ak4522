@@ -35,6 +35,16 @@ No reference CPU for REQ-PERF-01 has been named yet.
 
 First run found and fixed: evidence row I-T01 had its cells shifted into the wrong columns; REQ-SCOPE-03 and REQ-PERF-01 were not cited by their policies (P-01, P-93); REQ-DOC-03 to REQ-DOC-05 were not traced. The checker confirms structure and cross-references only. It does not confirm that recorded values match the datasheet.
 
+### 2026-10-16: owner spot-check of the evidence ledger
+
+| Item | Result |
+| ---- | ------ |
+| DISC-04, combined response column (p.6) | **Ledger wrong.** Value is in the typ column; confirmed by PDF text coordinates. DISC-04 withdrawn, AGENTS.md note reverted. |
+| DISC-01, output voltage wording (p.5, p.16) | **Ledger imprecise.** p.16 literally says "input signal range". Ledger now quotes it and explains why it is read as the output. Conclusion unchanged. |
+| DISC-02, DISC-03, DISC-05 | confirmed |
+| Serial modes (p.9 Table 2), Fig.4 32fs and 64fs framing | confirmed; 64fs bit 0 is in slot 20 per text coordinates |
+| DEM, CMODE, mute, reset, DAC filter values, filter conditions, serial timing | confirmed |
+
 No signal-processing measurements exist yet. DSP gates from AGENTS.md section 13.2 begin in M1 and M2.
 
 ## Known deviations

@@ -40,8 +40,8 @@ None of the emulator's signal processing is usable yet.
 ## Evidence and assumptions ledgers
 
 - **Purpose:** trace every hardware fact to the datasheet and every policy to its rationale.
-- **Contents:** [evidence.md](evidence.md) (D/I classifications, seven discrepancies, ADC exclusions), [assumptions.md](assumptions.md) (project policies and twelve open uncertainties).
-- **Validation:** all numeric constants in AGENTS.md sections 4 to 10 checked against [DS] M0020-E-01 on 2026-10-15.
+- **Contents:** [evidence.md](evidence.md) (D/I classifications, six open discrepancies and one withdrawn, ADC exclusions), [assumptions.md](assumptions.md) (project policies and twelve open uncertainties).
+- **Validation:** all numeric constants in AGENTS.md sections 4 to 10 checked against [DS] M0020-E-01 on 2026-10-15. Project owner spot-checked 14 items on 2026-10-16; DISC-04 withdrawn and DISC-01 wording corrected as a result.
 - **Limitations:** based on one datasheet revision. A newer revision, if found, must be compared and recorded.
 
 ## Public API proposal
