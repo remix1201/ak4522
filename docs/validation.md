@@ -293,6 +293,29 @@ The datasheet pair implies -4.0 dB. No measurement effect accounts for the remai
 
 Development notes: a level-scaling test at -20 dBFS measured the harmonics of the periodic 20-bit quantization error of a 1 kHz test tone rather than the distortion; the tests now use 997 Hz at -6 dBFS. A first phase test fitted the 3rd harmonic alone and picked up leakage from the fundamental (about 9e-5); it now uses a joint fit.
 
+### 2026-10-16: NominalAnalog report, branch `m4-verify`
+
+[analog_profile.md](analog_profile.md) records the measured profile against the datasheet. Notes: the full profile's A-weighted S/N (99.91 dB) is 0.1 dB below the noise alone because the fixed mismatch raises the left channel's gain, noise included. 16-bit dynamic range is 97.13 dB without dither, within 1 dB of the 98 dB typical, which most likely refers to undithered input; TPDF dither adds noise by design (94.30 dB).
+
+## M4 gate status
+
+AGENTS.md section 16, M4: "Deliver calibrated noise, optional distortion/mismatch/crosstalk/voltage diagnostics, and profile metadata. Gate: weighted measurement methods are validated; synthetic assumptions are explicit; typical-target reports pass within project tolerances. Hardware fidelity claims remain limited."
+
+| Gate item | Evidence | Status |
+| --------- | -------- | ------ |
+| Calibrated noise | P-94; A-weighted S/N 100.006 dB alone, 99.91 dB in the full profile | pass |
+| Optional distortion, mismatch, crosstalk | P-96 to P-98; selectable shapes; each flag independent | pass |
+| Voltage diagnostics | `outputVolts()`; DC offset option (P-99) | pass |
+| Profile metadata | `describe(ModelProfile)` | pass |
+| Weighted measurement methods validated | A-weighting and ITU-R 468 against their standard tables; metrics against analytic results | pass |
+| Synthetic assumptions explicit | P-94 to P-99, U-09, U-10, DISC-08; `describe()` marks the profile synthetic | pass |
+| Typical-target reports within tolerance | S/(N+D) 89.87, DR 99.89, S/N 99.91 dB against 90 / 100 / 100 +/- 1; isolation 110 dB; mismatch 0.2 dB | pass |
+| CCIR-ARM | 97.22 dB against 96 dB typical | disclosed deviation (DISC-08) |
+| Clean profile unchanged | golden lock | pass |
+| Hardware fidelity claims limited | report preamble; `describe()`; README | pass |
+
+Awaiting project-owner review, and approval of API decision O-10.
+
 ## M3 gate status
 
 AGENTS.md section 16, M3: "Deliver SRC, all supported rate pairs, event mapping, latency alignment, and public examples. Gate: alias/count/block-invariance tests and real-time allocation checks pass. Publish core versus wrapper response separately."

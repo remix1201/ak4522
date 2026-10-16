@@ -87,7 +87,7 @@ Conditions: Ta = 25 degrees C, VA = VD = 5 V, VREFH = VA, fs = 44.1 kHz, SCLK = 
 | D-A08 | Load resistance                          | 5 kohm   |                 |          | D     | p.5           | high  | n/a (not modeled) | n/a     | planned |
 | D-A09 | Load capacitance                         |          |                 | 25 pF    | D     | p.5           | high  | n/a (not modeled) | n/a     | planned |
 | D-A10 | Power-supply rejection                   |          | 50 dB           |          | D     | p.5, note 8   | high  | n/a (not modeled) | n/a     | planned |
-| D-A11 | 16-bit DAC dynamic range                 |          | 98 dB           |          | D     | p.5 note 5    | high  | REQ-NOISE-01   | `[analog]` | planned |
+| D-A11 | 16-bit DAC dynamic range                 |          | 98 dB           |          | D     | p.5 note 5    | high  | REQ-NOISE-01   | `[analog]` | passing |
 | D-A12 | Zero-input S/N, any resolution           |          | 100 dB          |          | D     | p.5 note 9    | high  | REQ-NOISE-01   | `[analog]` | passing |
 | D-A13 | S/N, CCIR-ARM weighted, each converter   |          | 96 dB           |          | D     | p.5 note 6    | high  | REQ-NOISE-01   | `[analog]` | deviation |
 | D-A14 | PSR stimulus: 1 kHz, 50 mVpp on VA and VD; VREFH held constant | |     |          | D     | p.5 note 8    | high  | n/a            | n/a        | planned |
