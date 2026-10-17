@@ -5,6 +5,7 @@ of the real documentation, and pass on an unmodified copy.
 """
 
 import shutil
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -104,6 +105,31 @@ class CheckDocsTest(unittest.TestCase):
     def test_broken_anchor(self):
         self.append("docs/evidence.md", "\n[x](#no-such-heading)\n")
         self.assertFlags("anchor '#no-such-heading'")
+
+    def test_commit_citations(self):
+        """In a git checkout, a cited hash must be a commit in HEAD's history."""
+        if shutil.which("git") is None:
+            self.skipTest("git not available")
+        run = lambda *a: subprocess.run(["git", "-C", str(self.root), "-c", "user.name=t",
+                                         "-c", "user.email=t@t", *a], capture_output=True, text=True, check=True)
+        run("init", "-q")
+        run("add", "-A")
+        run("commit", "-q", "-m", "first")
+        first = run("rev-parse", "--short=7", "HEAD").stdout.strip()
+        # The real docs cite this repository's commits; point them at the fixture's.
+        for doc in self.root.joinpath("docs").glob("*.md"):
+            text = doc.read_text(encoding="utf-8")
+            doc.write_text(check_docs.COMMIT_REF.sub(f"`{first}`", text), encoding="utf-8")
+        run("commit", "-q", "-am", "second")
+        self.assertEqual([e for e in check_docs.run(self.root) if "commit" in e], [])
+        self.append("docs/api.md", "\nVerified at `1234567`.\n")
+        self.assertFlags("cites commit 1234567, which does not exist")
+        run("checkout", "-q", "-b", "side")
+        run("commit", "-q", "--allow-empty", "-m", "side")
+        side = run("rev-parse", "--short=7", "HEAD").stdout.strip()
+        run("checkout", "-q", "-")
+        self.append("docs/api.md", f"\nAlso `{side}`.\n")
+        self.assertFlags(f"cites commit {side}, which is not in the history of HEAD")
 
     def test_range_expansion(self):
         ids = check_docs.expand_ranges("D-T01 to D-T03 and P-10", r"D-[A-Z]\d{2}")

@@ -3,7 +3,8 @@
 Checks that evidence rows carry a class and a datasheet source, that every
 cited ID is defined, that every requirement in AGENTS.md is traced, that the
 datasheet checksum agrees everywhere it is recorded, that local links resolve,
-and that project documentation contains no em or en dashes.
+that cited commit hashes exist in the history of HEAD, and that project
+documentation contains no em or en dashes.
 
 Uses only the standard library so it runs under any Python 3.9 or later,
 without the tools/ environment. Exit status is 1 if any check fails.
@@ -14,6 +15,8 @@ without the tools/ environment. Exit status is 1 if any check fails.
 import argparse
 import hashlib
 import re
+import shutil
+import subprocess
 import sys
 from pathlib import Path
 
@@ -224,6 +227,39 @@ def check_doc_style_and_links(root):
     return errors
 
 
+# A backticked lowercase hex word of 7 to 40 characters is a commit citation.
+COMMIT_REF = re.compile(r"`([0-9a-f]{7,40})`")
+
+
+def git(root, *args):
+    return subprocess.run(["git", "-C", str(root), *args], capture_output=True, text=True)
+
+
+def check_commit_refs(root):
+    """Cited commits must exist and be ancestors of HEAD, so a history rewrite
+    cannot leave them dangling unnoticed. Skipped where history is not
+    available: no git, not the top of a git checkout (a source archive or a
+    FetchContent copy), or a shallow clone such as a default CI checkout."""
+    if shutil.which("git") is None:
+        return []
+    top = git(root, "rev-parse", "--show-toplevel")
+    if top.returncode != 0 or Path(top.stdout.strip()).resolve() != root.resolve():
+        return []
+    if git(root, "rev-parse", "--is-shallow-repository").stdout.strip() == "true":
+        return []
+    errors = []
+    for path in doc_files(root):
+        rel = path.relative_to(root)
+        for number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
+            for ref in COMMIT_REF.findall(line):
+                found = git(root, "rev-parse", "--verify", "--quiet", f"{ref}^{{commit}}")
+                if found.returncode != 0:
+                    errors.append(f"{rel}:{number}: cites commit {ref}, which does not exist")
+                elif git(root, "merge-base", "--is-ancestor", found.stdout.strip(), "HEAD").returncode != 0:
+                    errors.append(f"{rel}:{number}: cites commit {ref}, which is not in the history of HEAD")
+    return errors
+
+
 def run(root):
     errors = []
     evidence = root / "docs/evidence.md"
@@ -231,6 +267,7 @@ def run(root):
     errors += check_citations(root)
     errors += check_checksums(root)
     errors += check_doc_style_and_links(root)
+    errors += check_commit_refs(root)
     return errors
 
 
