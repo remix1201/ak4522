@@ -466,6 +466,18 @@ Development note: the first startup and PD tests expected silence up to the repo
 | Zero-frame pulls | one-frame renders at 192 kHz from a 44.1 kHz source | the source is never asked for zero frames |
 | Benchmark | `ak4522_benchmark`, `DacStream` at 48, 96, 192 kHz hosts | median 2.1% at every host rate; p99.9 4.2 to 5.1% at 64 frames, 2.9 to 4.3% at 512 |
 
+### 2026-10-17: complete mutation suite (branch `mutation-suite`)
+
+The mutation lists in `tools/mutations/` now name their source file and test labels, cover every component (37 lists), and are checked by CTest (`tools.mutation_lists`), which fails when a code change leaves an entry stale.
+
+| Check | Method | Result |
+| ----- | ------ | ------ |
+| Full run | `mutation_check.py --all`, 266 mutations, macOS, debug build without warnings as errors | 263 detected; none failed to build or apply |
+| Survivors | inspected each | one wrong label (the test that catches it is tagged `rate`; detected once the label includes it); two equivalent mutants that cannot change any output, removed with a note in their lists |
+| Final | the three affected lists rerun | all detected: 264 of 264 |
+
+Seventeen entries written in M1 to M4 no longer matched the code after later refactors and were updated; the M5 to M7 lists had not been committed and were added. The new check found three of those stale as well, from edits made after they were written.
+
 ## M7 gate status
 
 M7 approved by the project owner on 2026-10-16 (tag `m7-approved`).
