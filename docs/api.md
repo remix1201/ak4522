@@ -1,24 +1,29 @@
-# Public API proposal
+# Public API
 
-Status: **proposal (M0)**. The headers in `include/ak4522/` declare this API. Only constant pin mappings and plain data types are defined; every processing function is declared but not implemented. Alpha releases may change any part of it.
+Status: **implemented**. The headers in `include/ak4522/` declare this API; this file describes its contract and records the design decisions behind it, and the [integration guide](integration.md) shows how to use it. Alpha releases may change any part of it.
 
 Requirements addressed: REQ-ARCH-01, REQ-ARCH-02, REQ-SCOPE-02, REQ-RT-01, REQ-RT-02, REQ-LAT-01, REQ-VST-01.
 
 ## Layers
 
 ```text
-Plugin adapter (JUCE or VST3 SDK, later)
+Plugin adapters (separate projects)
         |
         v
-HostProcessor        host rate: input SRC, quantization, latency alignment, output SRC
+HostProcessor        host rate: input SRC, quantization, latency alignment, output SRC;
+                     paths dac, loopback (DAC into ADC), and adc
 DacStream            a source at its own DAC rate: pull or push, latency alignment, output SRC
         |
         v
 DacCore              DAC rate in, 8x DAC rate out: de-emphasis, soft mute,
         ^            interpolation, reconstruction, optional analog profile
         |
+AdcCore              8x ADC rate in, ADC rate out: decimation, high-pass, quantization,
+                     optional analog profile
 SerialDecoder        SDTI/LRCK/SCLK bits to Pcm20Frame (conformance and device use)
+SerialEncoder        Pcm20Frame to SDTO bits
 TimingValidator      nanosecond pin timing checks (conformance only)
+ak4522.h             C API over all of the above
 ```
 
 Decoded PCM and serial input feed the same `DacCore` (REQ-SCOPE-02). The plugin path never serializes samples.

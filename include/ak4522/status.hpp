@@ -13,7 +13,6 @@ enum class Status : std::uint8_t {
     invalidDacRate,             // outside [16000, 48000] Hz (D-04)
     invalidMasterClock,         // MCLK outside the CMODE range (D-C02 to D-C04)
     unsupportedHostRate,        // not in the supported host-rate set (P-32)
-    unsupportedRatePair,        // host/DAC pair outside the tested matrix
     invalidBlockSize,           // zero maximum block size at prepare
     invalidConfiguration,       // inconsistent or out-of-range option
     channelSizeMismatch,        // left and right views differ in length
