@@ -108,7 +108,7 @@ struct PushResult {
 // frames gives the same output for any render block sizes.
 //
 // Push mode: a producer thread calls push() while the audio thread calls
-// render(). The queue is single-producer, single-consumer and wait-free. When
+// render(). The queue is single-producer, single-consumer, and wait-free. When
 // render() needs frames the queue lacks, it plays zeros and counts the
 // missing frames; when push() finds the queue full, it drops the frames that
 // do not fit and counts them (P-102). Prime the queue before rendering.

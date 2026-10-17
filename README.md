@@ -1,6 +1,6 @@
 # AK4522VF Emulator
 
-An independent C++20 library that models the AKM AK4522VF stereo audio codec, its 20-bit DAC and ADC, for use in audio effects, instruments and emulators of hardware that used the chip, offline tools, and other audio software. It has a C API and no dependencies, and does not use any plugin framework.
+An independent C++20 library that models the AKM AK4522VF stereo audio codec, its 20-bit DAC and ADC, for use in audio effects, instruments, and emulators of hardware that used the chip, offline tools, and other audio software. It has a C API and no dependencies, and does not use any plugin framework.
 
 The model reproduces the behavior and limits the datasheet documents, and labels everything else it has to assume. It is a specification-based model, not a recovered copy of AKM's silicon.
 
@@ -8,14 +8,14 @@ The model reproduces the behavior and limits the datasheet documents, and labels
 
 **Alpha.** Milestones M0 to M5 and M7 are complete and approved; see the [roadmap](#development-roadmap).
 
-| You want to | Use | Example |
-| ----------- | --- | ------- |
-| Run host audio through the emulated DAC, as an effect | `HostProcessor` | [host_processor_example.cpp](examples/host_processor_example.cpp) |
-| Play a synth or emulated system that runs at its own clock, such as 112 MHz / 2304, at any host rate | `DacStream`, pull or push | [dac_stream_example.cpp](examples/dac_stream_example.cpp), [dac_stream_push_example.cpp](examples/dac_stream_push_example.cpp) |
-| Use the chip model alone at its own rate | `DacCore` | [dac_core_example.cpp](examples/dac_core_example.cpp) |
-| Run host audio through the DAC and back through the ADC, or through the ADC alone | `HostProcessor` with `path = loopback` or `adc` | |
-| Digitize an analog-like signal at the ADC rate | `AdcCore` | |
-| Use any of it from C or another language | `ak4522/ak4522.h` | [c_api_example.c](examples/c_api_example.c) |
+| You want to                                                                                          | Use                                             | Example                                                                                                                        |
+| ---------------------------------------------------------------------------------------------------- | ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| Run host audio through the emulated DAC, as an effect                                                | `HostProcessor`                                 | [host_processor_example.cpp](examples/host_processor_example.cpp)                                                              |
+| Play a synth or emulated system that runs at its own clock, such as 112 MHz / 2304, at any host rate | `DacStream`, pull or push                       | [dac_stream_example.cpp](examples/dac_stream_example.cpp), [dac_stream_push_example.cpp](examples/dac_stream_push_example.cpp) |
+| Use the chip model alone at its own rate                                                             | `DacCore`                                       | [dac_core_example.cpp](examples/dac_core_example.cpp)                                                                          |
+| Run host audio through the DAC and back through the ADC, or through the ADC alone                    | `HostProcessor` with `path = loopback` or `adc` |                                                                                                                                |
+| Digitize an analog-like signal at the ADC rate                                                       | `AdcCore`                                       |                                                                                                                                |
+| Use any of it from C or another language                                                             | `ak4522/ak4522.h`                               | [c_api_example.c](examples/c_api_example.c)                                                                                    |
 
 What is available:
 
@@ -163,7 +163,7 @@ Processing continues across arbitrary block sizes without allocations, locks, bl
 | M2        | Linear DAC response, de-emphasis, coefficient generation, and core latency accounting   |
 | M3        | Host-rate adaptation, event timing, reusable library, and streaming verification        |
 | M4        | Optional calibrated nominal analog profile                                              |
-| M5        | `DacStream` for sources at their own rate, C API, packaging, and integration guide       |
+| M5        | `DacStream` for sources at their own rate, C API, packaging, and integration guide      |
 | M6        | Hardware-characterized refinement when suitable measurements are available (deferred)   |
 | M7        | ADC section, SDTO serial output, and optional DAC-to-ADC loopback                       |
 | Next      | Demo plugin (VST3, AU) as a separate project using the packaged library                 |

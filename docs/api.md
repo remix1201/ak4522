@@ -34,8 +34,8 @@ REQ-ARCH-01 names ten abstractions. Four are public types: `DacConfig`, `DacCore
 
 | Header               | Contents                                                                                       |
 | -------------------- | ---------------------------------------------------------------------------------------------- |
-| `config.hpp`         | `DacConfig`, pin enums (`CmodePin`, `SerialFormat`, `DeemphasisSelect`), pin mapping functions, profile and policy enums |
-| `pcm.hpp`            | `Pcm20`, `Pcm20Frame`, conversion and quantization functions                                   |
+| `config.hpp`         | `DacConfig`, pin enums (`CmodePin`, `SerialFormat`, `DeemphasisSelect`), pin mapping functions, and profile and policy enums |
+| `pcm.hpp`            | `Pcm20`, `Pcm20Frame`, and conversion and quantization functions                                   |
 | `events.hpp`         | `ControlEvent` for PD, DEM, and SMUTE changes                                                  |
 | `buffers.hpp`        | `StereoView<T>`, the non-owning planar buffer view                                             |
 | `adc_core.hpp`       | `AdcCore`, `AdcConfig`, `AdcInputMode`, `AdcLatencyInfo`, `adcInputFromVolts()` (M7)           |
