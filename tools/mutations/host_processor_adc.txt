@@ -1,0 +1,12 @@
+# source: src/core/host_processor.cpp
+# label: adc
+[
+ ('adc delay wrong', '        : config.path == HostPath::adc                         ? 469', '        : config.path == HostPath::adc                         ? 468'),
+ ('loopback delay as DAC', '                                                                : 3521;', '                                                                : 1176;'),
+ ('staging leftover dropped', '            staged -= k * os;', '            staged = 0;'),
+ ('loopback skips ADC events', '                static_cast<void>(adc.process({std::span(hiL).first(k * os), std::span(hiR).first(k * os)}, ev,', '                static_cast<void>(adc.process({std::span(hiL).first(k * os), std::span(hiR).first(k * os)}, {},'),
+ ('adc frames per host ratio', '        const std::int64_t num = h.inputSrc.ratioNumerator() * (h.adcIn ? static_cast<std::int64_t>(os) : 1);', '        const std::int64_t num = h.inputSrc.ratioNumerator();'),
+ ('output oversampling 8', '    h.outOs = h.adcOut ? 1 : os;', '    h.outOs = os;'),
+ ('adc clip count lost', '        d.adcClippedSamples = a.clippedInputSamples;', ''),
+ ('no adc reset', '        adc.reset();\n        staged = 0;', '        staged = 0;'),
+]

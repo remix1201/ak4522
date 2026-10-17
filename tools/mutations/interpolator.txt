@@ -1,9 +1,11 @@
+# source: src/dsp/interpolator.cpp
+# label: filter
 [
- ("polyphase index transposed", "            const std::size_t n = k * Interpolator8x::factor + p;", "            const std::size_t n = p * Interpolator8x::tapsPerPhase + k;"),
- ("history not mirrored", "    samples[head + tapsPerPhase] = x;\n", ""),
- ("history pushed forward", "    head = head == 0 ? tapsPerPhase - 1 : head - 1;", "    head = head + 1 == tapsPerPhase ? 0 : head + 1;"),
- ("last tap dropped", "        for (std::size_t k = 0; k < tapsPerPhase; ++k) {\n            sum += phases[p][k] * x[k];", "        for (std::size_t k = 0; k + 1 < tapsPerPhase; ++k) {\n            sum += phases[p][k] * x[k];"),
- ("channels crossed", "        interpolateFrame(right_, outRight.data() + i * factor);", "        interpolateFrame(left_, outRight.data() + i * factor);"),
- ("right history not reset", "    right_ = History{};\n", ""),
- ("phases reversed", "        out[p] = sum;", "        out[factor - 1 - p] = sum;"),
+ ('polyphase index transposed', '            const std::size_t n = k * Interpolator8x::factor + p;', '            const std::size_t n = p * Interpolator8x::tapsPerPhase + k;'),
+ ('history not mirrored', '    samples[head + tapsPerPhase] = x;\n', ''),
+ ('history pushed forward', '    head = head == 0 ? tapsPerPhase - 1 : head - 1;', '    head = head + 1 == tapsPerPhase ? 0 : head + 1;'),
+ ('last tap dropped', '        for (std::size_t k = 0; k < tapsPerPhase; ++k) {\n            sum += phases[p][k] * x[k];', '        for (std::size_t k = 0; k + 1 < tapsPerPhase; ++k) {\n            sum += phases[p][k] * x[k];'),
+ ('channels crossed', '        interpolateFrame(right_, outRight.data() + i * factor);', '        interpolateFrame(left_, outRight.data() + i * factor);'),
+ ('right history not reset', '    right_ = History{};\n', ''),
+ ('phases reversed', '        out[p] = sum;', '        out[factor - 1 - p] = sum;'),
 ]

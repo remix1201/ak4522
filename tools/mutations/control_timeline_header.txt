@@ -1,4 +1,6 @@
+# source: src/core/control_timeline.hpp
+# label: control
 [
- ("flags not cleared after segment", "        clearPending_ = false;\n        deemphasisChanged_ = false;\n", ""),
- ("validation skipped", "    if (const Status status = validate(frames, events); status != Status::ok) {\n        return status;\n    }", ""),
+ ('flags not cleared after segment', '        clearPending_ = false;\n        deemphasisChanged_ = false;\n', ''),
+ ('validation skipped', '    if (const Status status = validate(frames, events); status != Status::ok) {\n        return status;\n    }', ''),
 ]

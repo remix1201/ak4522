@@ -1,12 +1,14 @@
+# source: src/analog/output_stage.cpp
+# label: analog
 [
- ("noise floor ignored in calibration", "    const double distortionPower = std::pow(10.0, -targetSinadDb / 10.0) - noisePower / tonePower;", "    const double distortionPower = std::pow(10.0, -targetSinadDb / 10.0) + 0.0 * noisePower / tonePower;"),
- ("2nd harmonic coefficient halved", "        c.quadratic = 2.0 * each;", "        c.quadratic = each;"),
- ("fixed mismatch sign swapped", "        return {fixedMismatchDb / 2.0, -fixedMismatchDb / 2.0};", "        return {-fixedMismatchDb / 2.0, fixedMismatchDb / 2.0};"),
- ("mismatch cap removed", "    const double total = std::min(std::abs(gaussian) * sigma, maxMismatchDb);", "    const double total = std::abs(gaussian) * sigma;"),
- ("mismatch median 0.3 dB", "    const double sigma = fixedMismatchDb / 0.6744897501960817;", "    const double sigma = 0.3 / 0.6744897501960817;"),
- ("capacitive not scaled to 1 kHz", "        c_.crosstalk = c_.crosstalkDifferentiates ? level / (2.0 * std::sin(pi * 1000.0 / sampleRate)) : level;", "        c_.crosstalk = level;"),
- ("crosstalk from own channel", "        left[i] = l + c_.crosstalk * fromRight + c_.offset;", "        left[i] = l + c_.crosstalk * fromLeft + c_.offset;"),
- ("difference state not updated", "        previousLeft_ = l;\n        previousRight_ = r;", ""),
- ("offset missing on right", "        right[i] = r + c_.crosstalk * fromLeft + c_.offset;", "        right[i] = r + c_.crosstalk * fromLeft;"),
- ("cubic term sign", "        c.cubic = -4.0 * each;", "        c.cubic = 4.0 * each;"),
+ ('noise floor ignored in calibration', 'const double distortionPower = std::pow(10.0, -targets.sinadDb / 10.0) - noisePower / tonePower;', 'const double distortionPower = std::pow(10.0, -targets.sinadDb / 10.0) + 0.0 * noisePower / tonePower;'),
+ ('2nd harmonic coefficient halved', '        c.quadratic = 2.0 * each / a;', '        c.quadratic = each / a;'),
+ ('fixed mismatch sign swapped', '        return {fixedMismatchDb / 2.0, -fixedMismatchDb / 2.0};', '        return {-fixedMismatchDb / 2.0, fixedMismatchDb / 2.0};'),
+ ('mismatch cap removed', '    const double total = std::min(std::abs(gaussian) * sigma, maxMismatchDb);', '    const double total = std::abs(gaussian) * sigma;'),
+ ('mismatch median 0.3 dB', '    const double sigma = fixedMismatchDb / 0.6744897501960817;', '    const double sigma = 0.3 / 0.6744897501960817;'),
+ ('capacitive not scaled to 1 kHz', '        c_.crosstalk = c_.crosstalkDifferentiates ? level / (2.0 * std::sin(pi * 1000.0 / sampleRate)) : level;', '        c_.crosstalk = level;'),
+ ('crosstalk from own channel', '        left[i] = l + c_.crosstalk * fromRight + c_.offset;', '        left[i] = l + c_.crosstalk * fromLeft + c_.offset;'),
+ ('difference state not updated', '        previousLeft_ = l;\n        previousRight_ = r;', ''),
+ ('offset missing on right', '        right[i] = r + c_.crosstalk * fromLeft + c_.offset;', '        right[i] = r + c_.crosstalk * fromLeft;'),
+ ('cubic term sign', '        c.cubic = -4.0 * each / (a * a);', '        c.cubic = 4.0 * each / (a * a);'),
 ]

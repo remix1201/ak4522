@@ -1,10 +1,14 @@
-[('no per-phase normalization', '            row[j] /= sum; // exact unity DC gain in every phase (P-38)', '            static_cast<void>(sum);'),
+# source: src/dsp/resampler.cpp
+# label: rate
+[
+ ('no per-phase normalization', '            row[j] /= sum; // exact unity DC gain in every phase (P-38)', '            static_cast<void>(sum);'),
  ('attenuation target 100 dB', '    const double length = (spec.attenuationDb - 7.95) / (2.285 * 2.0 * pi * transition);', '    const double length = (spec.attenuationDb - 27.95) / (2.285 * 2.0 * pi * transition);'),
  ('cutoff at stopband edge', '    const double cutoff = 0.5 * (passbandHz_ + stopbandHz_) / spec.inputRate;', '    const double cutoff = stopbandHz_ / spec.inputRate;'),
  ('window off by one', '            row[j] = kernel(frac + w - 1.0 - static_cast<double>(j), cutoff, w, beta, i0Beta);', '            row[j] = kernel(frac + w - static_cast<double>(j), cutoff, w, beta, i0Beta);'),
- ('emitted one input early', '        while (nextIndex_ + w + 1 <= received_ && written < capacity) {', '        while (nextIndex_ + w <= received_ && written < capacity) {'),
+ ('emitted one input early', 'effectiveIndex() + w + 1 <= received_', 'effectiveIndex() + w <= received_'),
  ('remainder carry lost', '            if (nextRemainder_ >= q_) {\n                nextRemainder_ -= q_;\n                ++nextIndex_;\n            }', '            if (nextRemainder_ >= q_) {\n                nextRemainder_ -= q_;\n            }'),
  ('no phase interpolation', '                    blended_[j] = a[j] + alpha * (b[j] - a[j]);', '                    blended_[j] = a[j];'),
  ('default stopband too low', '    stopbandHz_ = spec.stopbandHz > 0.0 ? spec.stopbandHz : lower - passbandHz_;', '    stopbandHz_ = spec.stopbandHz > 0.0 ? spec.stopbandHz : 0.5 * lower;'),
- ('reset keeps timing', '    nextIndex_ = 0;\n    nextRemainder_ = 0;\n    received_ = 0;', '    received_ = 0;'),
- ('right channel uses left', '            outRight[written] = output(right_);', '            outRight[written] = output(left_);')]
+ ('reset keeps timing', '    nextIndex_ = offsetWhole_;\n    nextRemainder_ = 0;\n    received_ = 0;', '    received_ = 0;'),
+ ('right channel uses left', 'const double* xr = right_.window();', 'const double* xr = left_.window();'),
+]

@@ -1,0 +1,10 @@
+# source: src/serial/timing_validator.cpp
+# label: serial
+[
+ ('no PD gating', '    if (known_[pd] && !level_[pd]) {\n        return;\n    }', '    if (false) {\n        return;\n    }'),
+ ('no release grace', 'const double since = latest(lastEdge, pdRise_);', 'const double since = lastEdge;'),
+ ('reported repeatedly', '            stopped_[index] = true;', ''),
+ ('inclusive limit', 'if (t - since > clockStopNs) {', 'if (t - since >= clockStopNs) {'),
+ ('never re-armed', '    stopped_[pin] = false;\n', ''),
+ ('advanceTo ignored', '    checkClocks(timeNs);\n    lastTimeNs_ = timeNs;', '    lastTimeNs_ = timeNs;'),
+]

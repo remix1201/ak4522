@@ -1,5 +1,9 @@
-[('exclusive upper rate', 'config.dacRate <= maxDacRate', 'config.dacRate < maxDacRate'),
+# source: src/core/config_validation.cpp
+# label: clock
+[
+ ('exclusive upper rate', 'config.dacRate <= upper', 'config.dacRate < upper'),
  ('NaN MCLK accepted', '!std::isfinite(mclk) || ', ''),
  ('loose tolerance', '> masterClockTolerance * expected', '> 1e-6 * expected'),
  ('measured accepted', '    if (config.profile == ModelProfile::measured) {', '    if (false) {'),
- ('deemphasis enum unchecked', '\n        && enumAtMost(config.initialDeemphasis, DeemphasisSelect::fs32000);', ';')]
+ ('deemphasis enum unchecked', '        && enumAtMost(config.initialDeemphasis, DeemphasisSelect::fs32000)\n', ''),
+]

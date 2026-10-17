@@ -1,0 +1,8 @@
+# source: src/dsp/adc_highpass.cpp
+# label: adc
+[
+ ('corner not scaled', 'corner_ = cornerAt44100 * adcRate / 44100.0;', 'corner_ = cornerAt44100;'),
+ ('no prewarp', 'const double k = std::tan(pi * corner_ / adcRate);', 'const double k = pi * corner_ / adcRate * 1.05;'),
+ ('no flush', '    return std::abs(v) < flushThreshold ? 0.0 : v;', '    return v;'),
+ ('reset keeps state', '    xl_ = yl_ = xr_ = yr_ = 0.0;', ''),
+]

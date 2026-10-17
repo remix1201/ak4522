@@ -1,5 +1,7 @@
+# source: src/core/dac_core.cpp
+# label: core|analog
 [
- ("noise never added", "        if (noiseEnabled) {\n            // Analog noise", "        if (false) {\n            // Analog noise"),
- ("noise flag ignored", "    impl_->noiseEnabled = config.profile == ModelProfile::nominalAnalog && config.analog.noise;", "    impl_->noiseEnabled = config.profile == ModelProfile::nominalAnalog;"),
- ("noise prepared at DAC rate", "    impl_->noise.prepare(config.analog.noiseSeed, config.dacRate * static_cast<double>(oversampling));", "    impl_->noise.prepare(config.analog.noiseSeed, config.dacRate);"),
+ ('noise never added', '        if (noiseEnabled) {\n            // Analog noise', '        if (false) {\n            // Analog noise'),
+ ('noise flag ignored', '    impl_->noiseEnabled = config.profile == ModelProfile::nominalAnalog && config.analog.noise;', '    impl_->noiseEnabled = config.profile == ModelProfile::nominalAnalog;'),
+ ('noise prepared at DAC rate', '    impl_->noise.prepare(config.analog.noiseSeed, config.dacRate * static_cast<double>(oversampling));', '    impl_->noise.prepare(config.analog.noiseSeed, config.dacRate);'),
 ]

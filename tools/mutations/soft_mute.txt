@@ -1,9 +1,11 @@
+# source: src/core/soft_mute.cpp
+# label: mute
 [
- ("same-level not ignored", "        return false;", "        return true;"),
- ("reset keeps position", "    pinHigh_ = pinHigh;\n    position_ = target();\n}", "    pinHigh_ = pinHigh;\n}"),
- ("double step up", "        ++position_;", "        position_ += 2;"),
- ("early zero", "    return gainForPosition(position_);", "    return gainForPosition(position_ == 1 ? 0 : position_);"),
- ("skip when settled at zero", "    if (settled() && position_ == rampLength) {", "    if (settled()) {"),
- ("right channel unmuted", "        right[i] *= gain;\n", ""),
- ("setPin does not store", "    pinHigh_ = pinHigh;\n    return true;", "    return true;"),
+ ('same-level not ignored', '        return false;', '        return true;'),
+ ('reset keeps position', '    pinHigh_ = pinHigh;\n    position_ = target();\n}', '    pinHigh_ = pinHigh;\n}'),
+ ('double step up', '        ++position_;', '        position_ += 2;'),
+ ('early zero', '    return gainForPosition(position_);', '    return gainForPosition(position_ == 1 ? 0 : position_);'),
+ ('skip when settled at zero', '    if (settled() && position_ == rampLength) {', '    if (settled()) {'),
+ ('right channel unmuted', '        right[i] *= gain;\n', ''),
+ ('setPin does not store', '    pinHigh_ = pinHigh;\n    return true;', '    return true;'),
 ]

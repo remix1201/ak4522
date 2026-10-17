@@ -1,0 +1,12 @@
+# source: src/analog/example_output_circuit.cpp
+# label: circuit
+[
+ ('load ignored', '    const double load = options.loadOhms > 0.0', '    const double load = false'),
+ ('no prewarp sign', '    a1 = (k - 1.0) / (k + 1.0);', '    a1 = (1.0 - k) / (k + 1.0);'),
+ ('gain on wrong side', '    const double u = gain_ * y;', '    const double u = y;'),
+ ('output section skipped', '    return v;\n}', '    return u;\n}'),
+ ('input corner from output parts', 'inputCornerHz_ = 1.0 / (2.0 * pi * inputResistance * inputCapacitance);', 'inputCornerHz_ = 1.0 / (2.0 * pi * inputResistance * outputCapacitance);'),
+ ('invert ignored', '    gain_ = options.invert ? -magnitude : magnitude;', '    gain_ = -magnitude;'),
+ ('right uses left state', '    right = step(right_, right);', '    right = step(left_, right);'),
+ ('no flush', '    return std::abs(v) < flushThreshold ? 0.0 : v;', '    return v;'),
+]

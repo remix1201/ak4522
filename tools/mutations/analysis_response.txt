@@ -1,8 +1,10 @@
+# source: tools/ak4522_tools/response.py
+# label: tools
 [
- ("extrema not refined", "        candidates.append(Extremum(float(result.x), rel(float(result.x))))", "        candidates.append(Extremum(float(grid[index]), float(values[index])))"),
- ("band edges not candidates", "    candidates = [Extremum(f_lo, float(values[0])), Extremum(f_hi, float(values[-1]))]", "    candidates = []"),
- ("delay sign flipped", "    tau_seconds = -slope / (2.0 * np.pi)", "    tau_seconds = slope / (2.0 * np.pi)"),
- ("DTFT exponent sign", "        out[start:start + chunk] = np.exp(-1j * w * n[None, :]) @ h", "        out[start:start + chunk] = np.exp(1j * w * n[None, :]) @ h"),
- ("reference ignored", "    return magnitude_db(h, fs, freqs) - magnitude_db(h, fs, ref_hz)[0]", "    return magnitude_db(h, fs, freqs)"),
- ("dispersion not reported", "        max_deviation_samples=float(np.max(np.abs(deviation)) * fs),", "        max_deviation_samples=0.0,"),
+ ('extrema not refined', '        candidates.append(Extremum(float(result.x), rel(float(result.x))))', '        candidates.append(Extremum(float(grid[index]), float(values[index])))'),
+ ('band edges not candidates', '    candidates = [Extremum(f_lo, float(values[0])), Extremum(f_hi, float(values[-1]))]', '    candidates = []'),
+ ('delay sign flipped', '    tau_seconds = -slope / (2.0 * np.pi)', '    tau_seconds = slope / (2.0 * np.pi)'),
+ ('DTFT exponent sign', '        out[start:start + chunk] = np.exp(-1j * w * n[None, :]) @ h', '        out[start:start + chunk] = np.exp(1j * w * n[None, :]) @ h'),
+ ('reference ignored', '    return magnitude_db(h, fs, freqs) - magnitude_db(h, fs, ref_hz)[0]', '    return magnitude_db(h, fs, freqs)'),
+ ('dispersion not reported', '        max_deviation_samples=float(np.max(np.abs(deviation)) * fs),', '        max_deviation_samples=0.0,'),
 ]

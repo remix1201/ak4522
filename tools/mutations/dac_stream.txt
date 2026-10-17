@@ -1,0 +1,19 @@
+# source: src/core/dac_stream.cpp
+# label: stream
+[
+ ('int16 scale', 'return Pcm20{x * 16};', 'return Pcm20{x * 8};'),
+ ('int24 shift', 'return Pcm20{x >> 4};', 'return Pcm20{x >> 3};'),
+ ('int16 upper bound', '        hi = 32767;', '        hi = 32768;'),
+ ('ceil to floor', 'return detail::mulDivCeil(hostFrames, dacPerHostNum, dacPerHostDen);', 'return detail::mulDivFloor(hostFrames, dacPerHostNum, dacPerHostDen);'),
+ ('no underrun count', 'underrunFrames.fetch_add(k - take,', 'underrunFrames.fetch_add(0,'),
+ ('push event offset', 'static_cast<std::uint32_t>(e.frame - read)', 'static_cast<std::uint32_t>(e.frame - read + 1)'),
+ ('ignore queue space', 'std::min<std::uint64_t>(n, space)', 'std::min<std::uint64_t>(n, n)'),
+ ('alignment swapped', 'detail::alignOutput(den, num, os)', 'detail::alignOutput(num, den, os)'),
+ ('prefill without kernel', 'detail::outputPrefill(0.0, static_cast<double>(s.outputSrc.halfWidth())', 'detail::outputPrefill(0.0, 0.0'),
+ ('pull events unchecked', '            || detail::ControlTimeline::validate(k, std::span(blockEvents).first(events)) != Status::ok) {', '            ) {'),
+ ('ratio off by one', 'out.ratioNumerator = static_cast<std::int64_t>(num * os);', 'out.ratioNumerator = static_cast<std::int64_t>(num * os + 1);'),
+ ('read past taken', 'framesRead.store(read + take, std::memory_order_release);', 'framesRead.store(read + k, std::memory_order_release);'),
+ ('format check skipped', 'if (!formatAccepts<T>(config.format)) {', 'if (false) {'),
+ ('events after accepted kept', 'if (e.offset >= accept || evWrite - evRead >= eventRing.size()) {', 'if (evWrite - evRead >= eventRing.size()) {'),
+ ('zero-frame call', '        if (k == 0) {\n            return 0; // a short render needing no new frame: the source is not called (P-101)\n        }', ''),
+]

@@ -1,0 +1,9 @@
+# source: src/dsp/decimator.cpp
+# label: adc
+[
+ ('no pipeline', 'const double* xl = left_.window() + pipelineSamples;', 'const double* xl = left_.window();'),
+ ('output on last sample', '        left_.push(inLeft[j * factor]);\n        right_.push(inRight[j * factor]);', '        left_.push(inLeft[j * factor + 7]);\n        right_.push(inRight[j * factor + 7]);'),
+ ('odd taps dropped', '            l1 += designed[k + 1] * xl[k + 1];', ''),
+ ('right uses left history', 'const double* xr = right_.window() + pipelineSamples;', 'const double* xr = left_.window() + pipelineSamples;'),
+ ('short mirror', '    samples[head + span_] = x;', ''),
+]

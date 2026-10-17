@@ -1,0 +1,8 @@
+# source: src/core/config_validation.cpp
+# label: extended
+[
+ ('flag ignored', 'config.allowExtendedRate ? extendedMaxDacRate : maxDacRate', 'maxDacRate'),
+ ('always extended', 'config.allowExtendedRate ? extendedMaxDacRate : maxDacRate', 'extendedMaxDacRate'),
+ ('open upper bound', 'config.dacRate <= upper', 'config.dacRate < upper'),
+ ('lower side extended', 'config.dacRate >= minDacRate &&', 'config.dacRate >= minDacRate * 0.95 &&'),
+]

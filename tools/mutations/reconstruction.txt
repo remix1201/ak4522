@@ -1,12 +1,14 @@
+# source: src/dsp/reconstruction.cpp
+# label: filter
 [
- ("feedback sign flipped", "        z[0] = flushed(c.b1 * v - c.a1 * y + z[1]);", "        z[0] = flushed(c.b1 * v + c.a1 * y + z[1]);"),
- ("b2 term dropped", "        z[1] = flushed(c.b2 * v - c.a2 * y);", "        z[1] = flushed(-c.a2 * y);"),
- ("second section skipped", "    for (std::size_t s = 0; s < sections; ++s) {\n        const Section& c = sectionTable[s];", "    for (std::size_t s = 0; s < 1; ++s) {\n        const Section& c = sectionTable[s];"),
- ("delay one sample short", "    position = position + 1 == samples ? 0 : position + 1;", "    position = position + 2 >= samples ? 0 : position + 1;"),
- ("delay written before read", "    const double y = buffer[position];\n    buffer[position] = x;", "    buffer[position] = x;\n    const double y = buffer[position];"),
- ("right channel uses left state", "        right[i] = right_.tick(right[i]);\n    }\n}\n\nstd::span", "        right[i] = left_.tick(right[i]);\n    }\n}\n\nstd::span"),
- ("flush threshold too high", "constexpr double flushThreshold = 1e-15;", "constexpr double flushThreshold = 1e-6;"),
- ("no flush", "    return std::abs(v) < flushThreshold ? 0.0 : v;", "    return v;"),
- ("reconstruction right not reset", "    left_ = Channel{};\n    right_ = Channel{};", "    left_ = Channel{};"),
- ("pipeline right not reset", "    left_ = Line{};\n    right_ = Line{};", "    left_ = Line{};"),
+ ('feedback sign flipped', '        z[0] = flushed(c.b1 * v - c.a1 * y + z[1]);', '        z[0] = flushed(c.b1 * v + c.a1 * y + z[1]);'),
+ ('b2 term dropped', '        z[1] = flushed(c.b2 * v - c.a2 * y);', '        z[1] = flushed(-c.a2 * y);'),
+ ('second section skipped', '    for (std::size_t s = 0; s < sections; ++s) {\n        const Section& c = sectionTable[s];', '    for (std::size_t s = 0; s < 1; ++s) {\n        const Section& c = sectionTable[s];'),
+ ('delay one sample short', '    position = position + 1 == samples ? 0 : position + 1;', '    position = position + 2 >= samples ? 0 : position + 1;'),
+ ('delay written before read', '    const double y = buffer[position];\n    buffer[position] = x;', '    buffer[position] = x;\n    const double y = buffer[position];'),
+ ('right channel uses left state', '        right[i] = right_.tick(right[i]);\n    }\n}\n\nstd::span', '        right[i] = left_.tick(right[i]);\n    }\n}\n\nstd::span'),
+ ('flush threshold too high', 'constexpr double flushThreshold = 1e-15;', 'constexpr double flushThreshold = 1e-6;'),
+ ('no flush', '    return std::abs(v) < flushThreshold ? 0.0 : v;', '    return v;'),
+ ('reconstruction right not reset', '    left_ = Channel{};\n    right_ = Channel{};', '    left_ = Channel{};'),
+ ('pipeline right not reset', '    left_ = Line{};\n    right_ = Line{};', '    left_ = Line{};'),
 ]

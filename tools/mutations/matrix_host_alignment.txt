@@ -1,0 +1,5 @@
+# source: src/core/host_alignment.hpp
+# label: matrix
+[
+ ('prefill margin removed', '* hostPerDac / os)) + 2;', '* hostPerDac / os)) - 4;'),
+]

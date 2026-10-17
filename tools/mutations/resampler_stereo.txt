@@ -1,0 +1,8 @@
+# source: src/dsp/resampler.cpp
+# label: rate
+[
+ ('right reads left', 'const double* xr = right_.window();', 'const double* xr = left_.window();'),
+ ('partial sum dropped', 'left = (l0 + l1) + (l2 + l3);', 'left = (l0 + l1) + l2;'),
+ ('remainder skipped', '    for (; j < taps_; ++j) {\n        l0 += row[j] * xl[j];', '    for (; j < 0; ++j) {\n        l0 += row[j] * xl[j];'),
+ ('row offset', 'r1 += row[j + 1] * xr[j + 1];', 'r1 += row[j] * xr[j + 1];'),
+]
