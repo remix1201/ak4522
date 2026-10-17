@@ -25,7 +25,7 @@ Last substantive update: 2026-10-16. M0 to M5 were merged into `main` and approv
 | Sample-rate converter           | REQ-RATE-02, REQ-RATE-04              | implemented    | passing (see below)      | approved 2026-10-16 (`m3-approved`)                  | merged into `main`    |
 | Host-rate adaptation            | REQ-RATE-01, REQ-RATE-03, REQ-CTRL-01, REQ-LAT-03 | implemented | passing (see below) | approved 2026-10-16 (`m3-approved`)           | merged into `main`    |
 | Host-rate matrix verification, example, published responses | REQ-RATE-01 to REQ-RATE-04, REQ-RT-01 | implemented | passing (see below) | approved 2026-10-16 (`m3-approved`) | merged into `main` |
-| Platform support                | REQ-PLATFORM-01                       | implemented    | passing on macOS, Windows ARM64 and x64, Linux (see below) | approved 2026-10-16 | merged into `main` |
+| Platform support                | REQ-PLATFORM-01                       | implemented    | passing on macOS, Windows ARM64 and x64, and Linux (see below) | approved 2026-10-16 | merged into `main` |
 | Specification profile lock      | REQ-SCOPE-03                          | implemented    | passing (see below)      | approved 2026-10-16 (`m4-approved`)                  | merged into `main`    |
 | Weighted measurement tools      | REQ-NOISE-01, REQ-DIST-01             | implemented    | passing (see below)      | approved 2026-10-16 (`m4-approved`)                  | merged into `main`    |
 | NominalAnalog noise             | REQ-NOISE-01, REQ-NOISE-02            | implemented    | passing (see below)      | approved 2026-10-16 (`m4-approved`)                  | merged into `main`    |

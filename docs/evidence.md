@@ -237,7 +237,7 @@ Filter values at fs = 44.1 kHz; frequencies scale with fs; response reference 1 
 | AD-15 | SDTO at 64fs: modes 0, 1, 2 carry bits 19 to 0 in the 20 bit clocks from the LRCK edge, then idle; mode 3 carries bit 19 in the slot after the LRCK edge through bit 0 in slot 20 | D | p.9 Fig.1; p.10 Figs.2 to 4 | medium | REQ-ADC-04 | `[sdto]` | passing |
 | AD-16 | SDTO at 32fs carries bits 19 to 4: mode 0 in slots 0 to 15 (Fig.1); mode 3 from slot 1, with bit 4 in slot 0 of the next half-frame (Fig.4) | D | p.9 Fig.1; p.10 Fig.4 | medium | REQ-ADC-04 | `[sdto]` | passing |
 | AD-17 | Fig.7 single-ended connection: 470 ohm and 2.2 nF on the driven input (154 kHz), the other input AC-grounded through 4.7 uF and 0.1 uF | D | p.13 Fig.7 | medium | REQ-ADC-05 | n/a | informational |
-| AD-18 | Fig.10 differential buffer example: NJM2100, 1.5 Vpp on each input, 330 ohm and 1.5 nF per input | D | p.15 Fig.10 | medium | REQ-ADC-05 | n/a | informational |
+| AD-18 | Fig.10 differential buffer example: NJM2100, 1.5 Vpp on each input, and 330 ohm and 1.5 nF per input | D | p.15 Fig.10 | medium | REQ-ADC-05 | n/a | informational |
 | AD-19 | The ADC initialization does not affect DAC operation; clocks may stop while PD is low | D | p.12 | high | REQ-ADC-03, REQ-SCOPE-04 | `[adc]` | passing |
 
 | ID     | Value                                                                  | Derivation                                                          | Class |
