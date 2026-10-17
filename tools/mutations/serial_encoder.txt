@@ -1,0 +1,11 @@
+# source: src/serial/serial_encoder.cpp
+# label: sdto
+# Not listed: counting slots before the first LRCK edge is an equivalent mutant; the word
+# register is zero until that edge, so SDTO is "0" either way.
+[
+ ('no I2S delay', '    const bool out = delayed_; // one bit clock later (AD-15, AD-16)', '    const bool out = bit;'),
+ ('I2S polarity', '        const bool left = i2s ? !lrck : lrck; // Table 2 L/R levels (AD-11)', '        const bool left = lrck;'),
+ ('21 bits', '    return slot_ < 20 && ((word_ >> (19 - slot_)) & 1u) != 0;', '    return slot_ < 21 && slot_ < 20 && ((word_ >> (19 - slot_)) & 1u) != 0 || slot_ == 20;'),
+ ('latch every half', '        if (left) {\n            current_ = pending_;', '        if (true) {\n            current_ = pending_;'),
+ ('reset keeps frame', '    pending_ = {};\n    current_ = {};', '    current_ = {};'),
+]

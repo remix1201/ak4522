@@ -1,4 +1,7 @@
-[('I2S final bit not appended', "        if (i2s) {\n            appendBit(sdti); // the ending word's final bit", "        if (false) {\n            appendBit(sdti); // the ending word's final bit"),
+# source: src/serial/serial_decoder.cpp
+# label: serial
+[
+ ('I2S final bit not appended', "        if (i2s) {\n            appendBit(sdti); // the ending word's final bit", "        if (false) {\n            appendBit(sdti); // the ending word's final bit"),
  ('I2S slot 0 counted as data', '    if (!i2s) {\n        appendBit(sdti); // modes 0 to 2', '    if (true) {\n        appendBit(sdti); // modes 0 to 2'),
  ('I2S left level high', '    return format != SerialFormat::mode3I2s;', '    return true;'),
  ('mode 1 minimum 16', '    case SerialFormat::mode1RightJustified20: return 20;', '    case SerialFormat::mode1RightJustified20: return 16;'),
@@ -8,4 +11,5 @@
  ('no startup discard', '        started_ = true;\n        lrck_ = lrck;\n        return {};', '        started_ = true;\n        synchronized_ = true;\n        lrck_ = lrck;\n        return {};'),
  ('reset keeps left word', '    left_ = Pcm20{};\n    leftValid_ = false;\n}', '    left_ = Pcm20{};\n}'),
  ('invalid left still forms frame', '    } else if (!leftValid_) {', '    } else if (false) {'),
- ('bad format accepted', '        return Status::invalidConfiguration;', '        return Status::ok;')]
+ ('bad format accepted', '        return Status::invalidConfiguration;', '        return Status::ok;'),
+]

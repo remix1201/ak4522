@@ -38,13 +38,15 @@ cd tools && uv run python publish_responses.py ../build/release
 
 `check_docs.py` checks the engineering records for consistency and runs in CTest under the `docs` label. It uses only the standard library, so CTest runs it with any Python 3.9 or later; `test_check_docs.py` tests the checker itself.
 
-`mutation_check.py` checks that tests detect deliberate faults: it applies each entry of a list in `mutations/` to a source file, rebuilds, and runs a CTest label. Use a build configured with `-DAK4522_WARNINGS_AS_ERRORS=OFF`:
+`mutation_check.py` checks that the tests detect deliberate faults. Each list in `mutations/` names its source file and the CTest labels to run in two header lines (`# source:`, `# label:`), followed by `(name, old, new)` entries; the tool applies each entry, rebuilds, and reports whether a test failed. Use a build configured with `-DAK4522_WARNINGS_AS_ERRORS=OFF`:
 
 ```sh
 cmake -S . -B build/mutation -DAK4522_WARNINGS_AS_ERRORS=OFF
-python3 tools/mutation_check.py src/core/pcm.cpp pcm tools/mutations/pcm.txt
+python3 tools/mutation_check.py tools/mutations/pcm.txt   # one list
+python3 tools/mutation_check.py --all                     # every list
+python3 tools/mutation_check.py --check                   # every entry still applies; no build
 ```
 
-It is slow (a few seconds per mutation) and is not part of CTest.
+A full run is slow (a few seconds per entry, about an hour for all lists) and is not part of CTest. The `--check` mode is: CTest runs it as `tools.mutation_lists`, so a change that leaves a list stale fails the test suite. When code changes, update the affected entries; when a mutation survives, add a test that catches it.
 
 Generated coefficients are committed under `src/` together with a JSON design report (parameters, tool versions, checksum, measured response). Regeneration is checked against the response gates, not against bit-identical coefficients, because optimizer results can differ in the last bits across platforms.

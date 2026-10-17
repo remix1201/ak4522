@@ -1,4 +1,7 @@
-[('ignore priority order', '    for (const ControlType type : {ControlType::powerDown, ControlType::deemphasis,\n                                   ControlType::softMute}) {\n        for (const ControlEvent& event : sameFrame) {\n            if (event.type == type) {\n                apply(event);\n            }\n        }\n    }', '    for (const ControlEvent& event : sameFrame) {\n        apply(event);\n    }'),
+# source: src/core/control_timeline.cpp
+# label: control
+[
+ ('ignore priority order', '    for (const ControlType type : {ControlType::powerDown, ControlType::deemphasis,\n                                   ControlType::softMute}) {\n        for (const ControlEvent& event : sameFrame) {\n            if (event.type == type) {\n                apply(event);\n            }\n        }\n    }', '    for (const ControlEvent& event : sameFrame) {\n        apply(event);\n    }'),
  ('release does not latch mute', '            mute_.reset(smutePin_);\n', ''),
  ('release does not latch DEM', '            deemphasis_ = demPins_;\n', ''),
  ('DEM applied during reset', '        if (pdHigh_) {\n            deemphasis_ = select;', '        if (true) {\n            deemphasis_ = select;'),
@@ -6,4 +9,5 @@
  ('repeat PD not ignored', '        if (high == pdHigh_) {\n            ++ignoredEvents_;\n            return;\n        }', '        if (high == pdHigh_) {\n            return;\n        }'),
  ('allow offset == frames', '        if (event.offset >= frames) {', '        if (event.offset > frames) {'),
  ('no sort check', '        if (event.offset < previous) {', '        if (false) {'),
- ('accept bad pin value', '                && event.value <= 1;', '                && event.value <= 2;')]
+ ('accept bad pin value', '                && event.value <= 1;', '                && event.value <= 2;'),
+]

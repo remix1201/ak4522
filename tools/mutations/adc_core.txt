@@ -1,0 +1,19 @@
+# source: src/core/adc_core.cpp
+# label: adc
+[
+ ('init 515', 'constexpr std::uint32_t initializationFrames = 516;', 'constexpr std::uint32_t initializationFrames = 515;'),
+ ('no filter clear on PD edge', '            decimator.reset();\n            highpass.reset();\n            inputStage.reset();\n            initRemaining = initializationFrames;\n        }\n        if (seg.powerDown) {', '            initRemaining = initializationFrames;\n        }\n        if (seg.powerDown) {'),
+ ('no init on release', '            decimator.reset();\n            highpass.reset();\n            inputStage.reset();\n            initRemaining = initializationFrames;\n        }\n        if (seg.powerDown) {', '            decimator.reset();\n            highpass.reset();\n            inputStage.reset();\n        }\n        if (seg.powerDown) {'),
+ ('PD low passes signal', '            std::fill(out.begin(), out.end(), Pcm20Frame{}); // "0" data (AD-10)\n            return;', '            (void)0;'),
+ ('hpf skipped', '            highpass.process(l, r); // after the decimator (AD-13)', ''),
+ ('right from left', 'frame = {quantizeToPcm20(l[i], quantize), quantizeToPcm20(r[i], quantize)};', 'frame = {quantizeToPcm20(l[i], quantize), quantizeToPcm20(l[i], quantize)};'),
+ ('clip count lost', '    a.clipped.fetch_add(a.quantize.clipped - clippedBefore, std::memory_order_relaxed);', ''),
+ ('chunk offset', '            const std::size_t from = (seg.begin + done) * oversampling;', '            const std::size_t from = seg.begin * oversampling;'),
+ ('sinad target 90', '    t.sinadDb = mode == AdcInputMode::singleEnded ? 80.0 : 92.0; // AD-A10, AD-A01', '    t.sinadDb = mode == AdcInputMode::singleEnded ? 80.0 : 90.0;'),
+ ('single-ended ignored', '    t.sinadDb = mode == AdcInputMode::singleEnded ? 80.0 : 92.0; // AD-A10, AD-A01', '    t.sinadDb = 92.0;'),
+ ('tone at 0 dBFS', '    t.toneAmplitude = 0.94406087628592338;', '    t.toneAmplitude = 1.0;'),
+ ('DAC mismatch', '    t.fixedMismatchDb = 0.1;', '    t.fixedMismatchDb = 0.2;'),
+ ('isolation 100', '    t.isolationDb = 110.0;', '    t.isolationDb = 100.0;'),
+ ('no seed salt', 'constexpr std::uint64_t adcSeedSalt = 0x4144432D53454544ull;', 'constexpr std::uint64_t adcSeedSalt = 0;'),
+ ('noise before stage', '                inputStage.process(sl, sr);\n                if (noiseEnabled) {\n                    noise.add(sl, sr);\n                }', '                if (noiseEnabled) {\n                    noise.add(sl, sr);\n                }'),
+]

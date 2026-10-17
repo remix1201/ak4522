@@ -1,0 +1,6 @@
+# source: src/core/host_alignment.hpp
+# label: host
+[
+ ('prefill margin removed', '* hostPerDac / os)) + 2;', '* hostPerDac / os)) - 4;'),
+ ('latency whole off by one', 'a.latencyWhole = static_cast<std::int64_t>(mulDivFloor(delayNum, hostPerDacNum, delayDen * hostPerDacDen));', 'a.latencyWhole = static_cast<std::int64_t>(mulDivFloor(delayNum, hostPerDacNum, delayDen * hostPerDacDen)) + 1;'),
+]

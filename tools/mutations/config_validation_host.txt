@@ -1,3 +1,7 @@
-[('zero block allowed', '    if (config.maxBlockFrames == 0) {', '    if (false) {'),
- ('host rate unchecked', '        return Status::unsupportedHostRate;', '        return Status::ok;'),
- ('zero pending events allowed', '    if (config.maxPendingEvents == 0\n        || ', '    if (false\n        || ')]
+# source: src/core/config_validation.cpp
+# label: host|rate
+[
+ ('zero block allowed', '    if (config.maxBlockFrames == 0) {\n        return Status::invalidBlockSize;\n    }\n    if (config.maxPendingEvents == 0', '    if (false) {\n        return Status::invalidBlockSize;\n    }\n    if (config.maxPendingEvents == 0'),
+ ('host rate unchecked', 'Status validate(const HostConfig& config) noexcept\n{\n    if (!hostRateSupported(config.hostRate)) {', 'Status validate(const HostConfig& config) noexcept\n{\n    if (false) {'),
+ ('zero pending events allowed', '    if (config.maxPendingEvents == 0\n        || ', '    if (false\n        || '),
+]

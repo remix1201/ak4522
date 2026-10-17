@@ -48,6 +48,7 @@ Available on `main`: `DacCore` (DAC-rate PCM in, 8x the DAC rate out), `HostProc
 - **Purpose:** reproducible C++20 build, test runner, and offline Python tooling.
 - **Contents:** CMake library target `ak4522::ak4522`; Catch2 v3.16.0 pinned by commit; CTest labels from test tags (`unit`, `dsp`, `soak`); JUnit XML output in `build/<preset>/test-results/`; presets `dev` (warnings as errors), `asan` (address and undefined-behavior sanitizers), `release`; uv-locked Python 3.12 environment in `tools/` with numpy, scipy, matplotlib.
 - **Validation:** `dev` and `asan` presets build without warnings and pass all tests. See [validation.md](validation.md).
+- **Mutation suite:** `tools/mutation_check.py` with 37 lists in `tools/mutations/` (264 mutations, all detected in the last full run); CTest's `tools.mutation_lists` fails if a code change leaves an entry stale. See [tools/README.md](../tools/README.md).
 - **Real-time checks:** `tests/support/allocation_counter.hpp` replaces global `operator new` and `delete` in the test executable and counts allocations per thread while armed (REQ-RT-01). Its own tests confirm it detects plain, array-backed, and over-aligned allocations.
 - **Limitations:** CI is defined but has not run. Platform results are under Platform support.
 - **Usage:**

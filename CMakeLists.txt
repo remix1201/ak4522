@@ -165,7 +165,11 @@ if(AK4522_BUILD_TESTS)
                 --root ${PROJECT_SOURCE_DIR})
         add_test(NAME docs.checker_self_test
             COMMAND Python3::Interpreter ${PROJECT_SOURCE_DIR}/tools/test_check_docs.py)
-        set_tests_properties(docs.consistency docs.checker_self_test
+        # Every mutation list must still apply to its source (a fast check;
+        # the mutation runs themselves are manual, see tools/README.md).
+        add_test(NAME tools.mutation_lists
+            COMMAND Python3::Interpreter ${PROJECT_SOURCE_DIR}/tools/mutation_check.py --check)
+        set_tests_properties(docs.consistency docs.checker_self_test tools.mutation_lists
             PROPERTIES LABELS "docs;unit")
     else()
         message(WARNING "Python 3.9+ not found; documentation checks are disabled")
