@@ -11,7 +11,7 @@ TEST_CASE("Every status has a distinct description", "[unit]")
 {
     const Status all[] = {
         Status::ok, Status::notPrepared, Status::invalidDacRate, Status::invalidMasterClock,
-        Status::unsupportedHostRate, Status::unsupportedRatePair, Status::invalidBlockSize,
+        Status::unsupportedHostRate, Status::invalidBlockSize,
         Status::invalidConfiguration, Status::channelSizeMismatch,
         Status::insufficientOutputCapacity, Status::eventOutOfRange, Status::eventsNotSorted,
         Status::formatMismatch, Status::modeMismatch,

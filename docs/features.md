@@ -10,7 +10,7 @@ Last substantive update: 2026-10-16. M0 to M5 were merged into `main` and approv
 | ------------------------------- | ------------------------------------- | -------------- | ------------------------ | --------------------------------- | --------------------- |
 | Build and test foundation       | AGENTS.md s.13, M0                    | implemented    | passing (see below)      | approved 2026-10-16 (`m0-approved`) | merged into `main` |
 | Evidence and assumptions ledgers | AGENTS.md s.2, M0                    | implemented    | reviewed against [DS]    | approved 2026-10-16 (`m0-approved`) | merged into `main` |
-| Public API proposal             | REQ-ARCH-01, REQ-ARCH-02, REQ-RT-02   | in progress (declared, not implemented) | compile-time contract checks pass | approved 2026-10-16 (`m0-approved`) | merged into `main` |
+| Public API                      | REQ-ARCH-01, REQ-ARCH-02, REQ-RT-02   | implemented    | compile-time contract checks pass | approved 2026-10-16 (`m0-approved`) | merged into `main` |
 | PCM mapping and quantization    | REQ-PCM-01 to REQ-PCM-03              | implemented    | passing (see below)      | approved 2026-10-16 (`m1-approved`) | merged into `main`    |
 | Serial decoder                  | REQ-SERIAL-01, REQ-SERIAL-03          | implemented    | passing (see below)      | approved 2026-10-16 (`m1-approved`) | merged into `main`    |
 | Serial timing validator         | REQ-SERIAL-02                         | implemented    | passing (see below)      | approved 2026-10-16 (`m1-approved`) | merged into `main`    |
@@ -64,11 +64,11 @@ Available on `main`: `DacCore` (DAC-rate PCM in, 8x the DAC rate out), `HostProc
 - **Validation:** all numeric constants in AGENTS.md sections 4 to 10 checked against [DS] M0020-E-01 on 2026-10-15. Project owner spot-checked 14 items on 2026-10-16; DISC-04 withdrawn and DISC-01 wording corrected as a result.
 - **Limitations:** based on one datasheet revision. A newer revision, if found, must be compared and recorded.
 
-## Public API proposal
+## Public API
 
-- **Purpose:** framework-independent interface for the DAC core, host-rate processing, and serial conformance.
-- **Contents:** headers in `include/ak4522/`; design and decisions in [api.md](api.md).
-- **Implementation:** pin mappings, defaults, and data types are defined. All processing functions are declared only; calling them fails to link.
+- **Purpose:** framework-independent interface for the DAC and ADC cores, host-rate processing, streams, and serial conformance.
+- **Contents:** headers in `include/ak4522/`; contract and decisions in [api.md](api.md); usage in [integration.md](integration.md).
+- **Implementation:** every declared function is implemented; the entries below describe each part.
 - **Validation:** `tests/api_contract_test.cpp` checks pin mappings against [DS] tables, P-01 defaults, same-frame event order, and `noexcept` on every audio-thread entry point at compile time.
 - **Approval:** project owner approved decisions O-01 (8x core output), O-02 (256 pending events), and O-03 (reserve the measured profile) on 2026-10-15, and approved the API proposal as part of M0 on 2026-10-16 (tag `m0-approved`). Approval covers the proposal; implementations are approved with their milestones.
 
@@ -96,7 +96,7 @@ Available on `main`: `DacCore` (DAC-rate PCM in, 8x the DAC rate out), `HostProc
   - `ModelProfile::measured` and out-of-range enum values are rejected (`invalidConfiguration`).
   - Host rate must be exactly 44.1, 48, 88.2, 96, 176.4, or 192 kHz (`unsupportedHostRate`); `maxBlockFrames` and `maxPendingEvents` must be non-zero.
 - **Validation:** 14 test cases in `tests/config_validation_test.cpp`, including the nine p.9 Table 1 clock values, MCLK endpoints at both rate limits, the synchronization tolerance on both sides, and NaN inputs. All eight deliberate mutations are detected (see [validation.md](validation.md)).
-- **Limitations:** the host/DAC rate-pair matrix (`unsupportedRatePair`) is defined in M3 with the SRC. Clock loss while running (D-C07) is a runtime fault reported by the timing validator, not a configuration check.
+- **Limitations:** every supported host rate works with every DAC rate, so there is no separate rate-pair check. Clock loss while running (D-C07) is a runtime fault reported by the timing validator, not a configuration check.
 - **Updated:** 2026-10-16.
 
 ## Soft mute
@@ -200,7 +200,7 @@ Available on `main`: `DacCore` (DAC-rate PCM in, 8x the DAC rate out), `HostProc
   - The DEM pins alone choose the set, which runs unchanged at any DAC rate, as on the chip. There is no automatic selection by DAC rate in the core; the plugin adapter may offer one by setting the DEM parameter.
   - A change of set resets the new section's state; re-selecting the current set changes nothing. There is no crossfade in the core: any smoothing would be host behavior in the plugin adapter.
 - **Validation:** 11 C++ test cases: OFF bypass, closed-form impulse responses, unity DC and Nyquist gain, each selection within 0.1 dB of the analog curve at its own rate, a selection kept at another DAC rate, switching reset, re-selection keeps state, reset of both channels, block partitioning across selection changes, and no allocations. `tools/tests/test_generated_files.py` evaluates the committed sets against the analog reference independently. Six deliberate mutations detected. Passes in `dev` and `asan`.
-- **Limitations:** de-emphasis is not yet connected to `DacCore`; that happens in `m2-core`. The chip's switching transient and coefficients are unknown (U-07).
+- **Limitations:** the chip's switching transient and coefficients are unknown (U-07).
 - **Updated:** 2026-10-16.
 
 ## DAC core (linear Specification profile)
@@ -229,7 +229,7 @@ Available on `main`: `DacCore` (DAC-rate PCM in, 8x the DAC rate out), `HostProc
 - **Requirements:** REQ-RATE-02, REQ-RATE-04; policies P-33, P-34, P-37, P-38.
 - **Implementation:** internal `detail::Resampler` in `src/dsp/resampler.hpp`. Kaiser-windowed sinc designed for 125 dB, per-phase unity DC gain; exact phase rows for ratios such as 147/160 and 8/1, interpolated rows (4096 plus linear interpolation) otherwise. Rates are exact integers in micro-hertz; output m is input time m P / Q exactly; delay W input samples (`halfWidth()`). The kernel is designed in `prepare`, off the audio thread.
 - **Validation:** 20 test cases across 14 rate pairs from both sides of the plugin path (including 44 123 Hz, which needs interpolated rows), measured by least-squares sine fits: passband error <= 0.005 dB and residual <= -110 dBFS at 12 frequencies per pair; stopband <= -120 dB where the input reaches the stopband; transition-band content folding only above the passband edge; exact output timing (impulse peak and sine phase); unity DC; exact output counts over 3 million inputs in random blocks; block invariance; reset; channels; no allocations. Twelve deliberate mutations detected. Passes in `dev` and `asan`.
-- **Limitations:** not yet used by `HostProcessor` (next branch).
+- **Limitations:** an internal component, used by `HostProcessor` and `DacStream`; not part of the public API.
 - **Updated:** 2026-10-16.
 
 ## Host-rate adaptation
@@ -250,7 +250,7 @@ Available on `main`: `DacCore` (DAC-rate PCM in, 8x the DAC rate out), `HostProc
 - **Latency:** the output converter's time origin is shifted so the total is whole host frames, reported as `reportedHostFrames`; the components are in `LatencyInfo`. Measured timing matches the report within 0.01 frame at 10 rate pairs.
 - **Behavior:** at host rates whose band reaches the DAC images (for example 96 kHz with a 32 kHz DAC), the images appear in the output at the DAC's own stopband level, as in the analog output. `reset()` restores the post-prepare state but continues the dither stream (P-74).
 - **Validation:** 19 test cases: configuration and call validation; latency bookkeeping; output timing within 0.01 frame by passband sine-phase fits at 10 rate pairs (equal rates, 44.1 / 48 in both directions, up to 192 kHz host, DAC 16 to 48 kHz including 37.8 kHz); no underruns with random blocks; level within 0.01 dB at 1 kHz with a 44.1 kHz DAC (0.06 dB at other DAC rates, where 1 kHz falls elsewhere in the ripple); image level at high host rates; bitwise block-partition invariance with events; mute aligned with the reported latency and exact silence after; exact event-to-frame mapping at a grid point; pending events cleared by reset; dropped-event counting; float and double agreement; in-place processing; 16-bit resolution; seeded dither; non-finite and clipped counting; reset; no allocations. Thirteen deliberate mutations detected. Passes in `dev` and `asan`.
-- **Limitations:** the full rate matrix, long runs, near-Nyquist sweeps, and alias containment are the next branch (`m3-verify`).
+- **Limitations:** host rates outside the six supported ones are rejected. The full rate matrix, long runs, near-Nyquist sweeps, and alias containment are under Host-rate matrix verification below.
 - **Updated:** 2026-10-16.
 
 ## Host-rate matrix verification, example, and published responses
@@ -420,6 +420,6 @@ Available on `main`: `DacCore` (DAC-rate PCM in, 8x the DAC rate out), `HostProc
 
 How this record is kept current (REQ-DOC-01 to REQ-DOC-05):
 
-- Substantial features get usage documentation under `docs/features/`, linked from the summary table (REQ-DOC-03). None exists yet because no feature is usable.
+- Usage documentation for users is in [integration.md](integration.md) and the reference in [api.md](api.md), linked from the feature entries, rather than in separate files under `docs/features/` (REQ-DOC-03).
 - Each feature branch reviews and updates `README.md` so available and planned features stay separate (REQ-DOC-04).
 - Before a feature is marked complete, its implementation, tests, this record, detailed documentation, and the README must agree. `tools/check_docs.py` runs as the CTest `docs` test and checks evidence rows, ID citations, requirement tracing, the datasheet checksum, local links, and dash style. It does not check that recorded values match the datasheet; that remains a review step (REQ-DOC-05).

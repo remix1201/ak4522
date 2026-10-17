@@ -10,7 +10,6 @@ std::string_view toString(Status status) noexcept
     case Status::invalidDacRate: return "DAC rate outside 16000 to 48000 Hz, or 50400 Hz when extended";
     case Status::invalidMasterClock: return "master clock outside the range for the CMODE ratio";
     case Status::unsupportedHostRate: return "unsupported host sample rate";
-    case Status::unsupportedRatePair: return "unsupported host and DAC rate combination";
     case Status::invalidBlockSize: return "invalid maximum block size";
     case Status::invalidConfiguration: return "invalid configuration";
     case Status::channelSizeMismatch: return "left and right channel lengths differ";
