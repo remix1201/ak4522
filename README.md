@@ -1,14 +1,32 @@
-# AK4522VF DAC Emulator
+# AK4522VF Emulator
 
-An independent C++20 library that models the DAC section of the AKM AK4522VF, for use in audio effects, instruments and emulators, offline tools, and other audio software.
+An independent C++20 library that models the AKM AK4522VF stereo audio codec, its 20-bit DAC and ADC, for use in audio effects, instruments and emulators of hardware that used the chip, offline tools, and other audio software. It has a C API and no dependencies, and does not use any plugin framework.
 
-The goal is to reproduce documented signal processing and control behavior, then refine the model through hardware measurements where available. The reusable DSP core will remain independent of plugin frameworks.
+The model reproduces the behavior and limits the datasheet documents, and labels everything else it has to assume. It is a specification-based model, not a recovered copy of AKM's silicon.
 
 ## Status
 
-**Alpha, milestones M0 to M5 and M7 complete.** The DAC core produces audio through the public `DacCore` API: 20-bit PCM frames and DEM, SMUTE, and PD events in, the reconstructed signal out at 8x the DAC rate, with the datasheet's filter response and 14.7-frame delay. `HostProcessor` wraps it for plugin use: host audio at 44.1 to 192 kHz in and out, with exactly reported latency. `DacStream` plays sources that run at their own DAC rate, such as instruments and emulated systems; an opt-in range reaches 50.4 kHz; a C API exposes both entry points; and the library installs as a CMake package ([integration guide](docs/integration.md)). An optional NominalAnalog profile adds synthetic noise, distortion, channel mismatch, crosstalk, and DC offset calibrated to the datasheet's typical values ([docs/analog_profile.md](docs/analog_profile.md)); the clean Specification profile remains the default. The datasheet's example output circuit (Fig.11: AC coupling and an inverting 5.1 dB stage) can be applied after the DAC on request. The plugin and hardware validation do not exist yet.
+**Alpha.** Milestones M0 to M5 and M7 are complete and approved; see the [roadmap](#development-roadmap).
 
-See [docs/features.md](docs/features.md) for the current status of each feature.
+| You want to | Use | Example |
+| ----------- | --- | ------- |
+| Run host audio through the emulated DAC, as an effect | `HostProcessor` | [host_processor_example.cpp](examples/host_processor_example.cpp) |
+| Play a synth or emulated system that runs at its own clock, such as 112 MHz / 2304, at any host rate | `DacStream`, pull or push | [dac_stream_example.cpp](examples/dac_stream_example.cpp), [dac_stream_push_example.cpp](examples/dac_stream_push_example.cpp) |
+| Use the chip model alone at its own rate | `DacCore` | [dac_core_example.cpp](examples/dac_core_example.cpp) |
+| Run host audio through the DAC and back through the ADC, or through the ADC alone | `HostProcessor` with `path = loopback` or `adc` | |
+| Digitize an analog-like signal at the ADC rate | `AdcCore` | |
+| Use any of it from C or another language | `ak4522/ak4522.h` | [c_api_example.c](examples/c_api_example.c) |
+
+What is available:
+
+- **DAC:** the datasheet's filter response and 14.7-frame delay, de-emphasis (32, 44.1, 48 kHz), the 1024-frame soft mute, power-down and reset, and 16-bit and 20-bit input.
+- **ADC:** decimation filter, 0.9 Hz high-pass filter, 29.3-frame delay (29.3125 modeled), the 516-frame initialization after reset, saturation at full scale, and differential or single-ended input.
+- **Rates:** DAC and ADC rates from 16 to 48 kHz, or up to 50.4 kHz with an opt-in extended range; host rates 44.1, 48, 88.2, 96, 176.4, and 192 kHz; exact fractional source rates without drift; exactly reported latency.
+- **Profiles:** the clean, deterministic Specification profile (the default), and an optional NominalAnalog profile that adds synthetic noise, distortion, channel mismatch, crosstalk, and (DAC only) a DC offset, calibrated to the datasheet's typical figures for each converter ([analog_profile.md](docs/analog_profile.md)).
+- **Serial interfaces:** an SDTI decoder and an SDTO encoder for all four modes, and a pin-timing validator, for conformance testing and device-style use.
+- **Extras:** the datasheet's example output circuit (Fig.11), off by default; a CPU benchmark; CMake and pkg-config packaging.
+
+Not available: a profile measured from real hardware (M6, deferred), and the demo plugin, which is planned as a separate project. See [docs/features.md](docs/features.md) for the status, validation, and limits of every feature.
 
 APIs, parameters, presets, serialized state, and internal formats may change without backward compatibility during alpha development.
 
@@ -57,11 +75,11 @@ In a virtual machine, clone into a local folder rather than building from a shar
 
 `cmake --install build/release --prefix <prefix>` installs the library and a CMake package; then `find_package(ak4522)` and link `ak4522::ak4522`. `add_subdirectory` and FetchContent work too, and `BUILD_SHARED_LIBS=ON` builds a shared library. See the [integration guide](docs/integration.md).
 
-Continuous integration (`.github/workflows/ci.yml`) defines the same steps for macOS, Windows, and Linux; it has not run yet because the repository is not on GitHub.
+Continuous integration (`.github/workflows/ci.yml`) defines the same steps for macOS, Windows, and Linux. The test suite has also been run by hand on all three; see [docs/validation.md](docs/validation.md).
 
 ## Using the library
 
-Start with the [integration guide](docs/integration.md). `HostProcessor` is the entry point for effects. A complete program is in [examples/host_processor_example.cpp](examples/host_processor_example.cpp):
+Start with the [integration guide](docs/integration.md); the full reference is [docs/api.md](docs/api.md). An effect:
 
 ```cpp
 ak4522::HostConfig config;                // host and DAC rates, block size
@@ -71,12 +89,13 @@ host.process(input, output, events);      // float or double, N frames in, N out
 host.latency().reportedHostFrames;        // report to the host for compensation
 ```
 
-`DacStream` plays a source that runs at its own DAC rate, such as an instrument or an emulated system, at the host rate. The rate is an exact fraction, so clock divisions like 112 MHz / 2304 do not drift. In pull mode it asks your callback for DAC frames as the host needs them; in push mode another thread feeds a bounded queue. See [docs/api.md](docs/api.md#dacstream):
+A source at its own clock, under any host rate:
 
 ```cpp
 ak4522::DacStreamConfig config;
-config.hostRate = 48000.0;
-config.dacRate = {44100000, 1001};        // Hz, as numerator / denominator
+config.hostRate = 96000.0;                // whatever the DAW runs at
+config.dacRate = {112000000, 2304};       // the source's exact rate in Hz
+config.dac.allowExtendedRate = true;      // 48.6 kHz is above the datasheet's 48 kHz
 config.format = ak4522::DacSampleFormat::int16;
 config.pull = &mySource;                  // void(void*, DacPullBlock&) noexcept
 ak4522::DacStream stream;
@@ -84,34 +103,15 @@ stream.prepare(config);                   // off the audio thread
 stream.render(output);                    // N host frames out
 ```
 
-From C or another language, include `ak4522/ak4522.h`, which exposes both with handles, plain structs, and status codes ([docs/api.md](docs/api.md#c-api)).
+From C or another language, include `ak4522/ak4522.h`: handles, plain structs, and status codes over every entry point ([docs/api.md](docs/api.md#c-api)).
 
-Measured responses are in [docs/responses.md](docs/responses.md).
-
-Offline coefficient design and analysis tools live in [tools/](tools/) and use [uv](https://docs.astral.sh/uv/) with a locked Python 3.12 environment. They are not needed to build the library.
-
-## What this project models
-
-The AK4522 is a stereo ADC/DAC device. This project focuses on its **20-bit DAC section**, including:
-
-- Signed PCM conversion and stereo channel handling.
-- Digital interpolation and analog reconstruction response.
-- De-emphasis selections for 32, 44.1, and 48 kHz, plus OFF.
-- Digital soft mute with a documented 1024-DAC-frame full transition.
-- Active-low reset and clock configuration behavior.
-- Four serial input formats, through a separate conformance adapter.
-- Explicit conversion between the host sample rate and the emulated DAC rate.
-- Optional noise, distortion, channel mismatch, and voltage-output diagnostics.
-
-The emulated DAC operates from 16 to 48 kHz, the datasheet range. An opt-in extended range (`DacConfig::allowExtendedRate`) accepts up to 50.4 kHz for sources such as emulated systems that run slightly above 48 kHz; it is not documented chip behavior, and reports flag it. Planned host-rate support includes 44.1, 48, 88.2, 96, 176.4, and 192 kHz through sample-rate conversion. A higher host rate does not change the hardware's documented operating range.
-
-The ADC section is planned as a separate core in milestone M7, including its decimation filter, high-pass filter, initialization delay, serial output, and an optional DAC-to-ADC loopback. ADC behavior never enters the DAC model. External output amplifiers and coupling circuits are separate optional models.
+Measured responses are in [docs/responses.md](docs/responses.md). Offline coefficient design and analysis tools live in [tools/](tools/) and use [uv](https://docs.astral.sh/uv/) with a locked Python 3.12 environment; they are not needed to build the library.
 
 ## Fidelity and limitations
 
 The datasheet describes observable behavior and performance limits, but does not disclose all interpolation coefficients, modulator internals, analog filter parameters, or nonlinear characteristics. Meeting its published limits does not establish bit-exact silicon reproduction.
 
-The specification defines three model profiles:
+Model profiles:
 
 | Profile       | Purpose                                                                            | Evidence required                                                                |
 | ------------- | ---------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
@@ -119,42 +119,40 @@ The specification defines three model profiles:
 | NominalAnalog | Optional synthetic noise and imperfections targeting typical published performance | Calibrated software measurements and clearly labeled modeling assumptions        |
 | Measured      | Refinement against a particular physical device and circuit                        | Calibrated hardware captures, measurement conditions, and independent validation |
 
-These profiles are planned capabilities, not completed features. The initial default is the Specification profile with de-emphasis, mute, noise, and analog imperfections off, a 44.1 kHz DAC rate, and 20-bit input.
+Specification and NominalAnalog are implemented; Measured is not (M6 is deferred) and is rejected if requested. The default is the Specification profile with de-emphasis, mute, noise, and analog imperfections off, a 44.1 kHz rate, and 20-bit input.
+
+NominalAnalog is synthetic: it meets the datasheet's typical numbers (S/N, dynamic range, S/(N+D), isolation, mismatch), but the character of its noise and distortion is assumed, not measured. One disclosed deviation: with flat noise, the CCIR-ARM-weighted S/N is 97.3 dB against the datasheet's 96 dB typical, for each converter (DISC-08); the DAC-to-ADC loopback measures 94.2 dB against 94 dB typical. Every assumption, deviation, and uncertainty is recorded in [docs/assumptions.md](docs/assumptions.md) and [docs/evidence.md](docs/evidence.md).
 
 An explicit delta-sigma simulation is optional research work. A validated equivalent signal-processing model is acceptable for the baseline. Unverified internal circuitry must not be presented as the recovered AKM implementation.
 
-## Planned architecture
+## Architecture
 
 ```text
-Host audio
-    |
-    v
-Input sample-rate conversion
-    |
-    v
-DAC-rate PCM quantization
-    |
-    v
-De-emphasis and digital soft mute
-    |
-    v
-DAC interpolation and reconstruction model
-    |
-    v
-Optional analog imperfections
-    |
-    v
-Output sample-rate conversion and latency alignment
-    |
-    v
-Host audio
+host audio                              a source at its own clock
+    |                                             |
+HostProcessor                                 DacStream
+input SRC, 20-bit quantization                pull, or a push queue
+    |                                             |
+    +----------------------+----------------------+
+                           v
+DacCore: de-emphasis, soft mute, 8x interpolation, reconstruction,
+         optional NominalAnalog imperfections
+                           |
+                           +---------------------------+
+                           |                           v
+                           |      HostProcessor with path = loopback only:
+                           |      AdcCore: decimation, high-pass, 20-bit codes
+                           |                           |
+                           +-------------+-------------+
+                                         v
+           output SRC and latency alignment, optional Fig.11 circuit
+                                         |
+                                     host audio
 ```
 
-Decoded PCM and serial input adapters will feed the same DAC core. Plugin adapters, which live in separate projects, handle host automation, state, bypass, and latency reporting separately from chip behavior.
+`HostProcessor` can also feed host audio straight to `AdcCore` (`path = adc`). `DacCore` and `AdcCore` can be used alone at the chip's rate, and `SerialDecoder` and `SerialEncoder` convert between frames and the chip's serial pins. ADC behavior never enters the DAC model.
 
-The core must support continuous processing across arbitrary block boundaries without allocations, locks, blocking operations, file I/O, or coefficient generation on the audio thread. Noise generation, when enabled, must be reproducible from a stored seed.
-
-The intended toolchain is C++20 with CMake and CTest. The library does not depend on any plugin framework, and this repository contains no plugin code. A demo plugin (VST3, AU) is planned as a separate project that uses the packaged library and JUCE.
+Processing continues across arbitrary block sizes without allocations, locks, blocking, file I/O, or coefficient design on the audio thread. Noise is reproducible from a stored seed. Plugin adapters, which handle host automation, state, and bypass, live in separate projects.
 
 ## Development roadmap
 
@@ -166,8 +164,9 @@ The intended toolchain is C++20 with CMake and CTest. The library does not depen
 | M3        | Host-rate adaptation, event timing, reusable library, and streaming verification        |
 | M4        | Optional calibrated nominal analog profile                                              |
 | M5        | `DacStream` for sources at their own rate, C API, packaging, and integration guide       |
-| M6        | Hardware-characterized refinement when suitable measurements are available              |
+| M6        | Hardware-characterized refinement when suitable measurements are available (deferred)   |
 | M7        | ADC section, SDTO serial output, and optional DAC-to-ADC loopback                       |
+| Next      | Demo plugin (VST3, AU) as a separate project using the packaged library                 |
 
 Detailed requirements and acceptance gates are maintained in [AGENTS.md](AGENTS.md).
 
@@ -175,17 +174,17 @@ Progress: M0 (evidence ledger, build foundation, API proposal, requirement-to-te
 
 ## Verification
 
-Validation will cover both signal behavior and software integration:
+More than 300 automated tests run through CTest on macOS, Windows (ARM64 and x64), and Linux, plus a slower host-rate matrix and measurement gates that run the Python analysis tools on captured output. They cover:
 
-- PCM boundaries, serial framing, channel polarity, and clock timing.
-- Reset behavior and exact mute transition counts, including interrupted transitions.
-- De-emphasis response, filter stability, passband ripple, stopband images, and group delay.
-- Weighted noise, dynamic range, SINAD, gain mismatch, and crosstalk for applicable profiles.
-- Sample-rate conversion, alias containment, long-run frame counts, and block-size independence.
-- Plugin latency, automation, bypass alignment, state handling, and multiple instances.
-- Real-time allocation checks, numerical robustness, and measured CPU performance.
+- PCM boundaries and quantization, serial framing in all four modes, pin timing, clock validation, and reset.
+- Mute transitions including interrupted ones, de-emphasis response, filter response, stopband images, and group delay, against gates taken from the datasheet's filter tables.
+- A golden-output lock on the clean signal path.
+- Weighted noise, dynamic range, S/(N+D), mismatch, and crosstalk for the NominalAnalog profile of each converter.
+- Sample-rate conversion at every supported host rate against DAC rates from 16 to 48 kHz: alias containment, exact long-run frame counts, timing within 0.01 frame of the reported latency, and bitwise block-size independence.
+- Real-time safety (an allocation counter around the audio-thread calls of every entry point), a sanitizer preset (address and undefined behavior), ThreadSanitizer on the push queue, and a C API test compiled as C.
+- A consumer project built against the installed package, through `add_subdirectory`, as a shared library, and from pkg-config.
 
-Published hardware values, typical performance targets, and project-defined tolerances must remain distinguishable. Test results must state the model profile, rates, stimulus, bandwidth, weighting, and measurement method. Hardware fidelity claims require hardware evidence.
+The tests themselves were checked by mutation: deliberate faults were inserted into the code, and wherever a fault went unnoticed a test was added. Datasheet values, typical targets, and project tolerances are kept distinct, and every result in [docs/validation.md](docs/validation.md) states its profile, rates, stimulus, bandwidth, and method. One clean stereo instance uses about 2% of a core on the reference machine (Apple M1 Max).
 
 ## Working on the project
 
@@ -203,9 +202,9 @@ Keep credentials, build output, temporary analysis artifacts, and local recordin
 
 ## Reference material
 
-The primary hardware reference is the **AK4522 datasheet, Asahi Kasei, M0020-E-01, October 1998**. Page-level citations, numerical requirements, source discrepancies, and the source-file checksum are recorded in [AGENTS.md](AGENTS.md).
+The primary hardware reference is the **AK4522 datasheet, Asahi Kasei, M0020-E-01, October 1998**. It is not distributed with this project. Page-level citations, numerical requirements, source discrepancies, and the checksum of the copy used are recorded in [AGENTS.md](AGENTS.md) and [docs/evidence.md](docs/evidence.md).
 
-Keep the PDF and any extracted text or page images local and excluded from version control. Place a local copy at `reference/AK4522.PDF`; the repository ignores everything in `reference/` except its [README](reference/README.md), which records the expected checksum. The original project documentation, source citations, and engineering decisions belong in version control.
+To work with the datasheet locally, place a copy at `reference/AK4522.PDF`; the repository ignores everything in `reference/` except its [README](reference/README.md), which records the expected checksum. The original project documentation, source citations, and engineering decisions belong in version control.
 
 Engineering records:
 
