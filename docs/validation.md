@@ -1,6 +1,6 @@
 # Validation record
 
-Measurement methods, results, and known deviations. Every result states the model profile, rates, stimulus, bandwidth, weighting, and method where they apply. Published hardware values, typical targets, and project tolerances stay distinguishable (AGENTS.md section 13).
+Measurement methods, results, and known deviations. Commit hashes cited here belong to the published history; `tools/check_docs.py` checks that each one is a commit in it. Every result states the model profile, rates, stimulus, bandwidth, weighting, and method where they apply. Published hardware values, typical targets, and project tolerances stay distinguishable (AGENTS.md section 13).
 
 ## Environment
 
