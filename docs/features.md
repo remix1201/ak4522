@@ -353,11 +353,11 @@ Available on `main`: `DacCore` (DAC-rate PCM in, 8x the DAC rate out), `HostProc
 - **Purpose:** let other projects use the library as it is, without this repository's build (REQ-API-03).
 - **Status:** implemented and merged into `main`; approved 2026-10-16 (`m5-approved`).
 - **Usage:** [docs/integration.md](integration.md). `cmake --install` installs the library, headers, and a `find_package(ak4522)` config with the target `ak4522::ak4522`; `add_subdirectory` and FetchContent also work. Static by default; `BUILD_SHARED_LIBS=ON` builds a shared library. Alpha compatibility: the same minor version only.
-- **Examples** (each built and run by CTest, label `examples`): `host_processor_example.cpp` (effect), `dac_stream_example.cpp` (pull source at 112 MHz / 2304 with the extended range and a mute event), `dac_stream_push_example.cpp` (producer thread), `dac_core_example.cpp` (chip model alone, impulse delay), `c_api_example.c` (C).
+- **Examples** (each built and run by CTest, label `examples`): `host_processor_example.cpp` (effect), `dac_stream_example.cpp` (pull source at 112 MHz / 2304 with the extended range and a mute event), `dac_stream_push_example.cpp` (producer thread), `dac_core_example.cpp` (chip model alone, impulse delay), `host_adc_example.cpp` (`HostProcessor` on the loopback and ADC paths: latency, the initialization silence, and the tone level), `adc_core_example.cpp` (`AdcCore` alone: 516 zero frames at startup and after a PD pulse, a DC offset removed by the high-pass filter), `c_api_example.c` (C).
 - **Validation:** CTest label `package` builds `tests/package/consumer`, a separate project with a C++ and a C program, three ways: against this build installed to a prefix, through `add_subdirectory`, and against a shared library built and installed for the test; each program runs and checks its result. The shared case was confirmed to link the shared library.
 - **pkg-config:** the install includes a relocatable `lib/pkgconfig/ak4522.pc` (not with MSVC); `pkg-config --static --cflags --libs ak4522` also names the C++ standard library for C programs. CTest `package.pkgconfig` compiles the C consumer with those flags, without CMake, where pkg-config exists.
 - **Limitations:** no binary packages.
-- **Updated:** 2026-10-16.
+- **Updated:** 2026-10-17 (ADC examples).
 
 ## CPU benchmark
 

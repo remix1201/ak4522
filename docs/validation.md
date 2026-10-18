@@ -490,6 +490,16 @@ The mutation lists in `tools/mutations/` now name their source file and test lab
 
 Seventeen entries written in M1 to M4 no longer matched the code after later refactors and were updated; the M5 to M7 lists had not been committed and were added. The new check found three of those stale as well, from edits made after they were written.
 
+### 2026-10-17: ADC examples (branch `adc-examples`)
+
+Two examples for the README's ADC entry points, each built and run by CTest (labels `examples`, `adc`).
+
+| Check | Method | Result |
+| ----- | ------ | ------ |
+| `host_adc_example` | 1 kHz tone at amplitude 0.5, 48 kHz host, 44.1 kHz chip, paths `loopback` and `adc` | latency 151 and 131 host frames (44.0125 and 29.3125 chip frames); silent for the first 616 and 612 host frames (516 ADC frames plus buffering); amplitude 0.500 on both; exits 0 only if the amplitude is within 0.45 to 0.55 |
+| `adc_core_example` | 1 kHz sine at 1.0 V peak on a 0.3 V offset at 8x the rate, PD low for one frame at 3 s | 516 zero frames at startup and 517 after the pulse; peak code 349524 (1.0 V of 1.5 V); mean code 0.2 over the second before the pulse; exits 0 only if the zero counts and offset removal hold |
+| Full suite | macOS, debug build | 333 of 333 pass |
+
 ## M7 gate status
 
 M7 approved by the project owner on 2026-10-16 (tag `m7-approved`).
