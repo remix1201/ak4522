@@ -28,7 +28,7 @@ ak4522.h             C API over all of the above
 
 Decoded PCM and serial input feed the same `DacCore` (REQ-SCOPE-02). The plugin path never serializes samples.
 
-REQ-ARCH-01 names ten abstractions. Four are public types: `DacConfig`, `DacCore`, `Pcm20`, and `SerialDecoder`; `LatencyInfo` is a public data type. `Deemphasis`, `SoftMute`, `Reconstruction`, `AnalogProfile`, and `HostRateAdapter` are internal components under `src/`. They stay separable and individually tested, but users do not compose them directly, so they are not part of the public contract.
+Of the ten abstractions REQ-ARCH-01 names, `DacConfig`, `DacCore`, `Pcm20`, `SerialDecoder`, and `LatencyInfo` are public types, and the host-rate adapter is the public `HostProcessor`. `Deemphasis`, `SoftMute`, `Reconstruction`, and the analog profile are internal components under `src/`: separable and individually tested, but not composed by users, so not part of the public contract. The public API adds `DacStream`, `AdcCore`, `SerialEncoder`, `TimingValidator`, `ExampleOutputCircuit`, and the C API.
 
 ## Headers
 
@@ -74,14 +74,16 @@ In-place processing is supported when the input and output views refer to exactl
 | `HostProcessor::process`| N host frames          | N host frames                      | host frames    |
 | `DacStream::render`     | (from the source)      | N host frames                      | host frames    |
 | `DacStream::push`       | N DAC frames           | (queued)                           | DAC frames     |
+| `AdcCore::process`      | 8N samples at `inputRate()` | N `Pcm20Frame`                | ADC frames     |
+| `ExampleOutputCircuit::process` | N samples, in place | N samples                      | any rate       |
 
 Any N is valid, including 0 and 1. Blocks larger than the prepared maximum are processed in bounded internal chunks and counted in `Diagnostics::chunkedBlocks`.
 
-`HostProcessor` supports `float` and `double` host buffers (REQ-VST-01). Internal state is double (P-86).
+`HostProcessor` and `DacStream` support `float` and `double` host buffers (REQ-VST-01); `AdcCore` takes `double` input. Internal state is double (P-86).
 
 ## Events
 
-`ControlEvent` carries an offset, a pin, and a level. Offsets are in DAC frames for `DacCore` and host frames for `HostProcessor`, relative to the block start. Offsets must be less than the block length and must not decrease; otherwise the block is rejected with `eventOutOfRange` or `eventsNotSorted`.
+`ControlEvent` carries an offset, a pin, and a level. Offsets are in host frames for `HostProcessor`, in DAC frames for `DacCore` and `DacStream`, and in ADC frames for `AdcCore`, relative to the block start. Only PD affects the ADC. Offsets must be less than the block length and must not decrease; otherwise the block is rejected with `eventOutOfRange` or `eventsNotSorted`.
 
 Events on the same frame apply in `ControlType` order: PD, then DEM, then SMUTE (P-42). An SMUTE event at frame n changes direction before that frame's ramp update (P-52). Repeating the current level is accepted and ignored (P-53).
 
@@ -110,9 +112,9 @@ Events on the same frame apply in `ControlType` order: PD, then DEM, then SMUTE 
 
 ## C API
 
-`include/ak4522/ak4522.h` exposes `HostProcessor` and `DacStream` to C99 and later and to any language with a C foreign function interface (REQ-API-02). It adds no behavior; results are identical to the C++ classes.
+`include/ak4522/ak4522.h` exposes the library to C99 and later and to any language with a C foreign function interface (REQ-API-02): `HostProcessor`, `DacStream`, `AdcCore`, the serial decoder and encoder, the timing validator, and the example output circuit. It adds no behavior; results are identical to the C++ classes.
 
-- **Handles.** `ak4522_host_create` and `ak4522_stream_create` return opaque handles (NULL when out of memory); `*_destroy` frees them and ignores NULL. Create, prepare, and destroy off the audio thread.
+- **Handles.** `ak4522_host_create`, `ak4522_stream_create`, `ak4522_adc_create`, and the other `*_create` functions return opaque handles (NULL when out of memory); `*_destroy` frees them and ignores NULL. Create, prepare, and destroy off the audio thread.
 - **Configuration.** Plain structs mirroring the C++ ones. Fill them with `ak4522_dac_config_default`, `ak4522_host_config_default`, or `ak4522_stream_config_default`, then change fields. Enum fields take the `AK4522_*` constants; out-of-range values are rejected by `prepare`. `master_clock_hz` 0 means not given. The stream's exact rate is `dac_rate_numerator / dac_rate_denominator`; its `dac.dac_rate` is ignored.
 - **Status.** Every fallible call returns `ak4522_status`: the C++ `Status` values, plus `AK4522_INVALID_ARGUMENT` (a required pointer was NULL, or an event's type or value is out of range) and `AK4522_TOO_MANY_EVENTS`. `ak4522_status_string` describes any value.
 - **Buffers and events.** Planar channel pointers and a frame count, owned by the caller. Events are `ak4522_event` arrays; each call accepts at most `max_events_per_call` of them (default 256), converted into preallocated storage so the call stays allocation-free.
@@ -135,7 +137,9 @@ Events on the same frame apply in `ControlType` order: PD, then DEM, then SMUTE 
 
 `SerialDecoder::sclkRisingEdge(lrck, sdti)` is called once per SCLK rising edge with the levels latched on that edge (D-S05). It returns a completed `Pcm20Frame` at the end of each stereo frame, or reports an incomplete frame or insufficient bit clocks (P-21, P-22). The format is fixed until the next `prepare` (P-23).
 
-`TimingValidator::observe(edge)` consumes timestamped pin transitions and counts violations of the limits in D-T01 to D-T08, D-C02 to D-C04, and D-R03. It reports; it does not simulate metastability (P-24).
+`SerialEncoder::sclkFallingEdge(lrck)` produces SDTO for the ADC's frames in all four modes (P-109).
+
+`TimingValidator::observe(edge)` consumes timestamped pin transitions and counts violations of the limits in D-T01 to D-T08, D-C02 to D-C04, and D-R03, and clocks that stop while PD is high (D-C07, P-31); `advanceTo(time)` checks a time without an edge. It reports; it does not simulate metastability (P-24).
 
 ## Design decisions
 

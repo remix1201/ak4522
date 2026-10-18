@@ -11,6 +11,8 @@ Measurement methods, results, and known deviations. Commit hashes cited here bel
 | CMake      | 4.3.2                                         |
 | Catch2     | v3.16.0 (commit 317ac1ed)                     |
 | Python     | 3.12.15; numpy 2.5.4, scipy 1.18.1, matplotlib 3.11.2 |
+| Windows    | Windows 11 ARM64 in a virtual machine; MSVC 14.51 (Build Tools 2026), ARM64 and x64 builds |
+| Linux      | CentOS Stream 9 aarch64 in a virtual machine; GCC 11.5, CMake 3.31 |
 
 Reference machine for REQ-PERF-01 (P-93): Apple M1 Max, macOS 26.5.2, Apple clang 21.0.0, `release` preset. Approved by the project owner on 2026-10-16.
 
