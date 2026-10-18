@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 Ross Baker
+
 """Measure the NominalAnalog profile against the datasheet and write
 docs/analog_profile.md (M4 typical-target report, with the ADC added in M7).
 

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Ross Baker
+
 // Writes golden reference outputs of the clean Specification profile, so
 // later changes (such as the M4 analog models) can be proven not to alter
 // it. Values are hexadecimal doubles, one per line.

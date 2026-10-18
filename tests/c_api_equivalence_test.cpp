@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Ross Baker
+
 // The C API gives the same results as the C++ API it wraps (REQ-API-02).
 
 #include "ak4522/ak4522.h"

@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 Ross Baker
+
 # A project outside the library's build that uses it as any user would
 # (REQ-API-03): through find_package, or through add_subdirectory when
 # AK4522_SOURCE_DIR is given.

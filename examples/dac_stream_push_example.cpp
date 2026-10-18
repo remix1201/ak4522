@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Ross Baker
+
 // DacStream in push mode: a producer thread (standing in for an emulator that
 // runs on its own thread) pushes DAC frames into the stream's bounded queue,
 // and the audio thread renders host frames from it. The producer stays ahead

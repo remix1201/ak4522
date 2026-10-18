@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Ross Baker
+
 // Captures AdcCore output (left channel, normalized) as raw little-endian
 // doubles for the Python measurement tools; optionally through the DAC first.
 //

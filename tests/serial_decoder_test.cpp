@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Ross Baker
+
 // Serial SDTI decoder (REQ-SERIAL-01, REQ-SERIAL-03; D-S01 to D-S11, I-T01;
 // P-20, P-21, P-23). Bit streams come from an encoder in this file that
 // places each bit by its slot number, following [DS] Figures 1 to 4. It does

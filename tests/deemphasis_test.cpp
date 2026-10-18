@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Ross Baker
+
 // De-emphasis (REQ-DEEM-01 to REQ-DEEM-03; D-E01, D-E02, I-E01; P-60 to
 // P-64). The frequency-domain fit is checked against the analog reference
 // in tools/tests/test_generated_files.py; these tests check the

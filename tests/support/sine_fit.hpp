@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Ross Baker
+
 #pragma once
 
 // Least-squares sine fitting for converter and host-path measurements. Shared

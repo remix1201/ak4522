@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Ross Baker
+
 // The datasheet's example output circuit, Fig.11 (REQ-ANALOG-02; D-O02,
 // I-O02, I-O03, DISC-05; P-104). Expected responses come from the analog
 // transfer function of the drawn components, not from the implementation.

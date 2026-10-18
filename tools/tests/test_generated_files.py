@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 Ross Baker
+
 """Generated coefficient files must agree with their design reports and with
 the constants compiled into the C++ code, and still meet the response gates."""
 

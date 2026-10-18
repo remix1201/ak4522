@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 Ross Baker
+
 """Measure an impulse response against the DAC response gates.
 
 The input is an impulse response at the high (oversampled) rate for a unit

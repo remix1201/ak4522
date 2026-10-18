@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 Ross Baker
+
 """Tests for check_docs.py: each check must fail on a deliberately broken copy
 of the real documentation, and pass on an unmodified copy.
 
@@ -15,7 +18,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import check_docs  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
-COPIED = ["README.md", "AGENTS.md", "LICENSE", "docs", "include", "tests", "src", "examples",
+COPIED = ["README.md", "AGENTS.md", "CONTRIBUTING.md", "LICENSE", "docs", "include", "tests", "src", "examples",
           "reference/README.md", "tools/README.md"]
 
 
@@ -130,6 +133,11 @@ class CheckDocsTest(unittest.TestCase):
         run("checkout", "-q", "-")
         self.append("docs/api.md", f"\nAlso `{side}`.\n")
         self.assertFlags(f"cites commit {side}, which is not in the history of HEAD")
+
+    def test_missing_license_header(self):
+        path = self.root / "src/core/pcm.cpp"
+        path.write_text("\n".join(path.read_text(encoding="utf-8").splitlines()[2:]) + "\n", encoding="utf-8")
+        self.assertFlags("src/core/pcm.cpp: missing the licence header")
 
     def test_range_expansion(self):
         ids = check_docs.expand_ranges("D-T01 to D-T03 and P-10", r"D-[A-Z]\d{2}")

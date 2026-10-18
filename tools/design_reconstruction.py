@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 Ross Baker
+
 """Design the analog reconstruction model and the pipeline delay.
 
 The datasheet gives the DAC's analog filtering only as a second-order

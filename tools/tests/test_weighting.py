@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 Ross Baker
+
 """Weighting curves against their standards' published tables, and metrics
 against synthetic signals with known answers."""
 

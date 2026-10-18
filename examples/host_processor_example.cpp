@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Ross Baker
+
 // Minimal use of the AK4522 emulator from host code: a 1 kHz tone at 48 kHz
 // passes through the emulated DAC running at 44.1 kHz, with SMUTE raised
 // halfway through. Prints the reported latency and the output level before

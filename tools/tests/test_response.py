@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 Ross Baker
+
 """Tests for the response analysis. Each result is compared with an
 independent calculation: analytic responses, exact delays, or an FFT on a
 very dense grid instead of the direct DTFT used by the code under test."""

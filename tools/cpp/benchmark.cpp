@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Ross Baker
+
 // CPU benchmark for REQ-PERF-01 (P-93). Times every callback of one stereo
 // instance and reports the 50th and 99.9th percentile and the maximum as a
 // share of the callback period, plus callbacks that took longer than the

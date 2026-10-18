@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Ross Baker
+
 // AdcCore, the ADC section (REQ-ADC-01, REQ-ADC-03, REQ-ADC-05; AD-01, AD-05,
 // AD-09, AD-10, AD-13, AD-14, AD-19, I-AD04; P-105 to P-108). Timing and
 // levels are measured from sine fits, independent of the implementation.

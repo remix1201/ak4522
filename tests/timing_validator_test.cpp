@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Ross Baker
+
 // Serial and clock timing validator (REQ-SERIAL-02; D-T01 to D-T08, D-04,
 // D-C02 to D-C05, D-R03, I-T01; P-24, P-36). Limits are checked at the
 // datasheet value (passes) and just beyond it (fails).

@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 Ross Baker
+
 """Design the three de-emphasis filters and write their coefficients and report.
 
 Reference: H(s) = (1 + s*15e-6) / (1 + s*50e-6), unity at DC (D-E01, I-E01).

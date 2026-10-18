@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Ross Baker
+
 #pragma once
 
 // Output-side latency alignment and buffering shared by HostProcessor and

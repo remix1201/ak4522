@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Ross Baker
+
 // SDTO encoder (REQ-ADC-04; AD-11, AD-13, AD-15, AD-16, DISC-10; P-109). Slot
 // positions are checked against Figs.1 to 4 directly; modes 2 and 3 also
 // round-trip through SerialDecoder, whose SDTI formats match.

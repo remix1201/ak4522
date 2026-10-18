@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Ross Baker
+
 // Configuration validation (REQ-CLOCK-01, REQ-RATE-03; D-04, D-C01 to D-C05,
 // I-C01, I-C02; P-32, P-35; O-03).
 

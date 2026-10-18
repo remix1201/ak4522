@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 Ross Baker
+
 """Design the 8x interpolation filter and write its coefficients and report.
 
 Linear-phase FIR designed by linear programming. Constraints come straight

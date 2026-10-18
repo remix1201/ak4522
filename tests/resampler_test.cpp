@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Ross Baker
+
 // Sample-rate converter (REQ-RATE-02, REQ-RATE-04; P-33, P-34, P-37, P-38).
 // Quality is measured by least-squares sine fits on the output, independent
 // of the converter's implementation.

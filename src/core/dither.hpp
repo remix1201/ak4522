@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Ross Baker
+
 #pragma once
 
 // TPDF dither for host input before 20-bit or 16-bit quantization (P-12,

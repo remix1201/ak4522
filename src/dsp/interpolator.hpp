@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Ross Baker
+
 #pragma once
 
 // 8x linear-phase FIR interpolator (REQ-FILTER-01, D-02). Coefficients come

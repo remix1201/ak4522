@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 Ross Baker
+
 """Converter performance metrics with the conditions of [DS] p.5:
 measurement band 10 Hz to 20 kHz, 1 kHz signal, levels relative to a
 full-scale sine (D-A01 to D-A03, D-A11 to D-A13; AGENTS.md 13.2 gates 4 to 6).

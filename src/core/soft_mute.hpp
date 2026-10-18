@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Ross Baker
+
 #pragma once
 
 // Digital soft mute driven by the SMUTE pin (REQ-MUTE-01, REQ-MUTE-02).

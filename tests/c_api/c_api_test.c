@@ -1,3 +1,6 @@
+/* SPDX-License-Identifier: GPL-3.0-or-later */
+/* Copyright (C) 2026 Ross Baker */
+
 /* C API test, compiled as C99 (REQ-API-02). Exercises every function through
  * C only; the C++ equivalence test checks the output against the C++ API. */
 

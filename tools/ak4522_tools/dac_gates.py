@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 Ross Baker
+
 """DAC response gates from AGENTS.md section 13.2 and the evidence ledger.
 
 Every limit carries its source: D (datasheet), I (inferred), or P (project

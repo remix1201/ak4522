@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Ross Baker
+
 // Host-rate matrix verification (M3 gate: REQ-RATE-01 to REQ-RATE-04,
 // REQ-RT-01, REQ-LAT-03; P-33, P-34, P-38, P-39, P-84). Every supported host
 // rate against DAC rates 16, 32, 37.8, 44.1, and 48 kHz.

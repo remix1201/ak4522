@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 Ross Baker
+
 """Noise weighting curves and their application to sampled signals.
 
 A-weighting follows IEC 61672-1; the ITU-R 468 curve follows ITU-R BS.468-4.

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Ross Baker
+
 // The chip model alone: 20-bit PCM frames at the DAC rate in, the
 // reconstructed signal at 8x the DAC rate out. For callers that do their own
 // rate conversion. Feeds one full-scale impulse and reports where the output

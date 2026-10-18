@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Ross Baker
+
 // ADC decimator and high-pass filter (REQ-ADC-02; AD-03 to AD-07, AD-13,
 // I-AD02, I-AD03; P-105 to P-107). Expected values come from the committed
 // coefficients through explicit formulas, or from sine fits.

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Ross Baker
+
 // Measures the HostProcessor (wrapper) response at given frequencies with
 // least-squares sine fits and prints CSV: frequency, gain in dB relative to
 // 1 kHz, and phase delay in host frames. The reported latency is the first

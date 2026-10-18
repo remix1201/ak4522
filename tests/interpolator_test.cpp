@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Ross Baker
+
 // 8x interpolator (REQ-FILTER-01; D-02; P-87, P-88). The frequency-domain
 // gates are measured by tools/analyze_response.py on this implementation's
 // impulse response (CTest dsp.interpolator_response); these tests cover the

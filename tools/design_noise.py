@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 Ross Baker
+
 """Calibrate the NominalAnalog noise density and write it for the C++ code.
 
 White Gaussian noise with a one-sided power density N0 (full-scale units

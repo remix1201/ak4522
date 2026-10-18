@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Ross Baker
+
 // C API over HostProcessor and DacStream (REQ-API-02). Converts C structs to
 // the C++ types; no behavior of its own beyond argument checks.
 

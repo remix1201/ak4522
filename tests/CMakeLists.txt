@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 Ross Baker
+
 include(FetchContent)
 
 # Pinned to an exact release commit (v3.16.0) for reproducible builds.

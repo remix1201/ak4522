@@ -1,10 +1,14 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 Ross Baker
+
 """Consistency checks for the project's engineering records.
 
 Checks that evidence rows carry a class and a datasheet source, that every
 cited ID is defined, that every requirement in AGENTS.md is traced, that the
 datasheet checksum agrees everywhere it is recorded, that local links resolve,
-that cited commit hashes exist in the history of HEAD, and that project
-documentation contains no em or en dashes.
+that cited commit hashes exist in the history of HEAD, that every hand-written
+source file carries the licence header, and that project documentation
+contains no em or en dashes.
 
 Uses only the standard library so it runs under any Python 3.9 or later,
 without the tools/ environment. Exit status is 1 if any check fails.
@@ -21,7 +25,7 @@ import sys
 from pathlib import Path
 
 # Project documentation subject to the style and link checks.
-DOC_FILES = ["README.md", "AGENTS.md", "reference/README.md", "tools/README.md"]
+DOC_FILES = ["README.md", "AGENTS.md", "CONTRIBUTING.md", "reference/README.md", "tools/README.md"]
 DOC_DIRS = ["docs"]
 
 # Sources scanned for ID citations.
@@ -260,6 +264,31 @@ def check_commit_refs(root):
     return errors
 
 
+# Hand-written source files must start with the licence header. Generated
+# coefficients, design reports, test data, and JSON files are covered by
+# LICENSE and the README instead.
+HEADER_GLOBS = ["src/**/*.cpp", "src/**/*.hpp", "include/**/*.hpp", "include/**/*.h",
+                "tests/**/*.cpp", "tests/**/*.hpp", "tests/**/*.c", "examples/*.cpp", "examples/*.c",
+                "tools/*.py", "tools/ak4522_tools/*.py", "tools/tests/*.py", "tools/cpp/*.cpp",
+                "cmake/*.in", "**/CMakeLists.txt", ".github/workflows/*.yml"]
+SPDX_HEADER = "SPDX-License-Identifier: GPL-3.0-or-later"
+
+
+def check_license_headers(root):
+    errors = []
+    seen = set()
+    for pattern in HEADER_GLOBS:
+        for path in sorted(root.glob(pattern)):
+            parts = path.relative_to(root).parts
+            if path in seen or not path.is_file() or parts[0] == "build" or ".venv" in parts:
+                continue
+            seen.add(path)
+            head = path.read_text(encoding="utf-8").splitlines()[:3]
+            if not any(SPDX_HEADER in line for line in head):
+                errors.append(f"{path.relative_to(root)}: missing the licence header ({SPDX_HEADER})")
+    return errors
+
+
 def run(root):
     errors = []
     evidence = root / "docs/evidence.md"
@@ -268,6 +297,7 @@ def run(root):
     errors += check_checksums(root)
     errors += check_doc_style_and_links(root)
     errors += check_commit_refs(root)
+    errors += check_license_headers(root)
     return errors
 
 
