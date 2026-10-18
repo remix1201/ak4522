@@ -158,7 +158,7 @@ def check_citations(root):
 
     for path in citation_files(root):
         text = path.read_text(encoding="utf-8")
-        rel = path.relative_to(root)
+        rel = path.relative_to(root).as_posix()
         for kind, (pattern, owner) in ID_KINDS.items():
             # AGENTS.md defines its own D-xx tables; evidence.md must still cover them.
             for cited in sorted(expand_ranges(text, pattern) - defined[kind]):
@@ -214,7 +214,7 @@ def check_doc_style_and_links(root):
     errors = []
     for path in doc_files(root):
         text = path.read_text(encoding="utf-8")
-        rel = path.relative_to(root)
+        rel = path.relative_to(root).as_posix()
         for number, line in enumerate(text.splitlines(), start=1):
             if DASHES.search(line):
                 errors.append(f"{rel}:{number}: em or en dash in project documentation")
@@ -253,7 +253,7 @@ def check_commit_refs(root):
         return []
     errors = []
     for path in doc_files(root):
-        rel = path.relative_to(root)
+        rel = path.relative_to(root).as_posix()
         for number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
             for ref in COMMIT_REF.findall(line):
                 found = git(root, "rev-parse", "--verify", "--quiet", f"{ref}^{{commit}}")
@@ -285,7 +285,7 @@ def check_license_headers(root):
             seen.add(path)
             head = path.read_text(encoding="utf-8").splitlines()[:3]
             if not any(SPDX_HEADER in line for line in head):
-                errors.append(f"{path.relative_to(root)}: missing the licence header ({SPDX_HEADER})")
+                errors.append(f"{path.relative_to(root).as_posix()}: missing the licence header ({SPDX_HEADER})")
     return errors
 
 
