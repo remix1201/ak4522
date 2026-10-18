@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Ross Baker
+
 // Opt-in extended DAC rates up to 50.4 kHz (REQ-CLOCK-02, P-103). The model
 // keeps its normalized-frequency policy, so outside the documented range the
 // checks here are of consistency, not of datasheet conformance.

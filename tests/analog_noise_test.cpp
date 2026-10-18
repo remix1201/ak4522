@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Ross Baker
+
 // NominalAnalog noise (REQ-NOISE-01, REQ-NOISE-02; P-54, P-74, P-91, P-94,
 // P-95). The weighted S/N calibration is measured in Python (CTest label
 // analog); these tests cover the generator and its wiring into DacCore.

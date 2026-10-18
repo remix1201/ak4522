@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Ross Baker
+
 // NominalAnalog output stage: distortion, mismatch, crosstalk, DC offset
 // (REQ-DIST-01, REQ-CHANNEL-01, REQ-ANALOG-01, REQ-ANALOG-02; P-96 to P-99),
 // and the voltage and profile helpers. Levels are measured on DacCore's

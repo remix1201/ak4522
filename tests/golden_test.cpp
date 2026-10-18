@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Ross Baker
+
 // Regression lock for the clean Specification profile (REQ-SCOPE-03, P-01).
 // The outputs must match golden vectors generated before the NominalAnalog
 // models were added. Tolerance 1e-12 allows for compilers fusing

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Ross Baker
+
 #pragma once
 
 // The ADC's digital high-pass filter (REQ-ADC-02, AD-06): first order, -3 dB

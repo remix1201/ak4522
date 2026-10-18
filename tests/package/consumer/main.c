@@ -1,3 +1,6 @@
+/* SPDX-License-Identifier: GPL-3.0-or-later */
+/* Copyright (C) 2026 Ross Baker */
+
 /* Uses the installed C API. */
 
 #include <ak4522/ak4522.h>

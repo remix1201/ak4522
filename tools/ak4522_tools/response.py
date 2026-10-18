@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 Ross Baker
+
 """Frequency-response evaluation of sampled impulse responses.
 
 All functions take an impulse response h sampled at rate fs (Hz) and

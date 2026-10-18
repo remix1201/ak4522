@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 Ross Baker
+
 # AK4522 DAC emulation library. Relocatable: paths are relative to this file.
 prefix=${pcfiledir}/@AK4522_PC_PREFIX_FROM_PCDIR@
 libdir=${prefix}/@CMAKE_INSTALL_LIBDIR@

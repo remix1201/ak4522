@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 Ross Baker
+
 """Measure a capture from ak4522_capture with the validated metrics.
 
     uv run python measure_profile.py capture.f64 --rate 44100 --metric snr_a

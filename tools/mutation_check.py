@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 Ross Baker
+
 """Check that tests detect deliberate faults ("mutations") in the source code.
 
 Each list in tools/mutations/ names its target and the tests to run in two

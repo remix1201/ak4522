@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Ross Baker
+
 #pragma once
 
 // Digital de-emphasis at the DAC rate (REQ-DEEM-01 to REQ-DEEM-03, D-E01 to

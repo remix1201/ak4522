@@ -216,7 +216,9 @@ Engineering records:
 
 ## License and attribution
 
-This project is licensed under the GNU General Public License, version 3 or (at your option) any later version (SPDX: `GPL-3.0-or-later`). See [LICENSE](LICENSE). Review the licensing requirements of any plugin SDK or framework before distributing binaries built with it.
+Copyright (C) 2026 Ross Baker.
+
+This project is licensed under the GNU General Public License, version 3 or (at your option) any later version (SPDX: `GPL-3.0-or-later`). See [LICENSE](LICENSE). Contributions are welcome under the same terms; see [CONTRIBUTING.md](CONTRIBUTING.md). Review the licensing requirements of any plugin SDK or framework before distributing binaries built with it.
 
 The AK4522 datasheet is the manufacturer's copyrighted document and is not covered by this license or distributed with the source.
 

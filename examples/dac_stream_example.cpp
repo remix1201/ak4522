@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Ross Baker
+
 // A source at its own DAC rate, played at a host rate with DacStream in pull
 // mode. The source stands in for an instrument or an emulated system: a
 // 440 Hz square wave of 16-bit samples at 112 MHz / 2304 (about 48 611 Hz),

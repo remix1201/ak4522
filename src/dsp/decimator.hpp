@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Ross Baker
+
 #pragma once
 
 // 8x linear-phase FIR decimator for the ADC (REQ-ADC-02, AD-03 to AD-05).

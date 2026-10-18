@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 Ross Baker
+
 """ADC response gates from the evidence ledger (AD-03 to AD-07) and the
 M7 policies.
 

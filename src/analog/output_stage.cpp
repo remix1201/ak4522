@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Ross Baker
+
 #include "analog/output_stage.hpp"
 
 #include "analog/analog_noise.hpp"

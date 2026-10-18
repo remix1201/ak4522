@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Ross Baker
+
 #pragma once
 
 // NominalAnalog output noise (REQ-NOISE-01, REQ-NOISE-02, P-94). Synthetic:

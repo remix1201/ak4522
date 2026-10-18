@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Ross Baker
+
 // DacStream, a source at its own DAC rate played at a host rate (REQ-API-01,
 // REQ-RATE-02, REQ-LAT-03, REQ-RT-01; P-39, P-100 to P-102, I-P03). Expected
 // frame counts and timing are computed independently of the implementation.

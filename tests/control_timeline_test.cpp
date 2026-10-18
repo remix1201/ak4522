@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Ross Baker
+
 // Control timeline (REQ-CTRL-01, REQ-RESET-01, REQ-RESET-02; D-R01, D-R04,
 // D-R05; P-41, P-42, P-52, P-53, P-64, P-70 to P-72).
 

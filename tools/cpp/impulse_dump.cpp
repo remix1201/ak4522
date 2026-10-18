@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Ross Baker
+
 // Writes the impulse response of a C++ DSP component, one value per line with
 // full precision, so tools/analyze_response.py measures the implementation
 // rather than the design.

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Ross Baker
+
 // HostProcessor's ADC paths: loopback (DAC into ADC) and adc (host audio as
 // the ADC's input) (REQ-ADC-06, REQ-RATE-01, REQ-LAT-03; P-108, P-111).
 // Timing is measured from sine-fit phases, independent of the implementation.

@@ -1,3 +1,6 @@
+/* SPDX-License-Identifier: GPL-3.0-or-later */
+/* Copyright (C) 2026 Ross Baker */
+
 /*
  * C API for the AK4522 DAC emulation library (REQ-API-02).
  *

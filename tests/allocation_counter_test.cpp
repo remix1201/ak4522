@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Ross Baker
+
 // The allocation counter must see allocations, or the real-time tests that
 // rely on it prove nothing. Direct new and delete keep the expected counts
 // independent of standard-library internals (MSVC's debug containers, for

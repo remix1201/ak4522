@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Ross Baker
+
 #include "ak4522/host_processor.hpp"
 
 #include "ak4522/dac_core.hpp"

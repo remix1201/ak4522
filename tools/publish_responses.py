@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 Ross Baker
+
 """Measure the core and the wrapper responses and write docs/responses.md.
 
 The core (DacCore) is measured from its impulse response at the 8x rate at

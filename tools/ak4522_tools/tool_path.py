@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 Ross Baker
+
 """Locate a built executable in a CMake build directory on any platform:
 single-configuration generators put it at the top level; Visual Studio and
 Xcode put it under a configuration folder, with .exe on Windows."""

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Ross Baker
+
 // Pipeline delay and reconstruction sections (REQ-FILTER-02, REQ-LAT-02;
 // D-03; P-87, P-89). The response and 14.7-frame delay gates are measured on
 // the whole linear chain by tools/analyze_response.py (CTest

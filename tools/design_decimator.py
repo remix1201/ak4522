@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 Ross Baker
+
 """Design the ADC's 8x decimation filter and write its coefficients and report.
 
 Linear-phase FIR designed by linear programming, from the datasheet filter

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Ross Baker
+
 // Compile-time checks of the public API contract. These run before any
 // implementation exists and pin down documented mappings, defaults, and the
 // noexcept guarantees required by REQ-RT-02.

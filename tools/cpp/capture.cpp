@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Ross Baker
+
 // Captures HostProcessor output as raw little-endian doubles (left channel)
 // for the Python measurement tools.
 //

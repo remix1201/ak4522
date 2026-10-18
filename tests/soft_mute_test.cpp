@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Ross Baker
+
 // Soft mute (REQ-MUTE-01, REQ-MUTE-02; D-M02 to D-M04, I-M01; P-50 to P-53,
 // P-72). Expected gains are computed here from integer positions, not by the
 // component under test.

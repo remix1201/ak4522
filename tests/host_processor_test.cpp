@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Ross Baker
+
 // HostProcessor, the plugin-facing host-rate path (REQ-RATE-01 to
 // REQ-RATE-03, REQ-CTRL-01, REQ-LAT-01, REQ-LAT-03, REQ-VST-01, REQ-RT-01;
 // P-10, P-12, P-39, P-41, P-74, P-84). Timing is measured from sine-fit

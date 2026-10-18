@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Ross Baker
+
 // Portable 128-bit multiply-divide (P-37, P-41). Checked against hand-computed
 // values everywhere, and against the compiler's 128-bit integers where they exist.
 

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Ross Baker
+
 // PCM mapping and quantization (REQ-PCM-01 to REQ-PCM-03; D-P01, D-P02,
 // I-P01, I-P02; P-10). Expected values come from integer arithmetic or from
 // the C library's own rounding, never from the code under test.

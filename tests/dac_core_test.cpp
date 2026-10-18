@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Ross Baker
+
 // DacCore, the public chip model (REQ-ARCH-02, REQ-ARCH-03, REQ-RT-01,
 // REQ-RT-02, REQ-LAT-01; P-40, P-71, P-72). The frequency-response, image,
 // and delay gates are measured on DacCore's output by CTest

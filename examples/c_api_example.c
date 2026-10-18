@@ -1,3 +1,6 @@
+/* SPDX-License-Identifier: GPL-3.0-or-later */
+/* Copyright (C) 2026 Ross Baker */
+
 /* The host processor from C: a 1 kHz tone at 48 kHz through the emulated DAC
  * at 44.1 kHz. Prints the latency and the output peak.
  *
