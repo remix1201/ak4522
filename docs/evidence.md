@@ -25,7 +25,7 @@ Printed page numbers match PDF page numbers. The PDF is not committed; see [refe
 
 Confidence: **high** (explicit text or table value), **medium** (figure reading or single-source statement), **low** (ambiguous or conflicting).
 
-Test column names the planned Catch2 tag from AGENTS.md section 13.1. Status values: *planned*, *implemented*, *passing*, *failing*, *deviation*, *not modeled*, *informational*. *passing* means the linked test exists and passes where [features.md](features.md) records its availability. *not modeled* means the fact is recorded but deliberately has no software counterpart: it needs hardware data, describes a part of the chip outside the model, or would invent behavior. *informational* marks context with nothing to implement.
+Test column names the Catch2 tag or CTest label that checks the fact. Status values: *planned*, *implemented*, *passing*, *failing*, *deviation*, *not modeled*, *informational*. *passing* means the linked test exists and passes where [features.md](features.md) records its availability. *not modeled* means the fact is recorded but deliberately has no software counterpart: it needs hardware data, describes a part of the chip outside the model, or would invent behavior. *informational* marks context with nothing to implement.
 
 ## 1. Structure and operating conditions
 
@@ -122,7 +122,7 @@ D-A16 is a figure annotation, not a table value. It agrees with D-A12 and suppor
 | D-S09 | Mode 0 at 32fs: bits 15 to 0 fill the channel; at 64fs, don't care then bits 15 to 0 | D | p.9 Fig.1   | medium | REQ-SERIAL-01   | `[serial]` | passing |
 | D-S10 | Mode 1 at 64fs: don't care, then bits 19 to 0 ending at the channel boundary | D  | p.10 Fig.2             | medium | REQ-SERIAL-01   | `[serial]` | passing |
 | D-S11 | Mode 2 at 64fs: bits 19 to 0 from the channel boundary, then don't care  | D     | p.10 Fig.3             | medium | REQ-SERIAL-01   | `[serial]` | passing |
-| D-S12 | SDTO (ADC output) changes on SCLK falling edge; outside the DAC contract | D     | p.9                    | high   | REQ-SCOPE-01    | n/a        | planned (M7) |
+| D-S12 | SDTO (ADC output) changes on SCLK falling edge; produced by `SerialEncoder` (M7) | D     | p.9                    | high   | REQ-SCOPE-01    | `[sdto]` | passing |
 
 ### Serial timing (slave mode)
 
@@ -227,11 +227,11 @@ Filter values at fs = 44.1 kHz; frequencies scale with fs; response reference 1 
 | AD-05 | Group delay 29.3 / fs (typ), from analog input to both channels' 20-bit data in the output register; group delay distortion 0 us (typ) | D | p.6; note 11 | high | REQ-ADC-02 | `[adc]` | passing |
 | AD-06 | Digital HPF for DC offset cancellation: -3 dB at 0.9 Hz, -0.5 dB at 2.7 Hz, -0.1 dB at 6.0 Hz (typ) at 44.1 kHz; the cutoff scales with fs | D | p.6; p.10; p.15 | high | REQ-ADC-02 | `[adc]` | passing |
 | AD-07 | Passband and stopband frequencies scale with fs; the response reference is 1 kHz | D | p.6 note 10 | high | REQ-ADC-02 | `[adc]` | passing |
-| AD-08 | The inputs are sampled at 64fs; the digital filter rejects noise above the stopband except near multiples of 64fs; a simple RC filter (fc 150 kHz) may attenuate noise around 64fs | D | p.15 s.3 | high | REQ-ADC-02 | n/a | planned |
+| AD-08 | The inputs are sampled at 64fs; the digital filter rejects noise above the stopband except near multiples of 64fs; a simple RC filter (fc 150 kHz) may attenuate noise around 64fs | D | p.15 s.3 | high | REQ-ADC-02 | n/a | not modeled |
 | AD-09 | Over-range input gives 7FFFFh above positive full scale and 80000h below negative full scale; two's complement; ideal code 00000h with no input; DC offset removed by the HPF | D | p.15 s.3 | high | REQ-ADC-05 | `[adc]` | passing |
 | AD-10 | After PD is released an analog initialization cycle runs; SDTO becomes available after 516 LRCK cycles (p.12 text; tPDV 516 / fs in the typ column, counted in LRCK rising edges from PD rising); output is "0" during reset; a small click occurs at the end of initialization | D | p.7 note 14; p.12 Fig.6 notes 3, 4 | high | REQ-ADC-03 | `[adc]` | passing |
 | AD-11 | SDTO: 20-bit MSB justified in modes 0, 1, 2; I2S in mode 3; MSB first; changes on the SCLK falling edge; at 32fs the low bits are truncated (modes 0 and 3, AD-16, DISC-10) | D | p.9 Table 2; pp.9-10 Figs.1 to 4 | high | REQ-ADC-04 | `[sdto]` | passing |
-| AD-12 | SDTO timing: LRCK edge to SDTO MSB at most 40 ns; SCLK falling to SDTO at most 50 ns (max column) | D | p.7 | high | REQ-ADC-04 | n/a | planned |
+| AD-12 | SDTO timing: LRCK edge to SDTO MSB at most 40 ns; SCLK falling to SDTO at most 50 ns (max column) | D | p.7 | high | REQ-ADC-04 | n/a | not modeled |
 | AD-13 | Block diagram order per channel: modulator, decimation filter, HPF | D     | p.1 block diagram   | high   | REQ-ADC-02  | `[adc]` | passing |
 | AD-14 | Input range: differential nominally 0.3 x VREFH Vpp on each input; single-ended nominally 0.6 x VREFH Vpp on one input; inputs accept AGND to VA | D | p.15 s.3 | high | REQ-ADC-05 | `[adc]` | passing |
 | AD-15 | SDTO at 64fs: modes 0, 1, 2 carry bits 19 to 0 in the 20 bit clocks from the LRCK edge, then idle; mode 3 carries bit 19 in the slot after the LRCK edge through bit 0 in slot 20 | D | p.9 Fig.1; p.10 Figs.2 to 4 | medium | REQ-ADC-04 | `[sdto]` | passing |
@@ -263,7 +263,7 @@ Conditions as section 3, with differential inputs and 470 ohm source impedance [
 | AD-A08 | Input resistance                          | 20 kohm  | 30 kohm         |          | D     | p.5           | high  | n/a            | n/a        | not modeled |
 | AD-A09 | Power-supply rejection                    |          | 50 dB           |          | D     | p.5, note 8   | high  | n/a            | n/a        | not modeled |
 | AD-A10 | Single-ended input S/(N+D): 80 dB typical at VA = 5 V |  |                 |          | D     | p.5 note 4    | high  | REQ-ADC-05     | `[adc]`    | passing |
-| AD-A11 | 16-bit ADC DR and S/N: 98 dB              |          |                 |          | D     | p.5 note 5    | high  | REQ-ADC-07     | `[adc]`    | planned |
+| AD-A11 | 16-bit ADC DR and S/N: 98 dB              |          |                 |          | D     | p.5 note 5    | high  | REQ-ADC-07     | `[adc]`    | planned (16-bit output occurs only as SDTO at 32fs; not yet measured) |
 | AD-A12 | CCIR-ARM S/N: 96 dB for each converter; 94 dB for ADC-to-DAC loopback | |    |          | D     | p.5 note 6    | high  | REQ-ADC-06     | `[adc]`    | deviation per converter (97.3 dB, DISC-08); loopback passing (94.2 dB) |
 | AD-A13 | Full-scale input on each AIN+ and AIN- pin in differential mode: 1.5 Vpp | |     |          | D     | p.5 note 7    | high  | REQ-ADC-05     | `[adc]`    | passing |
 

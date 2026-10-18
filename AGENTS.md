@@ -126,7 +126,7 @@ Source discrepancy: p.5 labels output voltage `0.6 x VREFH`, while p.16 describe
 
 ### 5.1 Serial mode table
 
-All modes are MSB first and two's complement. SDTI is latched on SCLK rising edges; SDTO changes on falling edges [DS p.9]. SDTO belongs to the ADC and is outside this emulator's output contract.
+All modes are MSB first and two's complement. SDTI is latched on SCLK rising edges; SDTO changes on falling edges [DS p.9]. SDTO belongs to the ADC; see section 17.
 
 | Mode | DIF1 | DIF0 | DAC SDTI format               | LRCK left/right | Minimum SCLK                                |
 | ---- | ---: | ---: | ----------------------------- | --------------- | ------------------------------------------- |
@@ -174,7 +174,8 @@ include/ak4522/        Public framework-independent API
 src/core/             PCM, events, reset, mute, de-emphasis
 src/dsp/              Interpolation, reconstruction, SRC
 src/analog/           Optional voltage/noise/nonlinearity models
-src/serial/           Serial decoder and timing validator
+src/serial/           Serial decoder, SDTO encoder, and timing validator
+src/c_api/            C API over the public classes
 tests/                Unit, DSP, integration tests
  tools/               Coefficient design, analysis, benchmarks
  reference/           Source manifest and permitted reference material
@@ -389,7 +390,7 @@ Deliver the ADC evidence entries, `AdcCore`, SDTO serial encoder, ADC reset and 
 
 For each milestone, report changes, tests run, measured results, known deviations, and the next unmet gate. Completion means reproducible builds, passing applicable gates, documented assumptions, an up-to-date feature record and README, no hidden real-time violations, and an honest fidelity statement. Never represent an unmeasured approximation as the recovered AKM implementation.
 
-## 17. ADC section (planned, M7)
+## 17. ADC section (M7)
 
 The ADC converts analog input to 20-bit PCM on SDTO. It shares clocks, serial format pins, and PD with the DAC, but its signal path is independent [DS pp.1,12]. Everything in this section applies to `AdcCore` only. Every value below was verified against the [DS] text layer on 2026-10-16; `docs/evidence.md` section 12 holds the entries, column placements, and additional facts (AD-13 onward).
 
