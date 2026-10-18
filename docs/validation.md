@@ -272,6 +272,16 @@ Development note: the IEC 61672-1 table is tabulated at exact base-ten frequenci
 
 The datasheet pair implies -4.0 dB. No measurement effect accounts for the remaining 1.3 dB.
 
+**Noise shapes (DISC-08, 2026-10-17).** `tools/noise_shape_study.py` scales each candidate spectrum to 100 dB A-weighted and computes its CCIR-ARM S/N:
+
+| Spectrum | CCIR-ARM S/N |
+| -------- | -----------: |
+| White | 97.33 dB |
+| Rising tilt 1 + (f/fc)^2, fc = 30, 10, 3 kHz | 97.41, 97.81, 98.47 dB |
+| Peaking section at 7 kHz, Q 0.7, 8.0 dB (Q 1.0: 6.9 dB; Q 0.5: 10.0 dB) | 96.00 dB |
+
+A rising spectrum moves away from 96 dB because CCIR-ARM falls faster than A-weighting above 12.5 kHz (-18.5 dB relative at 20 kHz); the excess must sit where CCIR-ARM exceeds A-weighting, at most +6.9 dB near 8 kHz. Separately, two independent converters at 96 dB would give 93.0 dB in loopback against the 94 dB typical, so no single noise model meets all three CCIR-ARM figures. White noise misses the per-converter figure by 1.3 dB and the loopback by 0.2 dB. The owner declined a fitted shaped-noise option; the model stays white (P-94).
+
 ### 2026-10-16: NominalAnalog noise (branch `m4-noise`, merged into `main`)
 
 | Check | Method | Result |
