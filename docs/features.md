@@ -90,7 +90,7 @@ Available on `main`: `DacCore` (DAC-rate PCM in, 8x the DAC rate out), `HostProc
 
 - **Purpose:** reject invalid chip and host configurations before processing, with a specific `Status`.
 - **Requirements:** REQ-CLOCK-01, REQ-RATE-03; evidence D-04, D-05, D-C01 to D-C05, I-C01, I-C02; policies P-32, P-35; decision O-03.
-- **Implementation:** internal `detail::validate` in `src/core/config_validation.hpp`, for `DacConfig` and `HostConfig`. `DacCore::prepare` and `HostProcessor::prepare` will call it when they are implemented (M2, M3); it is not callable through the public API yet.
+- **Implementation:** internal `detail::validate` in `src/core/config_validation.hpp`, for `DacConfig` and `HostConfig`. `DacCore::prepare` and `HostProcessor::prepare` call it, so invalid configurations are rejected through the public API; it is not callable on its own.
 - **Rules:**
   - DAC rate in [16000, 48000] Hz, inclusive; NaN and infinity rejected (`invalidDacRate`). With `allowExtendedRate`, up to 50 400 Hz (P-103).
   - When `masterClockHz` is set, it must be finite and equal the CMODE ratio (256, 384, or 512) times the DAC rate within 1e-9 relative (`invalidMasterClock`). This implies the datasheet MCLK range, so there is no separate range check.
@@ -98,13 +98,13 @@ Available on `main`: `DacCore` (DAC-rate PCM in, 8x the DAC rate out), `HostProc
   - Host rate must be exactly 44.1, 48, 88.2, 96, 176.4, or 192 kHz (`unsupportedHostRate`); `maxBlockFrames` and `maxPendingEvents` must be non-zero.
 - **Validation:** 14 test cases in `tests/config_validation_test.cpp`, including the nine p.9 Table 1 clock values, MCLK endpoints at both rate limits, the synchronization tolerance on both sides, and NaN inputs. All eight deliberate mutations are detected (see [validation.md](validation.md)).
 - **Limitations:** every supported host rate works with every DAC rate, so there is no separate rate-pair check. Clock loss while running (D-C07) is a runtime fault reported by the timing validator, not a configuration check.
-- **Updated:** 2026-10-16.
+- **Updated:** 2026-10-18.
 
 ## Soft mute
 
 - **Purpose:** the SMUTE pin's digital attenuation ramp.
 - **Requirements:** REQ-MUTE-01, REQ-MUTE-02; evidence D-M02 to D-M04, I-M01; policies P-50 to P-53, P-72.
-- **Implementation:** internal `detail::SoftMute` in `src/core/soft_mute.hpp`. It is not connected to `DacCore` yet; the control timeline (M1) and `DacCore::process` (M2) will drive it.
+- **Implementation:** internal `detail::SoftMute` in `src/core/soft_mute.hpp`. `DacCore::process` drives it through the control timeline, so the SMUTE pin and `ControlEvent::softMute` reach it at exact DAC frames.
 - **Behavior:**
   - Integer position 0 to 1024; gain is position / 1024, so 0.0 and 1.0 are exact.
   - Each DAC frame moves one step toward the target. A full mute or release takes exactly 1024 frames: 32 ms at 32 kHz, 23.21995 ms at 44.1 kHz, 21.33333 ms at 48 kHz.
@@ -115,13 +115,13 @@ Available on `main`: `DacCore` (DAC-rate PCM in, 8x the DAC rate out), `HostProc
   - One ramp is shared by both channels.
 - **Validation:** 11 test cases in `tests/soft_mute_test.cpp` against an integer reference model, including full transitions, reversals after 1, 511, and 1023 frames with no gain step larger than 1/1024, reversal during release, repeated events, reset, and identical output across single-frame, mixed, and random block partitions. No allocations during processing. Seven deliberate mutations detected (`tools/mutation_check.py`, `tools/mutations/soft_mute.txt`). Passes in `dev` and `asan`.
 - **Limitations:** propagation through downstream filters, group delay, and residual analog noise while muted (D-M05, D-M06, P-54) are verified in M2 and M4, when those stages exist.
-- **Updated:** 2026-10-16.
+- **Updated:** 2026-10-18.
 
 ## Reset and control timeline
 
 - **Purpose:** apply PD, DEM, and SMUTE pin changes at exact DAC frames and split each block into runs of constant control state for the signal path.
 - **Requirements:** REQ-CTRL-01, REQ-RESET-01, REQ-RESET-02; evidence D-R01, D-R04, D-R05; policies P-42, P-52, P-53, P-64, P-70 to P-72.
-- **Implementation:** internal `detail::ControlTimeline` in `src/core/control_timeline.hpp`. `DacCore::process` will call it in M2; the host-to-DAC event mapping (P-41) is part of `HostProcessor` in M3.
+- **Implementation:** internal `detail::ControlTimeline` in `src/core/control_timeline.hpp`. `DacCore::process` calls it; `HostProcessor` maps host-rate events to DAC frames (P-41) before they reach it.
 - **Behavior:**
   - Events are validated first: offsets below the block length and non-decreasing, known types, pin values 0 or 1, DEM values 0 to 3. Any failure rejects the whole block with no state change.
   - Events on the same frame apply in the order PD, DEM, SMUTE regardless of array order; same-type events on one frame apply in array order.
@@ -131,7 +131,7 @@ Available on `main`: `DacCore` (DAC-rate PCM in, 8x the DAC rate out), `HostProc
   - Repeated levels on any pin are ignored and counted.
   - `reset(dem, smute)` is the software startup: release with the configured pin levels.
 - **Validation:** 12 test cases in `tests/control_timeline_test.cpp`, including all six array orders of a same-frame PD, DEM, SMUTE group, PD edges, latching during reset, no 516-frame delay, repeated levels, rejection without side effects, identical per-frame state across random block partitions, and no allocations. Eleven deliberate mutations detected. Passes in `dev` and `asan`.
-- **Updated:** 2026-10-16.
+- **Updated:** 2026-10-18.
 
 ## Serial decoder
 
@@ -146,8 +146,8 @@ Available on `main`: `DacCore` (DAC-rate PCM in, 8x the DAC rate out), `HostProc
   - Too few bit clocks in a half: `sclkRatioTooLow`, word discarded. A right word with no valid left word before it: `incompleteFrame`, nothing output.
   - The format is fixed until the next `prepare`.
 - **Validation:** 12 test cases in `tests/serial_decoder_test.cpp` against an encoder that places each bit by slot number from Figures 1 to 4, itself checked against those figures. All four modes at 16, 18, 20, 21, 24, 32, and 64 bit clocks per channel where valid (32fs to 128fs), 208 words each including both full-scale codes; unequal half lengths; the I2S boundary bit; startup alignment; short words; reset, including reset followed by a right-channel start; no allocations. Eleven deliberate mutations detected (`tools/mutations/serial_decoder.txt`). Passes in `dev` and `asan`.
-- **Limitations:** nanosecond timing is checked separately by the timing validator (planned). SDTO output belongs to the ADC (M7).
-- **Updated:** 2026-10-16.
+- **Limitations:** nanosecond timing is checked separately, by the [serial timing validator](#serial-timing-validator). SDTO output belongs to the ADC, through the [SDTO serial encoder](#sdto-serial-encoder-m7).
+- **Updated:** 2026-10-18.
 
 ## Serial timing validator
 
@@ -221,8 +221,8 @@ Available on `main`: `DacCore` (DAC-rate PCM in, 8x the DAC rate out), `HostProc
 - **Measured through the public API** (CTest `dsp.dac_core_response_44100`, at the datasheet's 44.1 kHz conditions against 1 kHz): passband ripple 0.058 dB, -0.058 dB at 20/44.1 fs, -6.000 dB at 0.5 fs, stopband and images 43.47 dB to the 8x Nyquist frequency, delay 14.700 DAC frames, combined response 0.058 dB.
 - **Behavior:** `prepare` validates the configuration and allocates; `process`, `reset`, `latency`, and `diagnostics` never allocate or throw. Blocks larger than the prepared maximum are processed in chunks. Rejected calls change no state. `latency()` reports 14.7 DAC frames. The NominalAnalog and Measured profiles and every analog imperfection flag are rejected with `invalidConfiguration` until they exist.
 - **Validation:** 17 C++ test cases: configuration and call validation, output equal to the component chain for three DEM selections, de-emphasis before the mute ramp, mute to exact silence after ramp and filter delay, PD zeros and clean restart, SMUTE latched through PD, DEM change at its frame, identical output for single-frame, mixed, and random partitions and for chunk sizes from 7 to 4000 frames, chunk and ignored-event counters, reset, latency, move, full-scale bound, and no allocations. Twelve deliberate mutations detected. Passes in `dev` and `asan`, including the response gates.
-- **Limitations:** no host-rate conversion yet (M3); no noise, distortion, or channel imperfections (M4).
-- **Updated:** 2026-10-16.
+- **Limitations:** the core runs at the DAC rate only; host-rate conversion is `HostProcessor`'s ([host-rate adaptation](#host-rate-adaptation)). The core is the clean linear model; noise, distortion, and channel imperfections are the optional NominalAnalog profile ([noise](#nominalanalog-noise), [output stage](#nominalanalog-output-stage)).
+- **Updated:** 2026-10-18.
 
 ## Sample-rate converter
 
@@ -288,8 +288,8 @@ Available on `main`: `DacCore` (DAC-rate PCM in, 8x the DAC rate out), `HostProc
 - **Model:** white Gaussian noise at a fixed physical density, added at 8x after the mute and before the reconstruction sections; independent per channel; present while muted; absent in power-down; continued across host resets.
 - **Measured** (CTest label `analog`, 10 s captures through `HostProcessor` at 44.1 kHz with `ak4522_capture` and `tools/measure_profile.py`): A-weighted S/N 100.006 dB (target 100 +/- 1); with a full-scale tone held muted by SMUTE, identical; CCIR-ARM 97.32 dB, the disclosed value for flat noise (96 dB typical, DISC-08).
 - **Validation:** 8 C++ test cases: level against density at three rates; zero mean, variance within 1 %, Gaussian kurtosis; channel correlation below 0.005; seed reproducibility; NominalAnalog without options equal to the clean profile; noise while muted and none in power-down; reset not reseeding; no allocations. Seven deliberate mutations detected; an eighth (both channels drawing alternately from one generator) was dropped as equivalent, since Box-Muller's paired outputs are independent.
-- **Limitations:** distortion, mismatch, crosstalk, and DC offset are next (`m4-imperfections`); the real noise spectrum, idle tones, and correlation are unknown (U-09).
-- **Updated:** 2026-10-16.
+- **Limitations:** distortion, mismatch, crosstalk, and DC offset are separate options ([output stage](#nominalanalog-output-stage)); the real noise spectrum, idle tones, and correlation are unknown (U-09).
+- **Updated:** 2026-10-18.
 
 ## NominalAnalog output stage
 
