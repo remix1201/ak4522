@@ -27,6 +27,7 @@ Each script writes coefficients under `src/` with a JSON design report (paramete
 - `dac_gates.py`: band edges scaled with the DAC rate, and the checks for passband ripple, passband edge, -6 dB point, stopband attenuation to the high-rate Nyquist frequency, delay, and combined response, each labeled with its evidence or policy ID.
 - `adc_gates.py`: the ADC's decimation and high-pass gates (AD-03 to AD-06, P-106, P-107).
 - `weighting.py` and `metrics.py`: A-weighting, ITU-R 468, and CCIR-ARM curves, and the S/N, dynamic-range, and S/(N+D) measurements.
+- `noise_shape_study.py` (in `tools/`): which noise spectra could meet both the A-weighted and CCIR-ARM figures; the analysis behind DISC-08, not part of the model.
 - `analyze_response.py`: command line. Input is an impulse response at the high rate for a unit impulse at the DAC rate (`.npy` or one value per line). Output is a JSON report; `--plot` writes a PNG.
 
 ```sh

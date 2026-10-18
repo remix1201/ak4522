@@ -12,7 +12,8 @@ equals the datasheet typical of 100 dB (D-A03):
 
 The density is physical, so it is the same at every DAC rate. Synthetic: the
 real noise spectrum is unknown (U-09); with this flat spectrum the CCIR-ARM
-S/N is 97.3 dB against 96 dB typical (DISC-08).
+S/N is 97.3 dB against 96 dB typical (DISC-08). noise_shape_study.py shows
+why no plausible shaped spectrum was adopted instead.
 
     cd tools && uv run python design_noise.py
 
