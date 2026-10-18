@@ -54,7 +54,7 @@ As a subproject the library builds no tests or examples and installs nothing unl
 | An analog-like signal to digitize at the ADC rate | `AdcCore` | normalized samples at 8x the ADC rate | 20-bit codes at the ADC rate |
 | A C program or another language | `ak4522/ak4522.h` | as above | as above |
 
-Each has an example: [examples/host_processor_example.cpp](../examples/host_processor_example.cpp), [examples/dac_stream_example.cpp](../examples/dac_stream_example.cpp) (pull), [examples/dac_stream_push_example.cpp](../examples/dac_stream_push_example.cpp) (push), [examples/dac_core_example.cpp](../examples/dac_core_example.cpp), and [examples/c_api_example.c](../examples/c_api_example.c).
+Each has an example: [examples/host_processor_example.cpp](../examples/host_processor_example.cpp), [examples/dac_stream_example.cpp](../examples/dac_stream_example.cpp) (pull), [examples/dac_stream_push_example.cpp](../examples/dac_stream_push_example.cpp) (push), [examples/dac_core_example.cpp](../examples/dac_core_example.cpp), [examples/host_adc_example.cpp](../examples/host_adc_example.cpp) (loopback and ADC paths), [examples/adc_core_example.cpp](../examples/adc_core_example.cpp), and [examples/c_api_example.c](../examples/c_api_example.c).
 
 ## Lifecycle and threads
 
