@@ -52,7 +52,7 @@ ctest --test-dir build/release -L matrix
 Install Visual Studio 2022 or later, or just its Build Tools (Build Tools 2026 works), with the "Desktop development with C++" workload, which includes CMake; on Windows on ARM also add the "MSVC ARM64 build tools" component. Then install Git and Python 3.9 or later. CMake picks the newest installed Visual Studio automatically. [uv](https://docs.astral.sh/uv/) is optional and enables the analysis-tool and response tests. In a Developer PowerShell (or any PowerShell; CMake finds Visual Studio itself):
 
 ```powershell
-git clone <repository> ak4522
+git clone https://github.com/remix1201/ak4522.git
 cd ak4522
 cmake --preset dev
 cmake --build --preset dev
