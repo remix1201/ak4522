@@ -4,7 +4,7 @@
 cmake_minimum_required(VERSION 3.24)
 
 project(ak4522
-    VERSION 0.0.1
+    VERSION 0.1.0
     DESCRIPTION "AKM AK4522VF DAC emulation library"
     LANGUAGES CXX)
 

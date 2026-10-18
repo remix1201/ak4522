@@ -2,7 +2,7 @@
 
 What exists in this branch, as distinct from what AGENTS.md specifies. Implementation, validation, approval, and availability are tracked separately: a feature can be implemented without being approved or released (REQ-DOC-01, REQ-DOC-02).
 
-Last substantive update: 2026-10-16. M0 to M5 were merged into `main` and approved by the project owner on 2026-10-16; the approved states are tagged `m0-approved` to `m5-approved`. M7 (the ADC section) was approved on 2026-10-16 and tagged `m7-approved`. M6 is deferred: the owner has no hardware access suitable for characterization (2026-10-16); the measured profile stays unavailable and `ModelProfile::measured` is rejected. The M5 approval includes the CPU reference machine (P-93).
+Last substantive update: 2026-10-17. Release `v0.1.0` (2026-10-17) is the first tagged release; it contains every feature below whose availability is "merged into `main`". M0 to M5 were merged into `main` and approved by the project owner on 2026-10-16; the approved states are tagged `m0-approved` to `m5-approved`. M7 (the ADC section) was approved on 2026-10-16 and tagged `m7-approved`. M6 is deferred: the owner has no hardware access suitable for characterization (2026-10-16); the measured profile stays unavailable and `ModelProfile::measured` is rejected. The M5 approval includes the CPU reference machine (P-93).
 
 ## Summary
 

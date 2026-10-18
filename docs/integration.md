@@ -17,7 +17,7 @@ cmake --install build --prefix /path/to/prefix
 Then in your project:
 
 ```cmake
-find_package(ak4522 0.0 REQUIRED CONFIG)   # with CMAKE_PREFIX_PATH=/path/to/prefix
+find_package(ak4522 0.1 REQUIRED CONFIG)   # with CMAKE_PREFIX_PATH=/path/to/prefix
 target_link_libraries(my_app PRIVATE ak4522::ak4522)
 ```
 
@@ -27,7 +27,7 @@ target_link_libraries(my_app PRIVATE ak4522::ak4522)
 add_subdirectory(third_party/ak4522)       # or:
 
 include(FetchContent)
-FetchContent_Declare(ak4522 GIT_REPOSITORY <repository> GIT_TAG <tag or commit>)
+FetchContent_Declare(ak4522 GIT_REPOSITORY https://github.com/remix1201/ak4522.git GIT_TAG v0.1.0)
 FetchContent_MakeAvailable(ak4522)
 
 target_link_libraries(my_app PRIVATE ak4522::ak4522)
@@ -39,7 +39,7 @@ As a subproject the library builds no tests or examples and installs nothing unl
 
 **Without CMake.** The install includes `lib/pkgconfig/ak4522.pc`: `cc main.c $(pkg-config --static --cflags --libs ak4522)` with `PKG_CONFIG_PATH` pointing at it.
 
-**Versions. During alpha only the same minor version is compatible (`find_package(ak4522 0.0)`), and any release may change the API.
+**Versions.** Releases are tagged `vMAJOR.MINOR.PATCH`; the first is `v0.1.0`. During alpha only the same minor version is compatible (`find_package(ak4522 0.1)` accepts 0.1.x), and any minor release may change the API.
 
 `tests/package/consumer` is a complete outside project, built by the test suite in all three ways.
 

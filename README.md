@@ -6,7 +6,7 @@ The model reproduces the behavior and limits the datasheet documents, and labels
 
 ## Status
 
-**Alpha.** Milestones M0 to M5 and M7 are complete and approved; see the [roadmap](#development-roadmap).
+**Alpha, version 0.1.0.** Milestones M0 to M5 and M7 are complete and approved; see the [roadmap](#development-roadmap). Releases are tagged on GitHub; `v0.1.0` is the first.
 
 | You want to                                                                                          | Use                                             | Example                                                                                                                        |
 | ---------------------------------------------------------------------------------------------------- | ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
@@ -52,7 +52,7 @@ ctest --test-dir build/release -L matrix
 Install Visual Studio 2022 or later, or just its Build Tools (Build Tools 2026 works), with the "Desktop development with C++" workload, which includes CMake; on Windows on ARM also add the "MSVC ARM64 build tools" component. Then install Git and Python 3.9 or later. CMake picks the newest installed Visual Studio automatically. [uv](https://docs.astral.sh/uv/) is optional and enables the analysis-tool and response tests. In a Developer PowerShell (or any PowerShell; CMake finds Visual Studio itself):
 
 ```powershell
-git clone <repository> ak4522
+git clone https://github.com/remix1201/ak4522.git
 cd ak4522
 cmake --preset dev
 cmake --build --preset dev
@@ -73,7 +73,7 @@ In a virtual machine, clone into a local folder rather than building from a shar
 
 ### Using it in another project
 
-`cmake --install build/release --prefix <prefix>` installs the library and a CMake package; then `find_package(ak4522)` and link `ak4522::ak4522`. `add_subdirectory` and FetchContent work too, and `BUILD_SHARED_LIBS=ON` builds a shared library. See the [integration guide](docs/integration.md).
+`cmake --install build/release --prefix <prefix>` installs the library and a CMake package; then `find_package(ak4522)` and link `ak4522::ak4522`. `add_subdirectory` and FetchContent (`GIT_TAG v0.1.0`) work too, and `BUILD_SHARED_LIBS=ON` builds a shared library. See the [integration guide](docs/integration.md).
 
 Continuous integration (`.github/workflows/ci.yml`) defines the same steps for macOS, Windows, and Linux. The test suite has also been run by hand on all three; see [docs/validation.md](docs/validation.md).
 

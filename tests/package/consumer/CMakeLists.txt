@@ -13,7 +13,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 if(AK4522_SOURCE_DIR)
     add_subdirectory(${AK4522_SOURCE_DIR} ak4522)
 else()
-    find_package(ak4522 0.0 REQUIRED CONFIG)
+    find_package(ak4522 0.1 REQUIRED CONFIG)
 endif()
 
 add_executable(consumer_cpp main.cpp)
