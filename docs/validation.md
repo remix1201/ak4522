@@ -500,6 +500,16 @@ Two examples for the README's ADC entry points, each built and run by CTest (lab
 | `adc_core_example` | 1 kHz sine at 1.0 V peak on a 0.3 V offset at 8x the rate, PD low for one frame at 3 s | 516 zero frames at startup and 517 after the pulse; peak code 349524 (1.0 V of 1.5 V); mean code 0.2 over the second before the pulse; exits 0 only if the zero counts and offset removal hold |
 | Full suite | macOS, debug build | 333 of 333 pass |
 
+### 2026-10-17: version 0.1.0 (branch `release-0.1.0`)
+
+The project version is 0.1.0, the first tagged release (`v0.1.0`). The package keeps `SameMinorVersion` compatibility, so `find_package(ak4522 0.1)` accepts 0.1.x and rejects 0.0 and 0.2.
+
+| Check | Method | Result |
+| ----- | ------ | ------ |
+| Version string | `ak4522_version()` and `versionString()` after a fresh configure | "0.1.0" |
+| Package | `tests/package/consumer` with `find_package(ak4522 0.1)`: installed, subdirectory, and shared | all three build and run (3 of 3) |
+| Full suite | macOS, fresh debug build | 333 of 333 pass |
+
 ## M7 gate status
 
 M7 approved by the project owner on 2026-10-16 (tag `m7-approved`).
