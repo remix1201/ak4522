@@ -1,7 +1,10 @@
 # Normalize text files; keep generated coefficient and golden data byte-stable
 # on every platform.
 * text=auto
-*.inc text eol=lf
+# The .inc coefficient tables are written by tools/design_*.py; marking them
+# generated keeps them out of GitHub's language statistics and collapses them
+# in diffs (GitHub otherwise guesses Pawn from the extension).
+*.inc text eol=lf linguist-generated=true
 *.json text eol=lf
 tests/data/*.txt text eol=lf
 *.PDF binary
